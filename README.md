@@ -11,7 +11,7 @@ A baby tracker for feeds, sleep, diapers, growth, teeth and health, shared live 
 
 ## Setup
 
-Plan on about 20 minutes.
+Plan on about 10 minutes.
 
 ---
 
@@ -38,25 +38,16 @@ This creates:
 
 Access rules are built in. People only see babies they belong to, and view-only members can't change anything.
 
-## 3. Set up sign-in emails (required for your coparent)
+## 3. Turn off email confirmation
 
-Nestling signs people in with an emailed link instead of a password.
-Supabase's built-in email sender only sends to members of your Supabase team, with a very low hourly limit. **Your coparent won't get their link until you connect your own email sender.**
+Nestling uses email and password, so no email service is needed. Each parent creates their own account.
 
-1. Make a free account with an email service that offers SMTP, such as **Brevo** or **Resend**.
-   If jemmyop already sends email through one, reuse it.
-2. In Supabase, go to **Authentication → Emails → SMTP Settings** and turn on **Custom SMTP**.
-3. Enter the host, port, username and password from that service. Set the sender to an address on a domain you've verified with it, like `hello@yourdomain.com`.
+1. In Supabase, go to **Authentication → Sign In / Providers → Email**.
+2. Turn **Confirm email** off and click **Save**.
 
-## 4. Tell Supabase your website address
+With this off, Supabase never sends an email. Creating an account signs you in right away.
 
-1. Go to **Authentication → URL Configuration**.
-2. Set **Site URL** to where Nestling will live, for example `https://nestling.yourdomain.com`.
-3. Add the same address under **Redirect URLs**.
-
-If the address isn't listed here, sign-in links won't open the app.
-
-## 5. Add your keys to config.js
+## 4. Add your keys to config.js
 
 1. In Supabase, go to **Project Settings → API**.
 2. Copy the **Project URL** and the **anon public** key.
@@ -74,18 +65,18 @@ Never paste the `service_role` key here.
 
 Click **Commit changes**. That's the only edit you make.
 
-## 6. Put it online
+## 5. Put it online
 
 Host this repo the same way you host jemmyop. `index.html` and `config.js` must sit side by side.
 
-With GitHub Pages: **Settings → Pages → Deploy from a branch → main → / (root) → Save**. The site appears at `https://l3x509.github.io/Baby-App/` within a minute or two. Use that exact address in step 4.
-Open the site, sign in with your email, and add your baby.
+With GitHub Pages: **Settings → Pages → Deploy from a branch → main → / (root) → Save**. The site appears at `https://l3x509.github.io/Baby-App/` within a minute or two.
+Open the site, tap **Sign in**, choose **Create account**, and add your baby.
 
-## 7. Invite your coparent
+## 6. Invite your coparent
 
 1. Go to **Settings → Family** and choose **Log entries**. Choose **Only view** for a grandparent who should only watch.
 2. Click **Create invite code** and send the link.
-3. Your coparent opens the link, signs in with their email, adds their name and taps **Join**.
+3. Your coparent opens the link, chooses **Create account**, adds their name and taps **Join**.
 
 Each code works once and expires after 7 days. Make a new one for each person.
 To remove someone, use **Remove** next to their name in Family.
@@ -106,8 +97,8 @@ Replace `index.html` whenever there's a new version. Your log and your keys stay
 
 | What you see | What to check |
 |---|---|
-| The sign-in email never arrives | Step 3 (Custom SMTP) and your spam folder |
-| The link opens a "page not found" or the wrong site | Step 4 (Site URL and Redirect URLs) |
 | "Couldn’t reach the sync service" | The keys in `config.js`, or your internet connection |
 | A new entry doesn't show on the other phone right away | Database → Publications → `supabase_realtime` should include `entries`, `babies` and `baby_members`. The app also refreshes when you come back to it. |
+| "Supabase is still set to confirm emails" | Step 3: turn off Confirm email |
+| Forgot your password | There's no reset email. In Supabase, go to **Authentication → Users**, find the account, and use **Send password recovery** if it's your own email, or ask me to add a reset option. Don't delete the account; that also deletes the baby's log it created. |
 | "Invite code was already used" | Make a new code. Each one works for one person. |

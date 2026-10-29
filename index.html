@@ -1229,7 +1229,7 @@ document.addEventListener('click', async ev=>{
   if(t.dataset.tooth){ openTooth(t.dataset.tooth); return; }
   const a=t.dataset.act, id=t.dataset.id, now=Date.now();
   const e=id && state.entries.find(x=>x.id===id);
-  if(a==='setup'){ if(sb && !session) openSignIn('Sign in so your log is saved and can be shared with family.'); else openSetup(); }
+  if(a==='setup'){ if(sb && !session) openSignIn('Sign in or create an account so your log is saved and shared with your coparent.'); else openSetup(); }
   else if(a==='addBaby') openSetup(true);
   else if(a==='joinOpen') openJoin();
   else if(a==='signout'){ try{ await sb.auth.signOut(); }catch(e){} }
@@ -1307,11 +1307,23 @@ document.addEventListener('submit', async ev=>{
     } else await safe(()=>store.setProfile(p),'Profile saved');
   }
   if(f.id==='signinForm'){
-    const email=val('si_email').trim(), st=document.getElementById('siStatus'), b=f.querySelector('button[type=submit]');
-    if(!email) return; b.disabled=true; st.textContent='Sending…';
-    const {error}=await sb.auth.signInWithOtp({email, options:{emailRedirectTo: location.origin+location.pathname}});
-    if(error){ st.textContent = /rate|seconds/i.test(error.message) ? 'Too many tries. Wait a minute, then send another link.' : `Couldn’t send the link: ${error.message}`; b.disabled=false; }
-    else { st.innerHTML=`Check your email. We sent a sign-in link to <b>${esc(email)}</b>. Open it on this device.`; b.textContent='Send again'; b.disabled=false; }
+    const email=val('si_email').trim(), password=val('si_pass'), mode=radio('si_mode')||'in', st=document.getElementById('siStatus'), b=f.querySelector('button[type=submit]');
+    if(!email || !password) return;
+    if(password.length<6){ st.textContent='Use a password with at least 6 characters.'; return; }
+    b.disabled=true; st.textContent = mode==='up' ? 'Creating your account…' : 'Signing in…';
+    const CONFIRM='Supabase is still set to confirm emails. In Supabase, go to Authentication → Sign In / Providers → Email, turn off “Confirm email”, save, and try again.';
+    const res = mode==='up' ? await sb.auth.signUp({email,password}) : await sb.auth.signInWithPassword({email,password});
+    const err=res.error, msg=err?.message||'';
+    if(err){
+      st.textContent = /invalid login credentials/i.test(msg) ? 'Wrong email or password. New here? Choose Create account.'
+        : /already registered|already exists/i.test(msg) ? 'That email already has an account. Choose I have an account.'
+        : /at least|weak|password should/i.test(msg) ? 'Use a longer password (at least 6 characters).'
+        : /not confirmed/i.test(msg) ? CONFIRM
+        : /rate|too many/i.test(msg) ? 'Too many tries. Wait a minute, then try again.'
+        : `Couldn’t sign in: ${msg}`;
+      b.disabled=false;
+    } else if(mode==='up' && !res.data?.session){ st.textContent=CONFIRM; b.disabled=false; }
+    // success: the sign-in listener closes this box and loads your log
   }
   if(f.id==='joinForm'){
     const code=val('j_code').trim(), name=val('j_name').trim(), st=document.getElementById('joinStatus'), b=f.querySelector('button[type=submit]');
@@ -1352,10 +1364,12 @@ function clearJoin(){ try{ localStorage.removeItem(JKEY); }catch(e){} }
 function openSignIn(msg){
   openModal(`<h3 style="--c:var(--accent)">Sign in to Nestling</h3>
   <form class="form" id="signinForm">${msg?`<p>${esc(msg)}</p>`:''}
+    ${F.seg('si_mode','',[['in','I have an account'],['up','Create account']],'in')}
     <label class="field"><span>Email</span><input type="email" id="si_email" autocomplete="email" inputmode="email" required placeholder="you@example.com"></label>
-    <p class="note">We’ll email you a sign-in link, so there’s no password to remember. Open the link on this device.</p>
+    <label class="field"><span>Password</span><input type="password" id="si_pass" autocomplete="current-password" required minlength="6" placeholder="At least 6 characters"></label>
+    <p class="note">Each parent makes their own account. Save your password somewhere safe; there’s no reset email.</p>
     <div id="siStatus" class="note" role="status"></div>
-    <div class="actions"><div class="r"><button type="button" class="btn ghost" data-close="1">Cancel</button><button type="submit" class="btn primary">Email me a link</button></div></div></form>`);
+    <div class="actions"><div class="r"><button type="button" class="btn ghost" data-close="1">Cancel</button><button type="submit" class="btn primary">Continue</button></div></div></form>`);
 }
 function openJoin(code){
   openModal(`<h3 style="--c:var(--accent)">Join a baby’s log</h3>
