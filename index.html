@@ -384,7 +384,10 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 
 const U = {
   imp(){ return state.profile?.units !== 'metric'; },
-  vol(ml){ return ml==null?'':U.imp() ? `${(ml/29.5735).toFixed(1)} oz` : `${Math.round(ml)} ml`; },
+  vol(ml){ return U.volAs(ml, U.imp()?'oz':'ml'); },
+  volAs(ml,u){ if(ml==null) return ''; return u==='oz' ? `${+(ml/29.5735).toFixed(1)} oz` : `${Math.round(ml)} ml`; },
+  volTo(ml,u){ if(ml==null) return ''; return u==='oz' ? +(ml/29.5735).toFixed(1) : Math.round(ml); },
+  volFrom(v,u){ return v===''||v==null||isNaN(v) ? null : (u==='oz' ? +v*29.5735 : +v); },
   volIn(v){ return v===''||v==null||isNaN(v)?null: U.imp()? +v*29.5735 : +v; },
   volOut(ml){ return ml==null?'': U.imp()? +(ml/29.5735).toFixed(1) : Math.round(ml); },
   volU(){ return U.imp()?'oz':'ml'; },
@@ -426,9 +429,9 @@ function breastTotals(e, now=Date.now()){
 function entrySummary(e){
   switch(e.type){
     case 'breast': { const t=breastTotals(e); const parts=[]; if(t.L) parts.push(`L ${fmtDur(t.L)}`); if(t.R) parts.push(`R ${fmtDur(t.R)}`); return (e.end==null?'In progress · ':'')+(parts.join(' · ')||'—'); }
-    case 'bottle': return [U.vol(e.amount), e.contents==='formula'?'Formula':e.contents==='breastmilk'?'Breast milk':''].filter(Boolean).join(' · ');
+    case 'bottle': return [U.volAs(e.amount, e.volUnit||(U.imp()?'oz':'ml')), e.contents==='formula'?'Formula':e.contents==='breastmilk'?'Breast milk':''].filter(Boolean).join(' · ');
     case 'solids': return [e.food, e.amountText, e.reaction && e.reaction!=='neutral' ? ({liked:'Liked it',disliked:'Disliked',reaction:'⚠ Reaction'}[e.reaction]) : ''].filter(Boolean).join(' · ');
-    case 'pump': return [e.left!=null?`L ${U.vol(e.left)}`:'', e.right!=null?`R ${U.vol(e.right)}`:'', (e.left||0)+(e.right||0)?`Total ${U.vol((e.left||0)+(e.right||0))}`:'', e.duration?`${e.duration} min`:''].filter(Boolean).join(' · ');
+    case 'pump': { const vu=e.volUnit||(U.imp()?'oz':'ml'); return [e.left!=null?`L ${U.volAs(e.left,vu)}`:'', e.right!=null?`R ${U.volAs(e.right,vu)}`:'', (e.left||0)+(e.right||0)?`Total ${U.volAs((e.left||0)+(e.right||0),vu)}`:'', e.duration?`${e.duration} min`:''].filter(Boolean).join(' · '); }
     case 'sleep': return e.end==null ? `Asleep · ${fmtDur(Date.now()-e.start)}` : `${fmtDur(e.end-e.start)} · until ${fmtTime(e.end)}${e.kind==='night'?' · Night':''}`;
     case 'diaper': return ({wet:'Wet',dirty:'Dirty',mixed:'Wet + dirty',dry:'Dry'}[e.kind]||'')+(e.color?` · ${e.color}`:'');
     case 'potty': return ({pee:'Pee',poo:'Poo',both:'Pee + poo',none:'Tried, nothing'}[e.result]||'');
@@ -1057,13 +1060,14 @@ const val = id => document.getElementById(id)?.value;
 const radio = n => document.querySelector(`input[name="${n}"]:checked`)?.value;
 const numv = id => { const v=val(id); return v===''||v==null?null:+v; };
 
+const volUnitFor = e => e.volUnit || prefs.volUnit || (U.imp()?'oz':'ml');
 function fieldsFor(type, e){
   const now=Date.now();
   switch(type){
     case 'breast': return F.time('f_start','Started',e.start||now-15*MIN)+`<div class="row2">${F.num('f_l','Left',e.left!=null?Math.round(e.left/MIN):'', 'min','1')}${F.num('f_r','Right',e.right!=null?Math.round(e.right/MIN):'','min','1')}</div>`+F.text('f_note','Note',e.note);
-    case 'bottle': return F.time('f_start','Time',e.start||now)+F.num('f_amt','Amount',U.volOut(e.amount),U.volU())+F.seg('contents','Contents',[['breastmilk','Breast milk'],['formula','Formula'],['other','Other']],e.contents||'breastmilk')+F.text('f_note','Note',e.note);
+    case 'bottle': { const vu=volUnitFor(e); return F.time('f_start','Time',e.start||now)+`<div class="row2" style="align-items:end">${F.num('f_amt','Amount',U.volTo(e.amount,vu),'')}${F.seg('vunit','Unit',[['oz','oz'],['ml','ml']],vu)+`<input type="hidden" id="f_vprev" value="${vu}">`}</div>`+F.seg('contents','Contents',[['breastmilk','Breast milk'],['formula','Formula'],['other','Other']],e.contents||'breastmilk')+F.text('f_note','Note',e.note); }
     case 'solids': return F.time('f_start','Time',e.start||now)+F.text('f_food','Food',e.food,'e.g. mashed banana')+F.text('f_amtt','Amount',e.amountText,'e.g. 2 tbsp')+F.seg('reaction','How it went',[['liked','Liked'],['neutral','Okay'],['disliked','Disliked'],['reaction','Reaction']],e.reaction||'liked')+F.text('f_note','Note',e.note);
-    case 'pump': return F.time('f_start','Time',e.start||now)+`<div class="row2">${F.num('f_l','Left',U.volOut(e.left),U.volU())}${F.num('f_r','Right',U.volOut(e.right),U.volU())}</div>`+F.num('f_dur','Duration',e.duration,'min','1')+F.text('f_note','Note',e.note);
+    case 'pump': { const vu=volUnitFor(e); return F.time('f_start','Time',e.start||now)+F.seg('vunit','Unit',[['oz','oz'],['ml','ml']],vu)+`<input type="hidden" id="f_vprev" value="${vu}">`+`<div class="row2">${F.num('f_l','Left',U.volTo(e.left,vu),'')}${F.num('f_r','Right',U.volTo(e.right,vu),'')}</div>`+F.num('f_dur','Duration',e.duration,'min','1')+F.text('f_note','Note',e.note); }
     case 'sleep': return F.seg('kind','Type',[['nap','Nap'],['night','Night sleep']],e.kind||(new Date().getHours()>=19||new Date().getHours()<6?'night':'nap'))+F.time('f_start','Fell asleep',e.start||now-60*MIN)+F.time('f_end','Woke up (leave empty if still asleep)',e.id?e.end:now)+F.text('f_note','Note',e.note);
     case 'diaper': return F.time('f_start','Time',e.start||now)+F.seg('kind','Diaper',[['wet','Wet'],['dirty','Dirty'],['mixed','Both'],['dry','Dry']],e.kind||'wet')+F.text('f_color','Color / consistency',e.color,'optional')+F.text('f_note','Note',e.note);
     case 'potty': return F.time('f_start','Time',e.start||now)+F.seg('result','Result',[['pee','Pee'],['poo','Poo'],['both','Both'],['none','Nothing']],e.result||'pee')+F.text('f_note','Note',e.note);
@@ -1082,9 +1086,9 @@ function readFields(type){
   const start=fromInput(val('f_start'))||Date.now(); const note=val('f_note')?.trim()||undefined;
   switch(type){
     case 'breast': { const l=numv('f_l'), r=numv('f_r'); const L=(l||0)*MIN, R=(r||0)*MIN; return {start,end:start+L+R,left:L,right:R,active:null,activeSince:null,note}; }
-    case 'bottle': return {start,amount:U.volIn(val('f_amt')),contents:radio('contents'),note};
+    case 'bottle': return {start,amount:U.volFrom(val('f_amt'),radio('vunit')),volUnit:radio('vunit'),contents:radio('contents'),note};
     case 'solids': return {start,food:val('f_food').trim(),amountText:val('f_amtt').trim(),reaction:radio('reaction'),note};
-    case 'pump': return {start,left:U.volIn(val('f_l')),right:U.volIn(val('f_r')),duration:numv('f_dur'),note};
+    case 'pump': return {start,left:U.volFrom(val('f_l'),radio('vunit')),right:U.volFrom(val('f_r'),radio('vunit')),volUnit:radio('vunit'),duration:numv('f_dur'),note};
     case 'sleep': { const end=fromInput(val('f_end')); return {start,end: end && end>start ? end : null,kind:radio('kind'),note}; }
     case 'diaper': return {start,kind:radio('kind'),color:val('f_color').trim()||undefined,note};
     case 'potty': return {start,result:radio('result'),note};
@@ -1295,6 +1299,11 @@ document.addEventListener('change', ev=>{
     return;
   }
   if(t.id==='babySel'){ if(t.value && t.value!==baby?.id) openBaby(t.value); return; }
+  if(t.name==='vunit'){
+    const prev=val('f_vprev'), next=t.value; if(prev===next) return;
+    ['f_amt','f_l','f_r'].forEach(id=>{ const el=document.getElementById(id); if(el && el.value!==''){ el.value=U.volTo(U.volFrom(el.value,prev),next); } });
+    document.getElementById('f_vprev').value=next; prefs.volUnit=next; savePrefs(); return;
+  }
   if(!t.name || !t.name.startsWith('s_')) return;
   if(t.name==='s_units'){ if(state.canWrite && state.profile) safe(()=>store.setProfile({...state.profile,units:t.value}),'Units updated'); return; }
   if(t.name==='s_accent') prefs.accent=t.value;
