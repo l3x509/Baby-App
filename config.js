@@ -10,6 +10,6 @@
    Leave both empty to run without sync (entries stay in this browser).
    ===================================================================== */
 window.NESTLING_CONFIG = {
-  supabaseUrl: "",
-  supabaseAnonKey: ""
+  supabaseUrl: "https://gdjcmrzfdrqqqmveldii.supabase.co",
+  supabaseAnonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdkamNtcnpmZHJxcXFtdmVsZGlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMyMzY1NjIsImV4cCI6MjEwODgxMjU2Mn0.MW68wCM-phc9kSV5-VnwPdK1FotAqnuVeceZzvwt9SY"
 };
