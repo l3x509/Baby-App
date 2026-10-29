@@ -1,0 +1,1487 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Nestling Baby Log</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%233d5afe'/%3E%3Cpath d='M8 18c2 5 14 5 16 0' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='12' r='4' fill='white'/%3E%3C/svg%3E">
+<!-- Your Supabase keys live in config.js, so updating this file never touches them. -->
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: app shell — left rail on desktop, bottom tab bar on phones; activity colors carry meaning everywhere */
+:root{
+  --bg:#f2f4f7; --surface:#ffffff; --surface-2:#e9edf3; --line:#d8dee8;
+  --ink:#1b2433; --ink-2:#556074; --ink-3:#8a93a4;
+  --accent:#3d5afe; --accent-ink:#ffffff; --accent-soft:#e3e8ff;
+  --feed:#e8657a; --sleep:#5b5bd6; --diaper:#14a39a; --health:#d98a1c; --growth:#3f9b4f; --activity:#8b5cf6; --memory:#c2569b;
+  --danger:#c93a3a; --warn-bg:#fff4dc; --warn-ink:#7a5208;
+  --display:"Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --body:"Figtree", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --r:14px; --r-sm:9px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f141c; --surface:#171e29; --surface-2:#202a38; --line:#2c3747;
+  --ink:#e8edf5; --ink-2:#a9b3c4; --ink-3:#768195;
+  --accent:#8c9dff; --accent-ink:#0f141c; --accent-soft:#252f52;
+  --feed:#f08496; --sleep:#8f8ff0; --diaper:#3cc4ba; --health:#efa840; --growth:#62bd72; --activity:#a986fa; --memory:#e07bbd;
+  --danger:#f07070; --warn-bg:#3a2e14; --warn-ink:#f3cd84; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f141c; --surface:#171e29; --surface-2:#202a38; --line:#2c3747;
+  --ink:#e8edf5; --ink-2:#a9b3c4; --ink-3:#768195;
+  --accent:#8c9dff; --accent-ink:#0f141c; --accent-soft:#252f52;
+  --feed:#f08496; --sleep:#8f8ff0; --diaper:#3cc4ba; --health:#efa840; --growth:#62bd72; --activity:#a986fa; --memory:#e07bbd;
+  --danger:#f07070; --warn-bg:#3a2e14; --warn-ink:#f3cd84; color-scheme:dark}
+
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);-webkit-text-size-adjust:100%}
+body{margin:0}
+img{max-width:100%}
+[hidden]{display:none!important}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1,h2,h3{font-family:var(--display);font-weight:700;margin:0;text-wrap:balance;letter-spacing:-.01em}
+.num{font-variant-numeric:tabular-nums}
+
+.shell{display:grid;grid-template-columns:220px minmax(0,1fr);min-height:100%}
+.rail{position:sticky;top:0;height:100vh;padding:22px 14px;border-right:1px solid var(--line);background:var(--surface);display:flex;flex-direction:column;gap:4px}
+.brand{display:flex;align-items:center;gap:10px;padding:0 8px 18px}
+.brand svg{flex:none}
+.brand b{font-family:var(--display);font-size:20px;letter-spacing:-.02em}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav button{display:flex;align-items:center;gap:11px;border:0;background:none;padding:9px 10px;border-radius:var(--r-sm);text-align:left;color:var(--ink-2);font-weight:600}
+.nav button svg{width:19px;height:19px;flex:none}
+.nav button:hover{background:var(--surface-2);color:var(--ink)}
+.nav button[aria-current="page"]{background:color-mix(in srgb,var(--accent) 15%,var(--surface));color:var(--accent)}
+
+/* log tile row */
+.logrow{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x proximity;padding:14px 2px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);scrollbar-width:thin}
+.lt{flex:0 0 auto;width:96px;border:0;background:none;padding:0;display:flex;flex-direction:column;align-items:center;gap:7px;scroll-snap-align:start;font-size:12.5px;font-weight:600;color:var(--ink-2)}
+.lt .sq{width:96px;height:96px;border-radius:20px;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 38%,var(--surface));color:color-mix(in srgb,var(--c) 55%,var(--ink));transition:transform .12s ease}
+.lt .sq svg{width:46px;height:46px;stroke-width:2.3}
+.lt:hover .sq{transform:translateY(-2px)}
+.lt:active .sq{transform:scale(.96)}
+.lt.running .sq{box-shadow:0 0 0 3px var(--surface),0 0 0 5px var(--c)}
+.lt:disabled{opacity:.5;cursor:default}
+@media (prefers-reduced-motion:reduce){.lt .sq{transition:none}}
+@media (max-width:820px){.lt{width:84px}.lt .sq{width:84px;height:84px;border-radius:18px}.lt .sq svg{width:40px;height:40px}}
+
+/* theme swatches */
+.swatches{display:flex;flex-wrap:wrap;gap:14px}
+.sw{display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;font-size:12px;color:var(--ink-2);font-weight:600}
+.sw input{position:absolute;opacity:0;pointer-events:none}
+.sw span{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--sw) 50%,var(--swd) 50%);box-shadow:0 0 0 2px var(--surface),0 0 0 3px var(--line)}
+.sw input:checked + span{box-shadow:0 0 0 3px var(--surface),0 0 0 5px var(--ink)}
+.sw input:focus-visible + span{outline:2px solid var(--accent);outline-offset:6px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;padding:0}
+label.btn{cursor:pointer}
+label.btn:has(+ .vh:focus-visible){outline:2px solid var(--accent);outline-offset:2px}
+
+/* arrange tiles */
+.lt.arrange .sq{background:transparent;color:var(--ink-3);border:2px dashed var(--line)}
+.arrlist{display:flex;flex-direction:column}
+.arr{display:grid;grid-template-columns:20px 36px minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:8px 2px;border-bottom:1px solid var(--line);background:var(--surface)}
+.arr:last-child{border-bottom:0}
+.arr .grip{color:var(--ink-3);cursor:grab;display:grid}
+.arr .grip svg{width:18px;height:18px}
+.arr .mini{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 38%,var(--surface));color:color-mix(in srgb,var(--c) 55%,var(--ink))}
+.arr .mini svg{width:20px;height:20px;stroke-width:2.3}
+.arr .nm{font-weight:600;min-width:0}
+.arr.off .mini,.arr.off .nm{opacity:.4}
+.arr .show{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink-2);cursor:pointer}
+.arr .mv{display:flex;gap:4px}
+.arr .mv button{width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);display:grid;place-items:center;padding:0}
+.arr .mv button svg{width:16px;height:16px}
+.arr .mv button:disabled{opacity:.35;cursor:default}
+.arr.dragging{opacity:.4}
+.arr.over{box-shadow:inset 0 3px 0 var(--accent)}
+.rail .sync{margin-top:auto;font-size:12.5px;color:var(--ink-3);padding:8px 10px;display:flex;gap:8px;align-items:center}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--ink-3);flex:none}
+.dot.on{background:var(--growth)}
+
+main{min-width:0;padding-block:24px 96px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1060px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+
+.banner{display:flex;flex-wrap:wrap;align-items:center;gap:12px;justify-content:space-between;background:var(--warn-bg);color:var(--warn-ink);border-radius:var(--r);padding:12px 16px;font-weight:500}
+.banner .btn{background:var(--ink);color:var(--bg)}
+
+.head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
+.head h1{font-size:clamp(26px,4vw,34px)}
+.sub{color:var(--ink-2);font-size:14px}
+.age{display:inline-flex;gap:6px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:99px;padding:5px 12px;font-weight:600;font-size:13px}
+
+.btn{border:0;border-radius:99px;padding:9px 16px;font-weight:600;background:var(--surface-2);color:var(--ink);display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+.btn:hover{filter:brightness(.97)}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:transparent;border:1px solid var(--line)}
+.btn.danger{background:transparent;color:var(--danger);border:1px solid var(--line)}
+.btn.sm{padding:6px 12px;font-size:13px}
+.btn:disabled{opacity:.5;cursor:default}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px}
+.panel h2{font-size:17px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.label{font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3);font-weight:700}
+
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:20px}
+
+/* since-last tiles */
+.since{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column;gap:2px;border-top:4px solid var(--c)}
+.tile .big{font-family:var(--display);font-size:clamp(20px,3vw,28px);font-weight:700;font-variant-numeric:tabular-nums}
+.tile .meta{color:var(--ink-2);font-size:13px}
+
+/* timers */
+.timers{display:flex;flex-direction:column;gap:12px}
+.timer{display:flex;flex-wrap:wrap;align-items:center;gap:14px;justify-content:space-between;background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--c);border-radius:var(--r);padding:14px 16px}
+.timer .t{font-family:var(--display);font-size:30px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+.timer .sides{display:flex;gap:8px}
+.side{border:1.5px solid var(--line);background:var(--surface);border-radius:12px;padding:8px 14px;min-width:92px;text-align:left}
+.side small{display:block;color:var(--ink-3);font-size:11px;font-weight:700;letter-spacing:.06em}
+.side span{font-weight:700;font-variant-numeric:tabular-nums}
+.side.active{border-color:var(--c);background:color-mix(in srgb,var(--c) 14%,var(--surface))}
+.pulse{width:9px;height:9px;border-radius:50%;background:var(--c);display:inline-block;margin-right:6px;animation:pulse 1.6s infinite}
+@keyframes pulse{50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.pulse{animation:none}}
+
+/* nap prediction */
+.cus{display:flex;flex-direction:column}
+.cu{display:flex;gap:12px;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--line)}
+.cu:first-child{padding-top:0}
+.cu:last-child{border-bottom:0;padding-bottom:4px}
+.cu[data-edit]{cursor:pointer}
+.cu .ic{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 16%,transparent);color:var(--c);flex:none}
+.cu .ic svg{width:18px;height:18px}
+.cu .cx{min-width:0;flex:1;display:flex;flex-direction:column;gap:2px}
+.cu b{font-family:var(--display);font-size:18px;font-weight:700;line-height:1.25}
+.cu .sub{font-size:13px}
+.cu .btn{margin-top:6px}
+.up .bar{height:10px;border-radius:99px;background:var(--surface-2);position:relative;overflow:hidden;margin:10px 0 6px}
+.up .bar i{position:absolute;inset:0 auto 0 0;background:var(--sleep);border-radius:99px}
+.up .bar b{position:absolute;top:0;bottom:0;background:color-mix(in srgb,var(--sleep) 30%,transparent)}
+.nap .when{font-family:var(--display);font-size:22px;font-weight:700}
+
+/* quick log */
+.quick{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:10px}
+.q{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 8px 10px;display:flex;flex-direction:column;align-items:center;gap:7px;font-weight:600;font-size:13px;color:var(--ink)}
+.q:hover{border-color:var(--c);background:color-mix(in srgb,var(--c) 8%,var(--surface))}
+.q .ic{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 16%,transparent);color:var(--c)}
+.q .ic svg{width:21px;height:21px}
+
+/* summary stats */
+.sums{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px}
+.sum b{display:block;font-family:var(--display);font-size:22px;font-variant-numeric:tabular-nums}
+.sum span{color:var(--ink-2);font-size:13px}
+
+/* 24h strip */
+.strip{position:relative;height:30px;border-radius:8px;background:var(--surface-2);overflow:hidden}
+.strip .seg{position:absolute;top:0;bottom:0;border-radius:3px}
+.strip .tick{position:absolute;top:4px;bottom:4px;width:3px;border-radius:2px}
+.hours{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-3);margin-top:4px;font-variant-numeric:tabular-nums}
+.days{display:flex;flex-direction:column;gap:8px}
+.dayrow{display:grid;grid-template-columns:64px minmax(0,1fr);gap:10px;align-items:center}
+.dayrow .dl{font-size:12.5px;font-weight:600;color:var(--ink-2)}
+.dayrow.sel .dl{color:var(--accent)}
+.dayrow button.strip{border:0;padding:0;width:100%;text-align:left}
+.dayrow.sel .strip{outline:2px solid var(--accent);outline-offset:1px}
+
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12.5px;color:var(--ink-2)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+
+/* entries list */
+.list{display:flex;flex-direction:column}
+.entry{display:grid;grid-template-columns:62px 34px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 4px;border-bottom:1px solid var(--line);background:none;border-left:0;border-right:0;border-top:0;text-align:left;width:100%}
+.entry:last-child{border-bottom:0}
+.entry:hover{background:var(--surface-2)}
+.entry .tm{font-variant-numeric:tabular-nums;font-weight:600;font-size:13.5px}
+.entry .ic{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 16%,transparent);color:var(--c)}
+.entry .ic svg{width:17px;height:17px}
+.entry .tx{min-width:0}
+.entry .tx b{font-weight:600}
+.entry .tx div{color:var(--ink-2);font-size:13px;overflow-wrap:anywhere}
+.entry .by{font-size:12px;color:var(--ink-3);text-align:right}
+.empty{color:var(--ink-3);padding:18px 4px;text-align:center}
+
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:5px 12px;font-size:13px;font-weight:600;color:var(--ink-2)}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+/* charts */
+.chart{width:100%;height:auto;display:block;overflow:visible}
+.chart text{fill:var(--ink-3);font-size:11px;font-family:var(--body)}
+.chart .grid{stroke:var(--line);stroke-width:1}
+.chart .val{fill:var(--ink-2);font-weight:600}
+.chartwrap{overflow-x:auto}
+
+/* teeth */
+.teeth{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start}
+.mouth{width:100%;max-width:340px;margin:0 auto;display:block}
+.mouth .tooth{cursor:pointer}
+.mouth .tooth path{fill:var(--surface-2);stroke:var(--ink-3);stroke-width:1.2}
+.mouth .tooth.on path{fill:var(--health);stroke:var(--health)}
+.mouth .tooth:hover path{stroke:var(--ink);stroke-width:2}
+.mouth text{fill:var(--ink-3);font-size:10px;font-family:var(--body);font-weight:700;letter-spacing:.06em}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th{text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);font-weight:700;padding:6px 8px;border-bottom:1px solid var(--line)}
+td{padding:8px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+tr:last-child td{border-bottom:0}
+.tablewrap{overflow-x:auto}
+
+/* modal */
+.scrim{position:fixed;inset:0;background:rgba(10,14,22,.5);z-index:50;display:flex;align-items:flex-end;justify-content:center;padding:0}
+@media (min-width:640px){.scrim{align-items:center;padding:24px}}
+.modal{background:var(--surface);width:100%;max-width:480px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px))}
+@media (min-width:640px){.modal{border-radius:18px}}
+.modal h3{font-size:21px;display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.modal h3 .ic{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 16%,transparent);color:var(--c)}
+.modal h3 .ic svg{width:19px;height:19px}
+.form{display:flex;flex-direction:column;gap:14px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field > span{font-size:13px;font-weight:600;color:var(--ink-2)}
+.field input,.field select,.field textarea{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 12px;width:100%;min-width:0}
+.field textarea{min-height:70px;resize:vertical}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.segs{display:flex;flex-wrap:wrap;gap:6px}
+.segs label{flex:1 1 auto}
+.segs input{position:absolute;opacity:0;pointer-events:none}
+.segs span{display:block;text-align:center;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-weight:600;font-size:14px;cursor:pointer;background:var(--bg)}
+.segs input:checked + span{border-color:var(--c,var(--accent));background:color-mix(in srgb,var(--c,var(--accent)) 16%,var(--surface));color:var(--ink)}
+.segs input:focus-visible + span{outline:2px solid var(--accent)}
+.actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;margin-top:6px}
+.actions .r{display:flex;gap:8px;margin-left:auto}
+.divider{display:flex;align-items:center;gap:10px;color:var(--ink-3);font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line)}
+.confirm{background:var(--warn-bg);color:var(--warn-ink);border-radius:10px;padding:10px 12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:99px;font-weight:600;z-index:60;font-size:14px}
+.note{font-size:12.5px;color:var(--ink-3)}
+
+/* mobile */
+.tabbar{display:none}
+@media (max-width:820px){
+  .shell{grid-template-columns:minmax(0,1fr)}
+  .rail{display:none}
+  .tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--surface);border-top:1px solid var(--line);padding:6px max(6px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(6px,env(safe-area-inset-left,0px));justify-content:space-around}
+  .tabbar button{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10.5px;font-weight:600;color:var(--ink-3);padding:4px 6px;flex:1}
+  .tabbar button svg{width:21px;height:21px}
+  .tabbar button[aria-current="page"]{color:var(--accent)}
+  .since{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  .tile{padding:10px 10px}
+  .teeth{grid-template-columns:minmax(0,1fr)}
+  .entry{grid-template-columns:54px 32px minmax(0,1fr)}
+  .entry .by{display:none}
+}
+
+/* family + invites */
+.mem{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.mem:last-child{border-bottom:0}
+.mem .av{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;border:2px solid var(--accent);color:var(--accent);font-weight:700;flex:none}
+.mem .mn{display:flex;flex-direction:column;min-width:0;flex:1}
+.mem .mn span{font-size:12.5px;color:var(--ink-2)}
+.invite{background:var(--surface-2);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.invite .code{font-family:var(--display);font-size:30px;font-weight:700;letter-spacing:.12em;font-variant-numeric:tabular-nums}
+.invite .row{display:flex;gap:8px}
+.invite input{flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--bg);font-size:13px}
+.field select{appearance:auto}
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <aside class="rail">
+    <div class="brand">
+      <svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="15" fill="var(--accent)"/><path d="M8 18c2 5 14 5 16 0" fill="none" stroke="var(--accent-ink)" stroke-width="2.4" stroke-linecap="round"/><circle cx="16" cy="12" r="4" fill="var(--accent-ink)"/></svg>
+      <b>Nestling</b>
+    </div>
+    <nav class="nav" id="nav"></nav>
+    <div class="sync" id="sync"><span class="dot"></span><span>Sample mode</span></div>
+  </aside>
+  <main><div class="wrap" id="app"></div></main>
+</div>
+<nav class="tabbar" id="tabbar"></nav>
+<div id="modalRoot"></div>
+<div id="toastRoot"></div>
+
+<script>
+(() => {
+"use strict";
+/* ---------- icons ---------- */
+const I = {
+  today:'<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>',
+  timeline:'<path d="M4 6h16M4 12h10M4 18h13"/>',
+  stats:'<path d="M5 20V10M12 20V4M19 20v-7"/>',
+  growth:'<path d="M4 20l6-7 4 3 6-9"/><path d="M15 7h5v5"/>',
+  health:'<path d="M12 21s-8-5-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 6-8 11-8 11z"/>',
+  settings:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
+  breast:'<path d="M4 13a8 8 0 0 0 16 0c0-4.4-3.6-7-8-7s-8 2.6-8 7z"/><circle cx="12" cy="13" r="2" fill="currentColor"/>',
+  bottle:'<path d="M10.5 2.5h3l.5 3h-4z"/><rect x="8.5" y="5.5" width="7" height="2.5" rx="1"/><path d="M8 8h8l.5 2.5V19a2.5 2.5 0 0 1-2.5 2.5h-4A2.5 2.5 0 0 1 7.5 19v-8.5z"/><path d="M10 12.5h2M10 15.5h2"/>',
+  solids:'<path d="M3 12h18a9 9 0 0 1-18 0z"/><path d="M9 8.5c0-2 1.5-2 1.5-4.5M13.5 8.5c0-2 1.5-2 1.5-4.5"/>',
+  pump:'<path d="M8 3h8v5l-2 2v9a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-9L8 8z"/>',
+  sleep:'<path d="M16 14.5A7 7 0 1 1 8.5 5a5.5 5.5 0 0 0 7.5 9.5z"/><path d="M15 3h5l-5 5h5"/>',
+  diaper:'<path d="M3 6h18v4a9 9 0 0 1-18 0z"/><path d="M3 10c3 0 5 2 5.5 5.5M21 10c-3 0-5 2-5.5 5.5"/>',
+  potty:'<path d="M6 4h12v6H6zM5 10h14l-2 6H7zM9 16v4h6v-4"/>',
+  ruler:'<rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path d="M7.5 11a4.5 4.5 0 0 1 9 0z"/><path d="M12 11l1.8-2.4"/>',
+  temp:'<path d="M14 14.8V5a2 2 0 0 0-4 0v9.8a4 4 0 1 0 4 0z"/>',
+  med:'<rect x="3" y="9" width="18" height="6" rx="3" transform="rotate(-45 12 12)"/><path d="M9 9l6 6"/>',
+  symptom:'<circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.5"/>',
+  doctor:'<path d="M6 3v6a6 6 0 0 0 12 0V3"/><path d="M12 15v2a4 4 0 0 0 8 0v-3"/><circle cx="20" cy="12" r="2"/>',
+  vaccine:'<path d="M18 2l4 4M17 7l-9 9-3 1 1-3 9-9zM14 4l6 6M3 21l3-3"/>',
+  activity:'<circle cx="9" cy="9" r="5.5"/><path d="M13 13l7 7"/><circle cx="7.5" cy="8" r="1" fill="currentColor"/><circle cx="10.5" cy="10.5" r="1" fill="currentColor"/>',
+  note:'<path d="M12 2l2.9 6.2 6.6.6-5 4.5 1.5 6.7L12 16.6 6 20l1.5-6.7-5-4.5 6.6-.6z"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  tooth:'<path d="M7 3C4.5 3 3 5 3 7.5c0 3 1.5 4.5 2 7.5.4 2.5 1 6 2.5 6s1.5-4 2.5-5.5c.5-.8 1.5-.8 2 0 1 1.5 1 5.5 2.5 5.5s2.1-3.5 2.5-6c.5-3 2-4.5 2-7.5C21 5 19.5 3 17 3c-2 0-3 1-5 1S9 3 7 3z"/>',
+  grip:'<circle cx="9" cy="6" r="1.4" fill="currentColor" stroke="none"/><circle cx="15" cy="6" r="1.4" fill="currentColor" stroke="none"/><circle cx="9" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="9" cy="18" r="1.4" fill="currentColor" stroke="none"/><circle cx="15" cy="18" r="1.4" fill="currentColor" stroke="none"/>',
+  up:'<path d="M6 15l6-6 6 6"/>',
+  down:'<path d="M6 9l6 6 6-6"/>',
+  download:'<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>'
+};
+const svg = (k, s='') => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ${s}>${I[k]||''}</svg>`;
+
+/* ---------- activity types ---------- */
+const CAT = {feed:'var(--feed)',sleep:'var(--sleep)',diaper:'var(--diaper)',health:'var(--health)',growth:'var(--growth)',activity:'var(--activity)',memory:'var(--memory)'};
+const T = {
+  breast:{label:'Breastfeed',cat:'feed',icon:'breast'},
+  bottle:{label:'Bottle',cat:'feed',icon:'bottle'},
+  solids:{label:'Solids',cat:'feed',icon:'solids'},
+  pump:{label:'Pump',cat:'feed',icon:'pump'},
+  sleep:{label:'Sleep',cat:'sleep',icon:'sleep'},
+  diaper:{label:'Diaper',cat:'diaper',icon:'diaper'},
+  potty:{label:'Potty',cat:'diaper',icon:'potty'},
+  growth:{label:'Growth',cat:'growth',icon:'ruler'},
+  temp:{label:'Temperature',cat:'health',icon:'temp'},
+  med:{label:'Medicine',cat:'health',icon:'med'},
+  symptom:{label:'Symptom',cat:'health',icon:'symptom'},
+  doctor:{label:'Doctor visit',cat:'health',icon:'doctor'},
+  vaccine:{label:'Vaccine',cat:'health',icon:'vaccine'},
+  activity:{label:'Activity',cat:'activity',icon:'activity'},
+  note:{label:'Moment',cat:'memory',icon:'note'}
+};
+const color = t => CAT[T[t]?.cat] || 'var(--ink-3)';
+
+/* ---------- time + units ---------- */
+const MIN=60000, HR=3600000, DAY=86400000;
+const pad = n => String(n).padStart(2,'0');
+const dayKey = ms => { const d=new Date(ms); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
+const startOfDay = ms => { const d=new Date(ms); d.setHours(0,0,0,0); return d.getTime(); };
+const fmtTime = ms => new Date(ms).toLocaleTimeString([], {hour:'numeric', minute:'2-digit', hour12: prefs.clock!=='24'});
+const fmtDate = ms => new Date(ms).toLocaleDateString([], {weekday:'short', month:'short', day:'numeric'});
+const fmtDur = ms => { ms=Math.max(0,ms); const h=Math.floor(ms/HR), m=Math.floor(ms%HR/MIN); return h ? `${h}h ${pad(m)}m` : `${m}m`; };
+const fmtClock = ms => { ms=Math.max(0,ms); const h=Math.floor(ms/HR), m=Math.floor(ms%HR/MIN), s=Math.floor(ms%MIN/1000); return (h?h+':':'')+pad(m)+':'+pad(s); };
+const toInput = ms => { const d=new Date(ms); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+const fromInput = s => s ? new Date(s).getTime() : null;
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+const U = {
+  imp(){ return state.profile?.units !== 'metric'; },
+  vol(ml){ return ml==null?'':U.imp() ? `${(ml/29.5735).toFixed(1)} oz` : `${Math.round(ml)} ml`; },
+  volIn(v){ return v===''||v==null||isNaN(v)?null: U.imp()? +v*29.5735 : +v; },
+  volOut(ml){ return ml==null?'': U.imp()? +(ml/29.5735).toFixed(1) : Math.round(ml); },
+  volU(){ return U.imp()?'oz':'ml'; },
+  wt(kg){ if(kg==null) return ''; if(!U.imp()) return `${kg.toFixed(2)} kg`; const oz=kg*35.274; return `${Math.floor(oz/16)} lb ${Math.round(oz%16)} oz`; },
+  wtIn(v){ return v===''||v==null||isNaN(v)?null: U.imp()? +v/2.20462 : +v; },
+  wtOut(kg){ return kg==null?'': U.imp()? +(kg*2.20462).toFixed(2) : +kg.toFixed(2); },
+  wtU(){ return U.imp()?'lb':'kg'; },
+  len(cm){ return cm==null?'': U.imp()? `${(cm/2.54).toFixed(1)} in` : `${cm.toFixed(1)} cm`; },
+  lenIn(v){ return v===''||v==null||isNaN(v)?null: U.imp()? +v*2.54 : +v; },
+  lenOut(cm){ return cm==null?'': U.imp()? +(cm/2.54).toFixed(1) : +cm.toFixed(1); },
+  lenU(){ return U.imp()?'in':'cm'; },
+  tmp(c){ return c==null?'': U.imp()? `${(c*9/5+32).toFixed(1)} °F` : `${c.toFixed(1)} °C`; },
+  tmpIn(v){ return v===''||v==null||isNaN(v)?null: U.imp()? (+v-32)*5/9 : +v; },
+  tmpOut(c){ return c==null?'': U.imp()? +(c*9/5+32).toFixed(1) : +c.toFixed(1); },
+  tmpU(){ return U.imp()?'°F':'°C'; }
+};
+
+function ageText(birth, at=Date.now()){
+  if(!birth) return '';
+  const b=new Date(birth+'T00:00'), n=new Date(at);
+  const days=Math.floor((startOfDay(at)-b.getTime())/DAY);
+  if(days<0) return 'Due soon';
+  if(days<14) return `${days} day${days===1?'':'s'}`;
+  if(days<91) return `${Math.floor(days/7)} wk ${days%7} d`;
+  let m=(n.getFullYear()-b.getFullYear())*12+(n.getMonth()-b.getMonth()); if(n.getDate()<b.getDate()) m--;
+  const anchor=new Date(b); anchor.setMonth(b.getMonth()+m);
+  const w=Math.floor((n-anchor)/DAY/7);
+  if(m<24) return `${m} mo${w?` ${w} wk`:''}`;
+  return `${Math.floor(m/12)} yr ${m%12} mo`;
+}
+const ageDays = (birth, at=Date.now()) => birth ? (at-new Date(birth+'T00:00').getTime())/DAY : null;
+
+/* ---------- entry helpers ---------- */
+function breastTotals(e, now=Date.now()){
+  let L=e.left||0, R=e.right||0;
+  if(e.active && e.activeSince && e.end==null){ const d=now-e.activeSince; if(e.active==='L') L+=d; else R+=d; }
+  return {L,R,total:L+R};
+}
+function entrySummary(e){
+  switch(e.type){
+    case 'breast': { const t=breastTotals(e); const parts=[]; if(t.L) parts.push(`L ${fmtDur(t.L)}`); if(t.R) parts.push(`R ${fmtDur(t.R)}`); return (e.end==null?'In progress · ':'')+(parts.join(' · ')||'—'); }
+    case 'bottle': return [U.vol(e.amount), e.contents==='formula'?'Formula':e.contents==='breastmilk'?'Breast milk':''].filter(Boolean).join(' · ');
+    case 'solids': return [e.food, e.amountText, e.reaction && e.reaction!=='neutral' ? ({liked:'Liked it',disliked:'Disliked',reaction:'⚠ Reaction'}[e.reaction]) : ''].filter(Boolean).join(' · ');
+    case 'pump': return [e.left!=null?`L ${U.vol(e.left)}`:'', e.right!=null?`R ${U.vol(e.right)}`:'', (e.left||0)+(e.right||0)?`Total ${U.vol((e.left||0)+(e.right||0))}`:'', e.duration?`${e.duration} min`:''].filter(Boolean).join(' · ');
+    case 'sleep': return e.end==null ? `Asleep · ${fmtDur(Date.now()-e.start)}` : `${fmtDur(e.end-e.start)} · until ${fmtTime(e.end)}${e.kind==='night'?' · Night':''}`;
+    case 'diaper': return ({wet:'Wet',dirty:'Dirty',mixed:'Wet + dirty',dry:'Dry'}[e.kind]||'')+(e.color?` · ${e.color}`:'');
+    case 'potty': return ({pee:'Pee',poo:'Poo',both:'Pee + poo',none:'Tried, nothing'}[e.result]||'');
+    case 'growth': return [e.weight!=null?U.wt(e.weight):'', e.length!=null?U.len(e.length):'', e.head!=null?`Head ${U.len(e.head)}`:''].filter(Boolean).join(' · ');
+    case 'temp': return U.tmp(e.value)+(e.value!=null && e.value>=37.995 ? ' · Fever' : '');
+    case 'med': return [e.name, e.dose].filter(Boolean).join(' · ');
+    case 'vaccine': return e.name||'';
+    case 'activity': return [e.kind, e.duration?`${e.duration} min`:''].filter(Boolean).join(' · ');
+    case 'note': return (e.milestone?'Milestone · ':'')+(e.title||'');
+    case 'doctor': return (e.start>Date.now()?'Upcoming · ':'')+(e.title||'');
+    default: return '';
+  }
+}
+
+/* ---------- state ---------- */
+/* ---------- per-device preferences ---------- */
+const ACCENTS={indigo:['Indigo','#3d5afe','#8c9dff'],ocean:['Ocean','#0a7ea4','#5cc3e6'],forest:['Forest','#2e7d4f','#6cc790'],berry:['Berry','#b0306a','#f07aae'],sunset:['Sunset','#c4531a','#f5965e'],graphite:['Graphite','#3b4252','#c3cad6']};
+const BGS={ // [bg, surface, surface-2, line] for light, then dark
+  mist:['Mist',['#f2f4f7','#ffffff','#e9edf3','#d8dee8'],['#0f141c','#171e29','#202a38','#2c3747']],
+  blush:['Blush',['#fbf1f3','#ffffff','#f5e3e8','#ecd3da'],['#1a1215','#241a1e','#30232a','#3e2e36']],
+  mint:['Mint',['#eef7f3','#ffffff','#dff0e8','#cde3d8'],['#0e1714','#16211d','#1f2d28','#2b3c35']],
+  lavender:['Lavender',['#f3f1fa','#ffffff','#e7e3f5','#d8d2ec'],['#13111c','#1c1928','#262236','#342e47']],
+  sky:['Sky',['#edf5fb','#ffffff','#dcebf6','#c9dcec'],['#0d1620','#15202c','#1d2b3a','#29394b']],
+  sand:['Sand',['#f6f3ee','#fffdfa','#ece6dc','#ddd5c8'],['#17140f','#211d17','#2c2720','#3a342b']],
+  pure:['Pure',['#ffffff','#ffffff','#f1f2f4','#e1e4e8'],['#000000','#0c0e12','#171a20','#252a32']],
+  snow:['Snow',['#fbfcfe','#ffffff','#f0f3f8','#e2e7ef'],['#0c0f14','#141922','#1d2430','#2a3240']],
+  porcelain:['Porcelain',['#f7f9fb','#ffffff','#ebf0f4','#dbe2e9'],['#0e1215','#161b20','#1f262d','#2c353e']],
+  pearl:['Pearl',['#f6f6f7','#ffffff','#ececee','#dddde1'],['#111113','#1a1a1d','#242428','#323237']],
+  cotton:['Cotton',['#faf9f7','#ffffff','#f0eeea','#e2dfd9'],['#121110','#1b1a18','#252321','#33302d']],
+  ivory:['Ivory',['#fcfaf4','#fffefb','#f3efe4','#e6e0d0'],['#14130f','#1d1b16','#27251e','#36332a']],
+  linen:['Linen',['#faf6f2','#fffdfb','#f1ebe4','#e4dbd1'],['#151210','#1e1a17','#29241f','#38312b']]
+};
+const PKEY='nestling.prefs';
+const KEEP_TYPES=['growth','temp','med','symptom','doctor','vaccine','note'];
+const DEFAULT_TILES=['breast','bottle','solids','pump','sleep','diaper','potty','growth','temp','med','symptom','doctor','vaccine','activity','note'];
+function tileOrder(){ const o=(Array.isArray(prefs.tiles)?prefs.tiles:[]).filter(t=>DEFAULT_TILES.includes(t)); DEFAULT_TILES.forEach(t=>{ if(!o.includes(t)) o.push(t); }); return o; }
+const isHidden = t => Array.isArray(prefs.hidden) && prefs.hidden.includes(t);
+const prefs=(()=>{ let p={}; try{ p=JSON.parse(localStorage.getItem(PKEY)||'{}')||{}; }catch(e){} return Object.assign({accent:'indigo',bg:'mist',appearance:'system',clock:'12',tiles:null,hidden:[]},p); })();
+function savePrefs(){ try{ localStorage.setItem(PKEY, JSON.stringify(prefs)); }catch(e){} }
+const root=document.documentElement, hostTheme=root.getAttribute('data-theme');
+function applyAccent(){
+  const t=root.getAttribute('data-theme'); let dark=false;
+  try{ dark = t ? t==='dark' : matchMedia('(prefers-color-scheme: dark)').matches; }catch(e){}
+  const a=ACCENTS[prefs.accent]||ACCENTS.indigo;
+  root.style.setProperty('--accent', dark?a[2]:a[1]); root.style.setProperty('--accent-ink', dark?'#0f141c':'#ffffff');
+  const b=(BGS[prefs.bg]||BGS.mist)[dark?2:1];
+  ['--bg','--surface','--surface-2','--line'].forEach((k,i)=>root.style.setProperty(k,b[i]));
+}
+function applyPrefs(){
+  if(prefs.appearance==='system'){ if(hostTheme) root.setAttribute('data-theme',hostTheme); else root.removeAttribute('data-theme'); }
+  else root.setAttribute('data-theme',prefs.appearance);
+  applyAccent();
+}
+try{ matchMedia('(prefers-color-scheme: dark)').addEventListener('change',applyAccent); }catch(e){}
+new MutationObserver(applyAccent).observe(root,{attributes:true,attributeFilter:['data-theme']});
+applyPrefs();
+
+const state = {
+  mode:'demo',            // demo | cloud | local
+  syncError:false,
+  profile:null, entries:[], teeth:{},
+  view:'today', selDay:startOfDay(Date.now()), filter:'all', statRange:7,
+  me:null, canWrite:true
+};
+let downloads=null;
+
+/* ---------- sample data (never saved) ---------- */
+function sampleData(){
+  const now=Date.now(), birth=new Date(now-214*DAY); const bs=`${birth.getFullYear()}-${pad(birth.getMonth()+1)}-${pad(birth.getDate())}`;
+  const E=[]; let id=0; const add=o=>E.push({id:'s'+(id++),...o});
+  let seed=7; const rnd=()=>{seed=(seed*9301+49297)%233280; return seed/233280;};
+  for(let d=13; d>=0; d--){
+    const base=startOfDay(now)-d*DAY;
+    const at=(h,m=0)=>base+h*HR+m*MIN+Math.round((rnd()-.5)*20)*MIN;
+    // night sleep from previous evening is logged on that day; this day: wake ~6:45
+    const naps=[[9,15,70],[13,0,85],[16,40,40]];
+    naps.forEach(([h,m,dur])=>{ const s=at(h,m); if(s<now) add({type:'sleep',kind:'nap',start:s,end:Math.min(now,s+(dur+Math.round(rnd()*20-10))*MIN)}); });
+    const ns=at(19,30); if(ns<now) add({type:'sleep',kind:'night',start:ns,end:Math.min(now, ns+11*HR+Math.round(rnd()*40)*MIN)});
+    [[6,50],[10,45],[14,40],[18,50]].forEach(([h,m],i)=>{ const s=at(h,m); if(s>now) return;
+      if(i%2===0){ const l=(7+Math.round(rnd()*6))*MIN, r=(6+Math.round(rnd()*6))*MIN; add({type:'breast',start:s,end:s+l+r,left:l,right:r,active:null}); }
+      else add({type:'bottle',start:s,amount:150+Math.round(rnd()*4)*15,contents: rnd()>.5?'breastmilk':'formula'}); });
+    [[8,0,'Oatmeal + banana'],[12,15,'Sweet potato'],[17,30,'Peas + avocado']].forEach(([h,m,f])=>{ const s=at(h,m); if(s<now) add({type:'solids',start:s,food:f,amountText:['2 tbsp','3 tbsp','¼ cup'][Math.floor(rnd()*3)],reaction:rnd()>.75?'disliked':'liked'}); });
+    [7,10,13,16,19].forEach((h,i)=>{ const s=at(h,20); if(s<now) add({type:'diaper',start:s,kind: i===1||i===3&&rnd()>.5?'mixed':(rnd()>.8?'dirty':'wet')}); });
+    const p=at(21,30); if(p<now) add({type:'pump',start:p,left:90+Math.round(rnd()*30),right:80+Math.round(rnd()*30),duration:15});
+    const tt=at(11,0); if(tt<now && d%2===0) add({type:'activity',start:tt,kind:'Tummy time',duration:15});
+    const bt=at(18,15); if(bt<now && d%2===1) add({type:'activity',start:bt,kind:'Bath',duration:20});
+  }
+  const g=[[0,3.4,50.5,34.5],[14,3.6,52,35.5],[33,4.5,55,37],[62,5.6,58.5,39],[122,7.0,63.5,41.5],[183,7.9,67,43.2]];
+  g.forEach(([dd,w,l,h])=>add({type:'growth',start:birth.getTime()+dd*DAY+10*HR,weight:w,length:l,head:h}));
+  add({type:'vaccine',start:birth.getTime()+183*DAY+10.5*HR,name:'6-month vaccines'});
+  add({type:'doctor',start:birth.getTime()+183*DAY+10*HR,note:'6-month checkup. Growing well.'});
+  add({type:'temp',start:now-3*DAY+2*HR,value:37.9});
+  add({type:'med',start:now-3*DAY+2.2*HR,name:'Infant acetaminophen',dose:'as directed'});
+  add({type:'note',start:now-5*DAY,title:'Sat up without support!',milestone:true});
+  add({type:'note',start:now-20*DAY,title:'First tooth showed up',milestone:true});
+  return {profile:{name:'Sample baby',birth:bs,sex:'f',units:'imperial'}, entries:E.sort((a,b)=>b.start-a.start),
+    teeth:{lci_l:{date:dayKey(now-20*DAY)}, lci_r:{date:dayKey(now-9*DAY)}}};
+}
+
+/* ---------- store ---------- */
+const LKEY='nestling.v1';
+const local = {
+  read(){ try{ return JSON.parse(localStorage.getItem(LKEY)||'null'); }catch(e){ return null; } },
+  write(){ try{ localStorage.setItem(LKEY, JSON.stringify({app:'nestling',version:1,profile:state.profile,entries:state.entries,teeth:state.teeth})); return true; }catch(e){ toast('Couldn’t save on this device. Save a backup from Settings.'); return false; } }
+};
+const newId = () => Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+const clean = o => { const r={}; for(const k in o){ if(o[k]!==undefined && k!=='id') r[k]=o[k]; } return r; };
+
+/* ---------- Supabase ---------- */
+const CFG=window.NESTLING_CONFIG||{};
+const cloudWanted=!!(CFG.supabaseUrl && CFG.supabaseAnonKey);
+let sb=null, session=null, baby=null, members=[], myBabies=[], channel=null, loadingFor=null;
+if(cloudWanted && window.supabase?.createClient){ try{ sb=window.supabase.createClient(CFG.supabaseUrl.trim(), CFG.supabaseAnonKey.trim()); }catch(e){ sb=null; } }
+const uid = () => session?.user?.id || null;
+const must = ({data,error}) => { if(error) throw error; return data; };
+const toRow = e => { const {id,type,start,end,by,...rest}=e; return {baby_id:baby.id, id, type, start_ms:Math.round(start), end_ms:end==null?null:Math.round(end), data:clean(rest)}; };
+const fromRow = r => ({...(r.data||{}), id:r.id, type:r.type, start:Number(r.start_ms), end:r.end_ms==null?null:Number(r.end_ms), by:r.created_by||undefined});
+function softRender(){ if(!document.querySelector('.modal')) render(); else renderNav(); }
+function upsertLocal(e){ const i=state.entries.findIndex(x=>x.id===e.id); if(i>=0) state.entries[i]=e; else state.entries.push(e); state.entries.sort((a,b)=>b.start-a.start); softRender(); }
+function removeLocal(id){ const n=state.entries.length; state.entries=state.entries.filter(x=>x.id!==id); if(state.entries.length!==n) softRender(); }
+function applyBabyRow(b){ baby=b; state.profile={name:b.name,birth:b.birth,sex:b.sex,units:b.units}; state.teeth=b.teeth||{}; }
+
+const cloud = {
+  async add(e){
+    const id=newId(), ent={...e,id,by:uid()}; upsertLocal(ent);
+    try{ must(await sb.from('entries').insert(toRow(ent))); }catch(err){ removeLocal(id); throw err; }
+    return id;
+  },
+  async update(id, patch){
+    const cur=state.entries.find(x=>x.id===id); if(!cur) return;
+    const next={...cur,...patch}; upsertLocal(next);
+    const r=toRow(next);
+    try{ must(await sb.from('entries').update({type:r.type,start_ms:r.start_ms,end_ms:r.end_ms,data:r.data}).eq('baby_id',baby.id).eq('id',id)); }
+    catch(err){ upsertLocal(cur); throw err; }
+  },
+  async del(id){
+    const cur=state.entries.find(x=>x.id===id); removeLocal(id);
+    try{ must(await sb.from('entries').delete().eq('baby_id',baby.id).eq('id',id)); }catch(err){ if(cur) upsertLocal(cur); throw err; }
+  },
+  async setProfile(p){
+    const prev=state.profile; state.profile=p; render();
+    try{ must(await sb.from('babies').update({name:p.name,birth:p.birth,sex:p.sex||'u',units:p.units||'imperial'}).eq('id',baby.id)); }
+    catch(err){ state.profile=prev; render(); throw err; }
+  },
+  async setTeeth(t){
+    const prev=state.teeth; state.teeth=t; render();
+    try{ must(await sb.from('babies').update({teeth:t}).eq('id',baby.id)); }catch(err){ state.teeth=prev; render(); throw err; }
+  }
+};
+
+const store = {
+  async add(e){
+    if(state.mode==='cloud') return cloud.add(e);
+    e={...e}; const id=newId(); state.entries=[{id,...e},...state.entries].sort((a,b)=>b.start-a.start);
+    if(state.mode==='local') local.write(); render(); return id;
+  },
+  async update(id, patch){
+    if(state.mode==='cloud') return cloud.update(id,patch);
+    state.entries=state.entries.map(x=>x.id===id?{...x,...patch}:x).sort((a,b)=>b.start-a.start);
+    if(state.mode==='local') local.write(); render();
+  },
+  async del(id){
+    if(state.mode==='cloud') return cloud.del(id);
+    state.entries=state.entries.filter(x=>x.id!==id); if(state.mode==='local') local.write(); render();
+  },
+  async setProfile(p){
+    if(state.mode==='cloud') return cloud.setProfile(p);
+    state.profile=p; if(state.mode==='local') local.write(); render();
+  },
+  async setTeeth(t){
+    if(state.mode==='cloud') return cloud.setTeeth(t);
+    state.teeth=t; if(state.mode==='local') local.write(); render();
+  }
+};
+const isDenied = err => err && (err.code==='42501' || /row-level security|permission denied/i.test(err.message||''));
+async function safe(fn, okMsg){
+  try{ await fn(); if(okMsg) toast(okMsg); }
+  catch(err){
+    if(isDenied(err)){ state.canWrite=false; toast('You have view-only access to this log.'); render(); }
+    else toast('Could not save. Check your connection and try again.');
+  }
+}
+
+/* ---------- predictions ---------- */
+function wakeWindow(days){
+  // Typical awake time between sleeps, in minutes, by age in weeks.
+  // Cross-checked against Cleveland Clinic (pediatrician-reviewed) and The Sleep Lady charts.
+  const w=days/7;
+  if(w<3)   return [20,45];    // first 3 weeks
+  if(w<6)   return [30,60];    // 3–6 weeks
+  if(w<9)   return [45,75];    // 6–9 weeks
+  if(w<13)  return [60,90];    // 2–3 months
+  if(w<17)  return [75,150];   // 3–4 months
+  if(w<22)  return [90,150];   // 4–5 months
+  if(w<30)  return [120,180];  // 5–7 months
+  if(w<43)  return [150,210];  // 7–10 months
+  if(w<52)  return [180,240];  // 10–12 months
+  if(w<65)  return [180,300];  // 12–15 months
+  if(w<104) return [240,360];  // 15–24 months
+  return [300,360];            // 2 years+
+}
+function napPrediction(){
+  const days=ageDays(state.profile?.birth); if(days==null) return null;
+  const sleeps=state.entries.filter(e=>e.type==='sleep');
+  const active=sleeps.find(e=>e.end==null); if(active) return {asleep:true, since:active.start};
+  const last=sleeps.filter(e=>e.end!=null).sort((a,b)=>b.end-a.end)[0]; if(!last) return null;
+  const [a,b]=wakeWindow(days);
+  return {asleep:false, awakeSince:last.end, from:last.end+a*MIN, to:last.end+b*MIN, a, b};
+}
+
+/* ---------- coming up ---------- */
+// Well-child visits from the AAP Bright Futures schedule: [months after birth (or days if 'd'), label]
+const CHECKUPS=[[4,'Newborn checkup (3–5 days)','d'],[1,'1-month checkup'],[2,'2-month checkup'],[4,'4-month checkup'],[6,'6-month checkup'],[9,'9-month checkup'],[12,'12-month checkup'],[15,'15-month checkup'],[18,'18-month checkup'],[24,'2-year checkup'],[30,'30-month checkup'],[36,'3-year checkup']];
+function addMonths(birth, m){ const d=new Date(birth+'T09:00'); d.setMonth(d.getMonth()+m); return d.getTime(); }
+function relDays(t, now){
+  const d=Math.round((startOfDay(t)-startOfDay(now))/DAY);
+  if(d===0) return 'today'; if(d===1) return 'tomorrow'; if(d===-1) return 'yesterday';
+  if(d>0) return d>45 ? `in about ${Math.round(d/7)} weeks` : `in ${d} days`;
+  return `${-d} days ago`;
+}
+function nextCheckup(p, now){
+  if(!p?.birth) return null;
+  for(const [n,label,unit] of CHECKUPS){
+    const due = unit==='d' ? new Date(p.birth+'T09:00').getTime()+n*DAY : addMonths(p.birth,n);
+    if(due < now-14*DAY) continue;
+    const handled=state.entries.some(e=>e.type==='doctor' && Math.abs(e.start-due)<=21*DAY);
+    if(handled) continue;
+    return {label, due};
+  }
+  return null;
+}
+function feedEstimate(now){
+  if(state.entries.some(e=>e.type==='breast' && e.end==null)) return null;
+  const feeds=state.entries.filter(e=>(e.type==='breast'||e.type==='bottle') && e.start<=now && e.start>now-3*DAY).map(e=>e.start).sort((a,b)=>a-b);
+  if(feeds.length<4) return null;
+  const gaps=[]; for(let i=1;i<feeds.length;i++){ const g=feeds[i]-feeds[i-1]; if(g>=30*MIN && g<=8*HR) gaps.push(g); }
+  if(gaps.length<3) return null;
+  gaps.sort((a,b)=>a-b); const gap=gaps[Math.floor(gaps.length/2)];
+  return {gap, next: feeds[feeds.length-1]+gap};
+}
+function nextTeeth(p, now){
+  const months=(ageDays(p?.birth,now)??-1)/30.4375;
+  if(months<3 || months>36) return null;
+  const open=TEETH.filter(([id])=>!state.teeth[id+'_l'] || !state.teeth[id+'_r']).map(t=>({t,from:parseInt(t[4])})).sort((a,b)=>a.from-b.from);
+  if(!open.length) return null;
+  const {t}=open[0];
+  return {label:`${t[2]==='u'?'Upper':'Lower'} ${t[1].toLowerCase()}s`, range:t[4]};
+}
+function comingUp(p, now){
+  const items=[];
+  const row=(c,icon,label,main,sub,extra='',attrs='')=>`<div class="cu" style="--c:${c}" ${attrs}><span class="ic">${svg(icon)}</span><div class="cx"><span class="label">${label}</span><b class="num">${main}</b>${sub?`<span class="sub">${sub}</span>`:''}${extra}</div></div>`;
+  const np=napPrediction();
+  if(np && !np.asleep){
+    const span=np.to-np.awakeSince, pct=Math.min(100,(now-np.awakeSince)/span*100), from=(np.from-np.awakeSince)/span*100;
+    const status = now<np.from ? `Window opens in ${fmtDur(np.from-now)}` : now<=np.to ? 'In the nap window now' : `Past the window by ${fmtDur(now-np.to)}. Watch for tired cues.`;
+    items.push(row('var(--sleep)','sleep','Next sleep',`${fmtTime(np.from)} – ${fmtTime(np.to)}`,status,`<div class="bar"><b style="left:${from}%;right:0"></b><i style="width:${pct}%"></i></div>`));
+  } else if(np && np.asleep) items.push(row('var(--sleep)','sleep','Sleep','Sleeping now',`Since ${fmtTime(np.since)}. The next window appears after you log the wake-up.`));
+  else items.push(row('var(--sleep)','sleep','Next sleep','Not enough data yet','Log a sleep with an end time to see the next nap window.'));
+  const fe=feedEstimate(now);
+  if(fe) items.push(row('var(--feed)','bottle','Next feed',`Around ${fmtTime(fe.next)}`, (fe.next<=now?'Due now':`In ${fmtDur(fe.next-now)}`)+` · usually every ${fmtDur(fe.gap)} lately`));
+  const appts=state.entries.filter(e=>e.type==='doctor' && e.start>now).sort((a,b)=>a.start-b.start);
+  appts.slice(0,3).forEach(a=>{
+    const text=`${p?.name?p.name+': ':''}${a.title||'Doctor appointment'}, ${fmtDate(a.start)} at ${fmtTime(a.start)}${a.note?'. Notes: '+a.note:''}`;
+    items.push(row('var(--health)','doctor','Appointment',`${fmtDate(a.start)} · ${fmtTime(a.start)}`,
+      `${esc(a.title||'Doctor visit')} · ${relDays(a.start,now)}`,
+      `${a.note?`<span class="sub" style="white-space:pre-wrap">${esc(a.note)}</span>`:''}<div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn ghost sm" data-act="copyText" data-text="${esc(text)}">Copy details</button><button class="btn ghost sm" data-edit="${esc(a.id)}">Edit</button></div>`));
+  });
+  if(appts.length>3) items.push(`<p class="note" style="margin:8px 0 0">${appts.length-3} more appointments in the health log.</p>`);
+  const ck=nextCheckup(p, now);
+  if(ck) items.push(row('var(--health)','doctor','Next checkup',ck.label,`${ck.due<now?'Due now':'Due around '+new Date(ck.due).toLocaleDateString([], {month:'short',day:'numeric'})} · ${relDays(ck.due,now)}`, state.canWrite?`<div><button class="btn ghost sm" data-new="doctor">Add appointment</button></div>`:''));
+  const tmp=state.entries.find(e=>e.type==='temp' && e.start<=now);
+  if(tmp && now-tmp.start<DAY && tmp.value>=37.995) items.push(row('var(--danger)','temp','Last temperature',`${U.tmp(tmp.value)} · Fever`,`${now-tmp.start<MIN?'Just now':fmtDur(now-tmp.start)+' ago'}.${(ageDays(p?.birth)??999)<91?' Your baby is under 3 months: call your pediatrician right away.':''}`));
+  const med=state.entries.find(e=>e.type==='med' && e.start<=now);
+  if(med && now-med.start<2*DAY) items.push(row('var(--health)','med','Last medicine',now-med.start<MIN?'Just now':`${fmtDur(now-med.start)} ago`,`${esc(med.name||'Medicine')}${med.dose?' · '+esc(med.dose):''} at ${fmtTime(med.start)}. Check the label or your doctor's directions before the next dose.`));
+  const tw=nextTeeth(p, now);
+  if(tw) items.push(row('var(--health)','tooth','Teeth to watch for',tw.label,`Usually ${tw.range} months · record them in Health`));
+  return `<div class="panel up"><h2>Coming up</h2><div class="cus">${items.join('')}</div><p class="note">Nap times use typical awake windows for ${esc(ageText(p?.birth)||'this age')}. Feed timing uses your last 3 days. Checkups follow the AAP schedule. Every baby is different, so follow your baby's cues and your pediatrician's advice.</p></div>`;
+}
+
+/* ---------- derived ---------- */
+function entriesOn(day){ const s=startOfDay(day), e=s+DAY; return state.entries.filter(x=>x.start>=s && x.start<e); }
+function sleepMsInDay(day, kind){
+  const s=startOfDay(day), e=s+DAY, now=Date.now();
+  return state.entries.filter(x=>x.type==='sleep' && (!kind || (x.kind||'nap')===kind)).reduce((acc,x)=>{
+    const a=Math.max(s,x.start), b=Math.min(e, x.end??now); return acc + Math.max(0,b-a); },0);
+}
+function daySummary(day){
+  const es=entriesOn(day);
+  const feeds=es.filter(e=>['breast','bottle'].includes(e.type));
+  return {
+    feeds:feeds.length,
+    breastMs:es.filter(e=>e.type==='breast').reduce((a,e)=>a+breastTotals(e).total,0),
+    bottleMl:es.filter(e=>e.type==='bottle').reduce((a,e)=>a+(e.amount||0),0),
+    solids:es.filter(e=>e.type==='solids').length,
+    sleepMs:sleepMsInDay(day), napMs:sleepMsInDay(day,'nap'), nightMs:sleepMsInDay(day,'night'),
+    wet:es.filter(e=>e.type==='diaper' && (e.kind==='wet'||e.kind==='mixed')).length,
+    dirty:es.filter(e=>e.type==='diaper' && (e.kind==='dirty'||e.kind==='mixed')).length,
+    diapers:es.filter(e=>e.type==='diaper').length,
+    pumpMl:es.filter(e=>e.type==='pump').reduce((a,e)=>a+(e.left||0)+(e.right||0),0)
+  };
+}
+
+/* ---------- rendering ---------- */
+const VIEWS=[['today','Today'],['timeline','Timeline'],['stats','Stats'],['health','Health & growth'],['settings','Settings']];
+function renderNav(){
+  const b=(k,l)=>`<button data-view="${k}" ${state.view===k?'aria-current="page"':''}>${svg(k)}<span>${l}</span></button>`;
+  document.getElementById('nav').innerHTML=VIEWS.map(([k,l])=>b(k,l)).join('');
+  document.getElementById('tabbar').innerHTML=VIEWS.map(([k,l])=>b(k,l)).join('');
+  const sync=document.getElementById('sync');
+  const txt = state.mode==='cloud' ? `Synced · ${members.length} in family` : state.mode==='local' ? 'Saved on this device' : 'Sample mode';
+  sync.innerHTML=`<span class="dot ${state.mode==='cloud'?'on':''}"></span><span>${txt}</span>`;
+}
+
+function render(){
+  renderNav();
+  const app=document.getElementById('app');
+  let h='';
+  if(state.syncError) h+=`<div class="banner"><span>Couldn’t reach the sync service. Check your internet connection, then refresh the page.</span></div>`;
+  else if(state.mode==='demo') h+=`<div class="banner"><span>${sb&&!session?'You’re looking at sample data. Sign in to start your baby’s log and share it with family.':'You’re looking at sample data. Nothing is saved until you add your baby.'}</span><span style="display:flex;gap:8px;flex-wrap:wrap">${sb&&session?`<button class="btn ghost" style="color:inherit;border-color:currentColor" data-act="joinOpen">I have an invite code</button>`:''}<button class="btn" data-act="setup">${sb&&!session?'Sign in':'Start tracking your baby'}</button></span></div>`;
+  else if(!state.canWrite) h+=`<div class="banner"><span>You can view this log, but you don't have permission to add entries.</span></div>`;
+  if(state.localOffer && state.mode==='cloud' && state.canWrite) h+=`<div class="banner"><span>Found ${state.localOffer.n} entries saved in this browser that aren't in the shared log yet.</span><span style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost" style="color:inherit;border-color:currentColor" data-act="dismissLocal">Not now</button><button class="btn" data-act="importLocal">Review and import</button></span></div>`;
+  if(state.view==='growth') state.view='health';
+  h+=({today:vToday,timeline:vTimeline,stats:vStats,health:vHealth,settings:vSettings}[state.view])();
+  app.innerHTML=h;
+  resolveNames();
+}
+
+function header(title, sub){
+  const p=state.profile||{};
+  return `<div class="head"><div><div class="sub">${esc(sub||fmtDate(Date.now()))}</div><h1>${esc(title)}</h1></div>${p.birth?`<span class="age">${esc(p.name)} · ${esc(ageText(p.birth))}</span>`:''}</div>`;
+}
+
+function entryRow(e){
+  return `<button class="entry" data-edit="${esc(e.id)}" style="--c:${color(e.type)}">
+    <span class="tm">${fmtTime(e.start)}</span>
+    <span class="ic">${svg(T[e.type]?.icon)}</span>
+    <span class="tx"><b>${esc(T[e.type]?.label||e.type)}</b><div>${[entrySummary(e),e.note].filter(Boolean).map(esc).join(' · ')}</div></span>
+    <span class="by" data-by="${esc(e.by||'')}"></span></button>`;
+}
+
+function strip(day){
+  const s=startOfDay(day), e=s+DAY, now=Date.now();
+  let h='';
+  state.entries.forEach(x=>{
+    if(x.type==='sleep'){ const a=Math.max(s,x.start), b=Math.min(e,x.end??now); if(b>a) h+=`<span class="seg" style="left:${(a-s)/DAY*100}%;width:${Math.max(.4,(b-a)/DAY*100)}%;background:var(--sleep);opacity:${x.kind==='night'?1:.7}"></span>`; }
+  });
+  state.entries.forEach(x=>{
+    if(x.type==='sleep' || x.start<s || x.start>=e) return;
+    if(x.type==='breast'){ const dur=x.end? x.end-x.start : breastTotals(x).total; h+=`<span class="seg" style="left:${(x.start-s)/DAY*100}%;width:${Math.max(.5,dur/DAY*100)}%;background:var(--feed);top:20%;bottom:20%"></span>`; return; }
+    h+=`<span class="tick" style="left:${(x.start-s)/DAY*100}%;background:${color(x.type)}"></span>`;
+  });
+  if(now>=s && now<e) h+=`<span class="tick" style="left:${(now-s)/DAY*100}%;background:var(--ink);width:2px;top:0;bottom:0"></span>`;
+  return h;
+}
+const hoursRow = `<div class="hours"><span>12a</span><span>3a</span><span>6a</span><span>9a</span><span>12p</span><span>3p</span><span>6p</span><span>9p</span><span>12a</span></div>`;
+const legend = `<div class="legend"><span><i style="background:var(--sleep)"></i>Sleep</span><span><i style="background:var(--feed)"></i>Feeding</span><span><i style="background:var(--diaper)"></i>Diaper</span><span><i style="background:var(--health)"></i>Health</span><span><i style="background:var(--activity)"></i>Activity</span><span><i style="background:var(--memory)"></i>Moment</span></div>`;
+
+/* --- Today --- */
+function vToday(){
+  const now=Date.now();
+  const p=state.profile||{};
+  let h=header(p.name?`${p.name}'s day`:'Today');
+  const qs=tileOrder().filter(t=>!isHidden(t));
+  const running=t=>(t==='breast'||t==='sleep') && state.entries.some(x=>x.type===t && x.end===null);
+  h+=`<div class="logrow" role="group" aria-label="Log an activity">${qs.map(t=>`<button class="lt ${running(t)?'running':''}" data-new="${t}" style="--c:${color(t)}" ${state.canWrite?'':'disabled'}><span class="sq">${svg(T[t].icon)}</span><span>${T[t].label}</span></button>`).join('')}<button class="lt arrange" data-act="arrange"><span class="sq">${svg('grip')}</span><span>Arrange</span></button></div>`;
+
+  // active timers
+  const active=state.entries.filter(e=>e.end==null && (e.type==='breast'||e.type==='sleep'));
+  if(active.length){
+    h+='<div class="timers">'+active.map(e=>{
+      if(e.type==='sleep') return `<div class="timer" style="--c:var(--sleep)"><div><div class="label"><span class="pulse"></span>Sleeping since ${fmtTime(e.start)}</div><div class="t" data-live="sleep" data-id="${e.id}">${fmtClock(now-e.start)}</div></div><div style="display:flex;gap:8px"><button class="btn ghost sm" data-edit="${e.id}">Edit</button><button class="btn primary" data-act="wake" data-id="${e.id}">Woke up</button></div></div>`;
+      const t=breastTotals(e);
+      return `<div class="timer" style="--c:var(--feed)"><div><div class="label">${e.active?'<span class="pulse"></span>':''}Breastfeeding · started ${fmtTime(e.start)}</div><div class="t" data-live="breast" data-id="${e.id}">${fmtClock(t.total)}</div></div>
+        <div class="sides"><button class="side ${e.active==='L'?'active':''}" data-act="side" data-side="L" data-id="${e.id}"><small>LEFT</small><span data-live="L" data-id="${e.id}">${fmtClock(t.L)}</span></button><button class="side ${e.active==='R'?'active':''}" data-act="side" data-side="R" data-id="${e.id}"><small>RIGHT</small><span data-live="R" data-id="${e.id}">${fmtClock(t.R)}</span></button></div>
+        <div style="display:flex;gap:8px"><button class="btn ghost sm" data-act="pause" data-id="${e.id}" ${e.active?'':'disabled'}>Pause</button><button class="btn primary" data-act="finish" data-id="${e.id}">Done</button></div></div>`;
+    }).join('')+'</div>';
+  }
+
+  // since last
+  const last = types => state.entries.find(e=>types.includes(e.type));
+  const lf=last(['breast','bottle','solids']), ld=last(['diaper','potty']);
+  const sl=state.entries.filter(e=>e.type==='sleep');
+  const asleep=sl.find(e=>e.end==null), lastSleep=sl.filter(e=>e.end!=null).sort((a,b)=>b.end-a.end)[0];
+  const tile=(c,label,big,meta)=>`<div class="tile" style="--c:${c}"><span class="label">${label}</span><span class="big">${big}</span><span class="meta">${meta}</span></div>`;
+  h+=`<div class="since">
+    ${tile('var(--feed)','Last feed', lf?fmtDur(now-(lf.end||lf.start))+' ago':'—', lf?`${T[lf.type].label} at ${fmtTime(lf.start)}`:'No feeds yet')}
+    ${asleep? tile('var(--sleep)','Asleep for', fmtDur(now-asleep.start), `Since ${fmtTime(asleep.start)}`) : tile('var(--sleep)','Awake for', lastSleep?fmtDur(now-lastSleep.end):'—', lastSleep?`Woke at ${fmtTime(lastSleep.end)}`:'No sleep yet')}
+    ${tile('var(--diaper)','Last diaper', ld?fmtDur(now-ld.start)+' ago':'—', ld?`${esc(entrySummary(ld))} at ${fmtTime(ld.start)}`:'No changes yet')}
+  </div>`;
+
+  // prediction + quick log
+  const nap=comingUp(p, now);
+
+
+  // summary
+  const s=daySummary(now);
+  h+=`<div class="grid2">${nap}<div class="panel"><h2>Today so far</h2><div class="sums">
+    <div class="sum"><b>${s.feeds}</b><span>Feeds${s.breastMs?` · ${fmtDur(s.breastMs)} nursing`:''}</span></div>
+    <div class="sum"><b>${s.bottleMl?U.vol(s.bottleMl):'—'}</b><span>From bottles</span></div>
+    <div class="sum"><b>${fmtDur(s.sleepMs)}</b><span>Sleep (naps ${fmtDur(s.napMs)})</span></div>
+    <div class="sum"><b>${s.diapers}</b><span>Diapers · ${s.wet} wet · ${s.dirty} dirty</span></div>
+    <div class="sum"><b>${s.solids}</b><span>Solid meals</span></div>
+  </div><div style="margin-top:16px"><div class="strip">${strip(now)}</div>${hoursRow}</div></div></div>`;
+
+  const today=entriesOn(now);
+  h+=`<div class="panel"><h2>Today's log <button class="btn ghost sm" data-view="timeline">Full timeline</button></h2><div class="list">${today.length?today.map(entryRow).join(''):'<div class="empty">Nothing logged today. Tap an activity above to add the first entry.</div>'}</div></div>`;
+  return h;
+}
+
+/* --- Timeline --- */
+function vTimeline(){
+  const sel=state.selDay;
+  let h=header('Timeline', 'Tap a day to see its entries');
+  const rows=[]; for(let i=0;i<7;i++){ const d=startOfDay(Date.now())-i*DAY; rows.push(d); }
+  h+=`<div class="panel"><h2>Last 7 days</h2><div class="days">${rows.map(d=>`<div class="dayrow ${d===sel?'sel':''}"><span class="dl">${i18nDay(d)}</span><button class="strip" data-day="${d}" aria-label="Show ${fmtDate(d)}">${strip(d)}</button></div>`).join('')}
+    <div class="dayrow"><span></span>${hoursRow}</div></div><div style="margin-top:12px">${legend}</div></div>`;
+  const filters=[['all','All'],['feed','Feeding'],['sleep','Sleep'],['diaper','Diapers'],['health','Health'],['activity','Activities'],['memory','Moments']];
+  let es=entriesOn(sel); if(state.filter!=='all') es=es.filter(e=>T[e.type]?.cat===state.filter);
+  h+=`<div class="panel"><h2><span>${fmtDate(sel)}</span><span style="display:flex;gap:6px"><button class="btn ghost sm" data-shift="-1" aria-label="Previous day">‹</button><button class="btn ghost sm" data-shift="1" aria-label="Next day" ${sel>=startOfDay(Date.now())?'disabled':''}>›</button></span></h2>
+    <div class="chips" style="margin-bottom:8px">${filters.map(([k,l])=>`<button class="chip" data-filter="${k}" aria-pressed="${state.filter===k}">${l}</button>`).join('')}</div>
+    <div class="list">${es.length?es.map(entryRow).join(''):'<div class="empty">No entries for this day.</div>'}</div></div>`;
+  return h;
+}
+function i18nDay(d){ const t=startOfDay(Date.now()); if(d===t) return 'Today'; if(d===t-DAY) return 'Yesterday'; return new Date(d).toLocaleDateString([], {weekday:'short', day:'numeric'}); }
+
+/* --- Stats --- */
+function barChart(days, series, fmt, title){
+  const W=640,H=200,L=44,R=8,Tp=14,B=26;
+  const totals=days.map((_,i)=>series.reduce((a,s)=>a+s.vals[i],0));
+  const max=niceMax(Math.max(1,...totals));
+  const bw=(W-L-R)/days.length;
+  let g='';
+  for(let k=0;k<=4;k++){ const v=max*k/4, y=Tp+(H-Tp-B)*(1-k/4); g+=`<line class="grid" x1="${L}" x2="${W-R}" y1="${y}" y2="${y}"/><text x="${L-6}" y="${y+4}" text-anchor="end">${fmt(v,true)}</text>`; }
+  days.forEach((d,i)=>{
+    let y0=H-B; const x=L+i*bw+bw*.18, w=bw*.64;
+    series.forEach(s=>{ const hgt=(H-Tp-B)*s.vals[i]/max; if(hgt>0){ g+=`<rect x="${x}" y="${y0-hgt}" width="${w}" height="${hgt}" rx="3" fill="${s.color}"><title>${fmtDate(d)} · ${s.name}: ${fmt(s.vals[i])}</title></rect>`; y0-=hgt; } });
+    if(days.length<=14 || i%3===0) g+=`<text x="${x+w/2}" y="${H-8}" text-anchor="middle">${new Date(d).toLocaleDateString([], days.length<=7?{weekday:'short'}:{month:'numeric',day:'numeric'})}</text>`;
+  });
+  const avg=totals.reduce((a,b)=>a+b,0)/days.length;
+  const lg=series.length>1?`<div class="legend" style="margin-bottom:8px">${series.map(s=>`<span><i style="background:${s.color}"></i>${s.name}</span>`).join('')}</div>`:'';
+  return `<div class="panel"><h2><span>${title}</span><span class="sub num">Avg ${fmt(avg)}/day</span></h2>${lg}<div class="chartwrap"><svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${title}">${g}</svg></div></div>`;
+}
+function niceMax(v){ const p=Math.pow(10,Math.floor(Math.log10(v))); const n=v/p; return (n<=1?1:n<=2?2:n<=2.5?2.5:n<=5?5:10)*p; }
+function vStats(){
+  const n=state.statRange; const days=[]; for(let i=n-1;i>=0;i--) days.push(startOfDay(Date.now())-i*DAY);
+  const S=days.map(daySummary);
+  let h=header('Stats', `Daily patterns over the last ${n} days`);
+  h+=`<div class="chips">${[7,14,30].map(k=>`<button class="chip" data-range="${k}" aria-pressed="${n===k}">${k} days</button>`).join('')}</div>`;
+  const hrs=(v,axis)=> axis? `${Math.round(v/HR)}h` : fmtDur(v);
+  h+=`<div class="grid2">`;
+  h+=barChart(days,[{name:'Night',color:'var(--sleep)',vals:S.map(s=>s.nightMs)},{name:'Naps',color:'color-mix(in srgb,var(--sleep) 50%,var(--surface))',vals:S.map(s=>s.napMs)}],hrs,'Sleep');
+  h+=barChart(days,[{name:'Feeds',color:'var(--feed)',vals:S.map(s=>s.feeds)}],(v)=>Math.round(v*10)/10+'','Breast + bottle feeds');
+  h+=barChart(days,[{name:'Bottle',color:'var(--feed)',vals:S.map(s=>s.bottleMl)},{name:'Pumped',color:'color-mix(in srgb,var(--feed) 45%,var(--surface))',vals:S.map(s=>s.pumpMl)}],(v,axis)=> axis? `${U.volOut(v)}` : U.vol(v),`Milk volume (${U.volU()})`);
+  h+=barChart(days,[{name:'Wet',color:'var(--diaper)',vals:S.map(s=>s.wet)},{name:'Dirty',color:'color-mix(in srgb,var(--diaper) 45%,var(--surface))',vals:S.map(s=>s.dirty)}],(v)=>Math.round(v*10)/10+'','Diapers');
+  h+=`</div>`;
+  return h;
+}
+
+/* --- Growth --- */
+// WHO Child Growth Standards medians (0–24 months)
+const WHO={
+  w:{m:[3.3,4.5,5.6,6.4,7.0,7.5,7.9,8.3,8.6,8.9,9.2,9.4,9.6,9.9,10.1,10.3,10.5,10.7,10.9,11.1,11.3,11.5,11.8,12.0,12.2],
+     f:[3.2,4.2,5.1,5.8,6.4,6.9,7.3,7.6,7.9,8.2,8.5,8.7,8.9,9.2,9.4,9.6,9.8,10.0,10.2,10.4,10.6,10.9,11.1,11.3,11.5]},
+  l:{m:[49.9,54.7,58.4,61.4,63.9,65.9,67.6,69.2,70.6,72.0,73.3,74.5,75.7,76.9,78.0,79.1,80.2,81.2,82.3,83.2,84.2,85.1,86.0,86.9,87.8],
+     f:[49.1,53.7,57.1,59.8,62.1,64.0,65.7,67.3,68.7,70.1,71.5,72.8,74.0,75.2,76.4,77.5,78.6,79.7,80.7,81.7,82.7,83.7,84.6,85.5,86.4]}
+};
+function whoRef(kind){ const s=state.profile?.sex; if(s==='m'||s==='f') return WHO[kind][s]; return WHO[kind].m.map((v,i)=>(v+WHO[kind].f[i])/2); }
+function growthChart(kind, title, conv, unit){
+  const pts=state.entries.filter(e=>e.type==='growth' && e[kind==='w'?'weight':'length']!=null).map(e=>({x:ageDays(state.profile.birth,e.start)/30.4375, y:e[kind==='w'?'weight':'length']})).filter(p=>p.x>=0).sort((a,b)=>a.x-b.x);
+  const ref=whoRef(kind);
+  const xmax=Math.min(24, Math.max(6, Math.ceil(((pts.at(-1)?.x)||0)+2), Math.ceil(ageDays(state.profile.birth)/30.4375)+1));
+  const refPts=ref.slice(0,xmax+1).map((y,x)=>({x,y}));
+  const ys=[...pts.map(p=>p.y),...refPts.map(p=>p.y)].map(conv);
+  let ymin=Math.floor(Math.min(...ys)*0.92), ymax=Math.ceil(Math.max(...ys)*1.05);
+  const W=640,H=240,L=44,R=12,Tp=12,B=28;
+  const X=x=>L+(W-L-R)*x/xmax, Y=y=>Tp+(H-Tp-B)*(1-(conv(y)-ymin)/(ymax-ymin));
+  let g='';
+  for(let k=0;k<=4;k++){ const v=ymin+(ymax-ymin)*k/4, y=Tp+(H-Tp-B)*(1-k/4); g+=`<line class="grid" x1="${L}" x2="${W-R}" y1="${y}" y2="${y}"/><text x="${L-6}" y="${y+4}" text-anchor="end">${Math.round(v)}</text>`; }
+  const step=xmax<=12?2:4; for(let m=0;m<=xmax;m+=step) g+=`<text x="${X(m)}" y="${H-8}" text-anchor="middle">${m} mo</text>`;
+  g+=`<polyline fill="none" stroke="var(--ink-3)" stroke-width="1.5" stroke-dasharray="5 4" points="${refPts.map(p=>`${X(p.x)},${Y(p.y)}`).join(' ')}"/>`;
+  if(pts.length){ g+=`<polyline fill="none" stroke="var(--growth)" stroke-width="2.5" points="${pts.map(p=>`${X(p.x)},${Y(p.y)}`).join(' ')}"/>`;
+    pts.forEach((p,i)=>g+=`<circle cx="${X(p.x)}" cy="${Y(p.y)}" r="${i===pts.length-1?5:3.5}" fill="var(--growth)" stroke="var(--surface)" stroke-width="1.5"><title>${p.x.toFixed(1)} mo: ${conv(p.y).toFixed(1)} ${unit}</title></circle>`); }
+  return `<div class="panel"><h2><span>${title} (${unit})</span></h2><div class="legend" style="margin-bottom:6px"><span><i style="background:var(--growth)"></i>${esc(state.profile.name)}</span><span><i style="background:var(--ink-3)"></i>WHO median</span></div><div class="chartwrap"><svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${title} chart">${g}</svg></div>${pts.length?'':'<p class="empty">Add a measurement to start the chart.</p>'}</div>`;
+}
+function vGrowth(){
+  let h='';
+  const gs=state.entries.filter(e=>e.type==='growth');
+  h+=`<div class="head" style="align-items:center"><h2 style="font-size:21px">Growth</h2><button class="btn primary" data-new="growth" ${state.canWrite?'':'disabled'}>${svg('plus','width="16" height="16"')} Add measurement</button></div>`;
+  h+=`<div class="grid2">${growthChart('w','Weight',U.imp()?v=>v*2.20462:v=>v,U.wtU())}${growthChart('l','Length',U.imp()?v=>v/2.54:v=>v,U.lenU())}</div>`;
+  h+=`<div class="panel"><h2>Measurements</h2><div class="tablewrap"><table><thead><tr><th>Date</th><th>Age</th><th>Weight</th><th>Length</th><th>Head</th></tr></thead><tbody>${gs.map(e=>`<tr data-edit="${e.id}" style="cursor:pointer"><td>${new Date(e.start).toLocaleDateString()}</td><td>${esc(ageText(state.profile.birth,e.start))}</td><td>${U.wt(e.weight)||'—'}</td><td>${U.len(e.length)||'—'}</td><td>${U.len(e.head)||'—'}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">No measurements yet.</td></tr>'}</tbody></table></div>
+  <p class="note">The dashed line is the WHO growth-standard median${state.profile?.sex==='m'?' for boys':state.profile?.sex==='f'?' for girls':' (average of boys and girls)'}. It's a reference point, not a target. Ask your pediatrician about your baby's percentile.</p></div>`;
+  return h;
+}
+
+/* --- Health / teeth --- */
+const TEETH=[ // id, label, arch, index 0..4 from center, typical months
+  ['uci','Central incisor','u',0,'8–12'],['uli','Lateral incisor','u',1,'9–13'],['uc','Canine','u',2,'16–22'],['um1','First molar','u',3,'13–19'],['um2','Second molar','u',4,'25–33'],
+  ['lci','Central incisor','l',0,'6–10'],['lli','Lateral incisor','l',1,'10–16'],['lc','Canine','l',2,'17–23'],['lm1','First molar','l',3,'14–18'],['lm2','Second molar','l',4,'23–31']
+];
+function mouthSvg(){
+  const cx=170, ucy=150, lcy=170; let g='';
+  TEETH.forEach(([id,label,arch,i])=>{
+    ['l','r'].forEach(side=>{
+      const key=`${id}_${side}`, on=!!state.teeth[key];
+      const ang=(i*17+9)*Math.PI/180*(side==='l'?-1:1);
+      const rx=120, ry=110, x=cx+Math.sin(ang)*rx, y= arch==='u' ? ucy-Math.cos(ang)*ry : lcy+Math.cos(ang)*ry;
+      const s=i>=3?15:i===2?11:10;
+      const rot=ang*180/Math.PI*(arch==='u'?1:-1);
+      g+=`<g class="tooth ${on?'on':''}" data-tooth="${key}" tabindex="0" role="button" aria-label="${arch==='u'?'Upper':'Lower'} ${side==='l'?'left':'right'} ${label}${on?', erupted':''}" transform="translate(${x} ${y}) rotate(${rot})"><path d="M${-s} ${-s*0.8} q${s} ${-s*0.5} ${2*s} 0 v${s*1.4} q${-s} ${s*0.5} ${-2*s} 0z"/></g>`;
+    });
+  });
+  g+=`<text x="${cx}" y="${ucy-20}" text-anchor="middle">UPPER</text><text x="${cx}" y="${lcy+30}" text-anchor="middle">LOWER</text>`;
+  return `<svg class="mouth" viewBox="0 0 340 300" aria-label="Teeth chart">${g}</svg>`;
+}
+function vHealth(){
+  let h=header('Health & growth', 'Growth, teeth, temperatures, medicine, visits and vaccines');
+  h+=vGrowth();
+  h+=`<div class="head" style="align-items:center;margin-top:8px"><h2 style="font-size:21px">Health</h2></div>`;
+  const count=Object.keys(state.teeth).length;
+  const rows=TEETH.map(([id,label,arch,,mo])=>{ const l=state.teeth[id+'_l'], r=state.teeth[id+'_r']; return `<tr><td>${arch==='u'?'Upper':'Lower'} ${label.toLowerCase()}</td><td>${mo} mo</td><td>${[l?`L ${esc(l.date)}`:'',r?`R ${esc(r.date)}`:''].filter(Boolean).join(', ')||'—'}</td></tr>`; }).join('');
+  h+=`<div class="panel"><h2><span>Teeth</span><span class="sub num">${count} of 20</span></h2><div class="teeth"><div>${mouthSvg()}<p class="note" style="text-align:center">Tap a tooth to record when it came in.</p></div><div class="tablewrap"><table><thead><tr><th>Tooth</th><th>Typical</th><th>Came in</th></tr></thead><tbody>${rows}</tbody></table></div></div></div>`;
+  const hs=state.entries.filter(e=>T[e.type]?.cat==='health');
+  h+=`<div class="panel"><h2>Health log <span style="display:flex;gap:6px;flex-wrap:wrap">${['temp','med','symptom','doctor','vaccine'].map(t=>`<button class="btn ghost sm" data-new="${t}" ${state.canWrite?'':'disabled'}>+ ${T[t].label}</button>`).join('')}</span></h2>
+    <div class="list">${hs.length?hs.map(e=>entryRow(e).replace('<span class="tm">',`<span class="tm" title="${fmtDate(e.start)}">`).replace(`>${fmtTime(e.start)}<`,`>${new Date(e.start).toLocaleDateString([], {month:'short',day:'numeric'})}<`)).join(''):'<div class="empty">No health entries yet.</div>'}</div></div>`;
+  const ms=state.entries.filter(e=>e.type==='note');
+  h+=`<div class="panel"><h2>Moments &amp; milestones <button class="btn ghost sm" data-new="note" ${state.canWrite?'':'disabled'}>+ Moment</button></h2><div class="list">${ms.length?ms.map(e=>entryRow(e).replace(`>${fmtTime(e.start)}<`,`>${new Date(e.start).toLocaleDateString([], {month:'short',day:'numeric'})}<`)).join(''):'<div class="empty">Record first smiles, rolls, words and steps here.</div>'}</div></div>`;
+  return h;
+}
+
+/* --- Settings --- */
+function vSettings(){
+  const p=state.profile||{};
+  let h=header('Settings', 'Baby profile, units, sharing and export');
+  h+=`<div class="grid2"><div class="panel"><h2>Baby</h2>
+    <div class="sums"><div class="sum"><b>${esc(p.name||'—')}</b><span>Name</span></div><div class="sum"><b>${p.birth?new Date(p.birth+'T00:00').toLocaleDateString():'—'}</b><span>Born</span></div><div class="sum"><b>${U.imp()?'US':'Metric'}</b><span>Units</span></div></div>
+    <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" data-act="setup" ${state.canWrite?'':'disabled'}>${state.mode==='demo'?'Add your baby':'Edit profile'}</button></div></div>
+  ${familyPanel()}
+  ${accountPanel()}
+  <div class="panel"><h2>Appearance</h2><div class="form">
+    <div class="field"><span>Theme color</span><div class="swatches" role="radiogroup" aria-label="Theme color">${Object.entries(ACCENTS).map(([k,[n,l,d]])=>`<label class="sw"><input type="radio" name="s_accent" value="${k}" ${prefs.accent===k?'checked':''}><span style="--sw:${l};--swd:${d}"></span>${n}</label>`).join('')}</div></div>
+    <div class="field"><span>Background</span><div class="swatches" role="radiogroup" aria-label="Background">${Object.entries(BGS).map(([k,[n,l,d]])=>`<label class="sw"><input type="radio" name="s_bg" value="${k}" ${prefs.bg===k?'checked':''}><span style="--sw:${l[0]};--swd:${d[0]}"></span>${n}</label>`).join('')}</div></div>
+    ${F.seg('s_mode','Light or dark',[['system','Match device'],['light','Light'],['dark','Dark']],prefs.appearance)}
+    ${F.seg('s_clock','Clock',[['12','12-hour'],['24','24-hour']],prefs.clock)}
+    ${F.seg('s_units','Units',[['imperial','oz · lb · in · °F'],['metric','ml · kg · cm · °C']],p.units||'imperial')}
+    <p class="note">Theme color, background, light or dark, and clock apply to this device only. Units apply to everyone sharing this log.</p></div></div>
+  <div class="panel" id="tilesPanel"><h2>Log tiles <button class="btn ghost sm" data-act="resetTiles">Reset</button></h2>
+    <p class="note" style="margin-top:-6px">Drag rows or use the arrows to change the order on Today. Untick a tile to hide it. Saved on this device.</p>
+    <div class="arrlist">${tileOrder().map((t,i,arr)=>`<div class="arr ${isHidden(t)?'off':''}" draggable="true" data-tile="${t}" style="--c:${color(t)}">
+      <span class="grip" aria-hidden="true">${svg('grip')}</span><span class="mini">${svg(T[t].icon)}</span><span class="nm">${T[t].label}</span>
+      <label class="show"><input type="checkbox" name="s_show" value="${t}" ${isHidden(t)?'':'checked'}> Show</label>
+      <span class="mv"><button type="button" data-act="move" data-tile="${t}" data-dir="-1" aria-label="Move ${T[t].label} up" ${i===0?'disabled':''}>${svg('up')}</button><button type="button" data-act="move" data-tile="${t}" data-dir="1" aria-label="Move ${T[t].label} down" ${i===arr.length-1?'disabled':''}>${svg('down')}</button></span></div>`).join('')}</div></div>
+  <div class="panel"><h2>Backup &amp; restore</h2>
+    <p>${state.mode==='cloud'?'Entries are saved in your Supabase database and sync to everyone in Family. Updating index.html never touches them.'
+      : state.mode==='local'?'Entries are saved in this browser. They stay when the file is updated at the same web address, but not if you open the file from a different address or browser.'
+      : 'Nothing is saved yet. Add your baby to start saving, or import a backup.'}</p>
+    <p>Save a backup file to keep a safe copy or to move your log to another copy of Nestling. Importing adds new entries and skips ones you already have, so it's safe to import the same file twice.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" data-act="backup" ${state.mode==='demo'?'disabled':''}>${svg('download','width="16" height="16"')} Save backup</button><label class="btn ghost" for="importFile">Import backup</label><input type="file" id="importFile" class="vh" accept=".json,application/json"><button class="btn ghost" data-act="export">Export CSV</button></div>
+    <p class="note">${prefs.lastBackup?`Last backup from this device: ${new Date(prefs.lastBackup).toLocaleDateString()}.`:'No backup saved from this device yet.'} CSV is for spreadsheets and your pediatrician; only a backup file can be imported.</p><p class="note" id="exportNote"></p></div>
+  <div class="panel"><h2>About Nestling</h2><p class="note">Nap windows use typical awake times by age from Cleveland Clinic and The Sleep Lady. Growth reference lines use the WHO Child Growth Standards medians (0–24 months). Teeth timing follows the American Dental Association chart. Checkups follow the AAP Bright Futures schedule. A fever is 100.4 °F (38 °C) or higher. Nestling is a log, not medical advice. Call your pediatrician with any health concerns.</p></div></div>`;
+  return h;
+}
+
+/* ---------- names (who logged) ---------- */
+function resolveNames(){
+  if(state.mode!=='cloud') return;
+  document.querySelectorAll('[data-by]').forEach(el=>{ const id=el.dataset.by; if(!id) return; el.textContent = id===uid() ? 'You' : (members.find(m=>m.user_id===id)?.display_name||''); });
+}
+
+/* ---------- family + account panels ---------- */
+const ROLE={owner:'Owner · logs entries and invites',parent:'Parent · logs entries and invites',viewer:'View only'};
+const myMember = () => members.find(m=>m.user_id===uid());
+function familyPanel(){
+  if(!cloudWanted) return `<div class="panel"><h2>Family sharing</h2><p>Sync is off, so entries stay in this browser.</p><p class="note">To share with a coparent, add your Supabase project details at the top of index.html. The setup guide walks through it.</p></div>`;
+  if(!session) return `<div class="panel"><h2>Family sharing</h2><p>Sign in to start a shared log. Everyone you invite sees new entries right away.</p><button class="btn primary" data-act="setup">Sign in</button></div>`;
+  if(state.mode!=='cloud') return `<div class="panel"><h2>Family sharing</h2><p>Add your baby to start a log, or join one with an invite code.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" data-act="setup">Add your baby</button><button class="btn ghost" data-act="joinOpen">Join with a code</button></div></div>`;
+  const me=myMember();
+  const rows=members.map(m=>{
+    const self=m.user_id===uid();
+    const can = self ? m.role!=='owner' : me?.role==='owner';
+    return `<div class="mem"><span class="av">${esc((m.display_name||'?').trim().charAt(0).toUpperCase()||'?')}</span><span class="mn"><b>${esc(m.display_name||'Parent')}${self?' (you)':''}</b><span>${ROLE[m.role]||m.role}</span></span>${can?`<button class="btn sm ghost" data-act="removeMember" data-user="${esc(m.user_id)}" data-self="${self?1:''}">${self?'Leave':'Remove'}</button>`:''}</div>`;
+  }).join('');
+  return `<div class="panel"><h2>Family</h2><div>${rows}</div><div id="memberConfirm"></div>
+    ${state.canWrite?`<div class="form" style="margin-top:14px">${F.seg('invrole','Invite someone who can',[['parent','Log entries'],['viewer','Only view']],'parent')}<div><button class="btn primary" data-act="invite">Create invite code</button></div><div id="inviteOut"></div></div>`:''}</div>`;
+}
+function accountPanel(){
+  if(!session) return '';
+  const me=myMember();
+  return `<div class="panel"><h2>Account</h2><p>Signed in as <b>${esc(session.user.email||'')}</b></p>
+    ${state.mode==='cloud'?`<form class="form" id="nameForm"><div class="row2" style="align-items:end">${F.text('me_name','Your name, shown to family',me?.display_name||'','e.g. Mom, Dad, Grandma')}<div><button class="btn" type="submit">Save name</button></div></div></form>`:''}
+    ${myBabies.length>1?`<label class="field" style="margin-top:12px"><span>Baby</span><select id="babySel">${myBabies.map(m=>`<option value="${esc(m.baby_id)}" ${m.baby_id===baby?.id?'selected':''}>${esc(m.babies?.name||'Baby')}</option>`).join('')}</select></label>`:''}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">${state.mode==='cloud'?`<button class="btn ghost" data-act="addBaby">Add another baby</button><button class="btn ghost" data-act="joinOpen">Join with a code</button>`:''}<button class="btn danger" data-act="signout">Sign out</button></div></div>`;
+}
+
+/* ---------- modal + forms ---------- */
+function openModal(html){ document.getElementById('modalRoot').innerHTML=`<div class="scrim" data-close="1"><div class="modal" role="dialog" aria-modal="true">${html}</div></div>`; const f=document.querySelector('.modal input:not([type=radio]),.modal select,.modal button'); f&&f.focus(); }
+function closeModal(){ document.getElementById('modalRoot').innerHTML=''; }
+function toast(msg){ const r=document.getElementById('toastRoot'); r.innerHTML=`<div class="toast" role="status">${esc(msg)}</div>`; clearTimeout(toast.t); toast.t=setTimeout(()=>r.innerHTML='',2400); }
+
+const F = {
+  time:(id,label,v)=>`<label class="field"><span>${label}</span><input type="datetime-local" id="${id}" value="${v?toInput(v):''}"></label>`,
+  num:(id,label,v,unit,step='any')=>`<label class="field"><span>${label}${unit?` (${unit})`:''}</span><input type="number" inputmode="decimal" step="${step}" min="0" id="${id}" value="${v??''}"></label>`,
+  text:(id,label,v,ph='')=>`<label class="field"><span>${label}</span><input type="text" id="${id}" value="${esc(v??'')}" placeholder="${esc(ph)}"></label>`,
+  area:(id,label,v)=>`<label class="field"><span>${label}</span><textarea id="${id}">${esc(v??'')}</textarea></label>`,
+  seg:(name,label,opts,v)=>`<div class="field"><span>${label}</span><div class="segs" role="radiogroup">${opts.map(([val,l])=>`<label><input type="radio" name="${name}" value="${val}" ${v===val?'checked':''}><span>${l}</span></label>`).join('')}</div></div>`,
+  check:(id,label,v)=>`<label style="display:flex;gap:8px;align-items:center;font-weight:600"><input type="checkbox" id="${id}" ${v?'checked':''}> ${label}</label>`
+};
+const val = id => document.getElementById(id)?.value;
+const radio = n => document.querySelector(`input[name="${n}"]:checked`)?.value;
+const numv = id => { const v=val(id); return v===''||v==null?null:+v; };
+
+function fieldsFor(type, e){
+  const now=Date.now();
+  switch(type){
+    case 'breast': return F.time('f_start','Started',e.start||now-15*MIN)+`<div class="row2">${F.num('f_l','Left',e.left!=null?Math.round(e.left/MIN):'', 'min','1')}${F.num('f_r','Right',e.right!=null?Math.round(e.right/MIN):'','min','1')}</div>`+F.text('f_note','Note',e.note);
+    case 'bottle': return F.time('f_start','Time',e.start||now)+F.num('f_amt','Amount',U.volOut(e.amount),U.volU())+F.seg('contents','Contents',[['breastmilk','Breast milk'],['formula','Formula'],['other','Other']],e.contents||'breastmilk')+F.text('f_note','Note',e.note);
+    case 'solids': return F.time('f_start','Time',e.start||now)+F.text('f_food','Food',e.food,'e.g. mashed banana')+F.text('f_amtt','Amount',e.amountText,'e.g. 2 tbsp')+F.seg('reaction','How it went',[['liked','Liked'],['neutral','Okay'],['disliked','Disliked'],['reaction','Reaction']],e.reaction||'liked')+F.text('f_note','Note',e.note);
+    case 'pump': return F.time('f_start','Time',e.start||now)+`<div class="row2">${F.num('f_l','Left',U.volOut(e.left),U.volU())}${F.num('f_r','Right',U.volOut(e.right),U.volU())}</div>`+F.num('f_dur','Duration',e.duration,'min','1')+F.text('f_note','Note',e.note);
+    case 'sleep': return F.seg('kind','Type',[['nap','Nap'],['night','Night sleep']],e.kind||(new Date().getHours()>=19||new Date().getHours()<6?'night':'nap'))+F.time('f_start','Fell asleep',e.start||now-60*MIN)+F.time('f_end','Woke up (leave empty if still asleep)',e.id?e.end:now)+F.text('f_note','Note',e.note);
+    case 'diaper': return F.time('f_start','Time',e.start||now)+F.seg('kind','Diaper',[['wet','Wet'],['dirty','Dirty'],['mixed','Both'],['dry','Dry']],e.kind||'wet')+F.text('f_color','Color / consistency',e.color,'optional')+F.text('f_note','Note',e.note);
+    case 'potty': return F.time('f_start','Time',e.start||now)+F.seg('result','Result',[['pee','Pee'],['poo','Poo'],['both','Both'],['none','Nothing']],e.result||'pee')+F.text('f_note','Note',e.note);
+    case 'growth': return F.time('f_start','Measured',e.start||now)+F.num('f_w','Weight',U.wtOut(e.weight),U.wtU())+`<div class="row2">${F.num('f_len','Length',U.lenOut(e.length),U.lenU())}${F.num('f_head','Head',U.lenOut(e.head),U.lenU())}</div>`+F.text('f_note','Note',e.note);
+    case 'temp': return F.time('f_start','Time',e.start||now)+F.num('f_val','Temperature',U.tmpOut(e.value),U.tmpU())+F.seg('method','Method',[['rectal','Rectal'],['armpit','Armpit'],['ear','Ear'],['forehead','Forehead']],e.method||'rectal')+F.text('f_note','Note',e.note)
+      +`<p class="note">A temperature of 100.4 °F (38 °C) or higher is a fever. ${(ageDays(state.profile?.birth)??999)<91?'<b>Your baby is under 3 months: call your pediatrician right away for a fever.</b> ':''}Rectal is the most accurate method for babies. When you call, say which method you used.</p>`;
+    case 'med': return F.time('f_start','Time given',e.start||now)+F.text('f_name','Medicine',e.name)+F.text('f_dose','Dose',e.dose,'as on the label or prescription')+F.text('f_note','Note',e.note);
+    case 'symptom': return F.time('f_start','Time',e.start||now)+F.area('f_note','What did you notice?',e.note);
+    case 'doctor': return F.time('f_start','Date and time',e.start||now)+F.text('f_title','Reason',e.title,'e.g. 4-month checkup, ear check')+F.area('f_note','Notes',e.note)+`<p class="note">Pick a future date to add an upcoming appointment. It shows under Coming up on Today.</p>`;
+    case 'vaccine': return F.time('f_start','Date',e.start||now)+F.text('f_name','Vaccine(s)',e.name,'e.g. 2-month vaccines')+F.text('f_note','Note',e.note);
+    case 'activity': return F.time('f_start','Time',e.start||now)+F.seg('akind','Activity',[['Tummy time','Tummy time'],['Bath','Bath'],['Walk','Walk'],['Play','Play'],['Reading','Reading'],['Other','Other']],e.kind||'Tummy time')+F.num('f_dur','Duration',e.duration,'min','1')+F.text('f_note','Note',e.note);
+    case 'note': return F.time('f_start','When',e.start||now)+F.text('f_title','What happened',e.title,'e.g. First giggle')+F.check('f_ms','This is a milestone',e.milestone)+F.area('f_note','Details',e.note);
+  }
+}
+function readFields(type){
+  const start=fromInput(val('f_start'))||Date.now(); const note=val('f_note')?.trim()||undefined;
+  switch(type){
+    case 'breast': { const l=numv('f_l'), r=numv('f_r'); const L=(l||0)*MIN, R=(r||0)*MIN; return {start,end:start+L+R,left:L,right:R,active:null,activeSince:null,note}; }
+    case 'bottle': return {start,amount:U.volIn(val('f_amt')),contents:radio('contents'),note};
+    case 'solids': return {start,food:val('f_food').trim(),amountText:val('f_amtt').trim(),reaction:radio('reaction'),note};
+    case 'pump': return {start,left:U.volIn(val('f_l')),right:U.volIn(val('f_r')),duration:numv('f_dur'),note};
+    case 'sleep': { const end=fromInput(val('f_end')); return {start,end: end && end>start ? end : null,kind:radio('kind'),note}; }
+    case 'diaper': return {start,kind:radio('kind'),color:val('f_color').trim()||undefined,note};
+    case 'potty': return {start,result:radio('result'),note};
+    case 'growth': return {start,weight:U.wtIn(val('f_w')),length:U.lenIn(val('f_len')),head:U.lenIn(val('f_head')),note};
+    case 'temp': return {start,value:U.tmpIn(val('f_val')),method:radio('method'),note};
+    case 'med': return {start,name:val('f_name').trim(),dose:val('f_dose').trim(),note};
+    case 'symptom': return {start,note};
+    case 'doctor': return {start,title:val('f_title').trim()||undefined,note};
+    case 'vaccine': return {start,name:val('f_name').trim(),note};
+    case 'activity': return {start,kind:radio('akind'),duration:numv('f_dur'),note};
+    case 'note': return {start,title:val('f_title').trim(),milestone:document.getElementById('f_ms').checked,note};
+  }
+}
+function openEntry(type, existing){
+  const e=existing||{}; const t=T[type];
+  let top='';
+  if(!existing && type==='breast' && !state.entries.some(x=>x.type==='breast'&&x.end==null))
+    top=`<div class="field"><span>Start a timer</span><div class="row2"><button class="btn primary" data-act="startBreast" data-side="L" style="justify-content:center">Left side</button><button class="btn primary" data-act="startBreast" data-side="R" style="justify-content:center">Right side</button></div></div><div class="divider">or enter manually</div>`;
+  if(!existing && type==='sleep' && !state.entries.some(x=>x.type==='sleep'&&x.end==null))
+    top=`<button class="btn primary" data-act="startSleep" style="justify-content:center">Start sleep timer now</button><div class="divider">or enter manually</div>`;
+  openModal(`<h3 style="--c:${color(type)}"><span class="ic">${svg(t.icon)}</span>${existing?'Edit ':''}${t.label}</h3>
+    <form class="form" id="entryForm" data-type="${type}" data-id="${esc(e.id||'')}">${top}${fieldsFor(type,e)}
+    <div id="confirmSlot"></div>
+    <div class="actions">${existing&&state.canWrite?`<button type="button" class="btn danger" data-act="askDelete">Delete</button>`:''}<div class="r"><button type="button" class="btn ghost" data-close="1">Cancel</button><button type="submit" class="btn primary" ${state.canWrite?'':'disabled'}>Save</button></div></div></form>`);
+}
+function openSetup(forceNew){
+  const isNew = forceNew || state.mode==='demo';
+  const p=isNew?{units:state.profile?.units||'imperial'}:(state.profile||{});
+  openModal(`<h3 style="--c:var(--accent)">${isNew?'Add your baby':'Edit profile'}</h3>
+  <form class="form" id="setupForm" data-isnew="${isNew?1:''}">${F.text('p_name','Baby\'s name',p.name,'First name or nickname')}
+  <label class="field"><span>Date of birth (or due date)</span><input type="date" id="p_birth" value="${esc(p.birth||'')}" required></label>
+  ${F.seg('sex','Sex (used for the growth reference line)',[['f','Girl'],['m','Boy'],['u','Prefer not to say']],p.sex||'u')}
+  ${F.seg('units','Units',[['imperial','oz · lb · in · °F'],['metric','ml · kg · cm · °C']],p.units||'imperial')}
+  ${isNew&&sb?F.text('p_me','Your name, shown to family',myMember()?.display_name||'','e.g. Mom, Dad'):''}
+  ${isNew?`<p class="note">${sb?'Your log syncs to everyone you invite from Settings.':'Your log will be saved in this browser.'}${state.mode==='demo'?' The sample data will be cleared.':''}</p>`:''}
+  <div class="actions"><div class="r"><button type="button" class="btn ghost" data-close="1">Cancel</button><button type="submit" class="btn primary">Save</button></div></div></form>`);
+}
+function openTooth(key){
+  const [id,side]=key.split('_'); const t=TEETH.find(x=>x[0]===id); const cur=state.teeth[key];
+  openModal(`<h3 style="--c:var(--health)">${t[2]==='u'?'Upper':'Lower'} ${side==='l'?'left':'right'} ${t[1].toLowerCase()}</h3>
+  <form class="form" id="toothForm" data-key="${key}"><p class="sub">Usually appears around ${t[4]} months.</p>
+  <label class="field"><span>Date it came in</span><input type="date" id="t_date" value="${esc(cur?.date||dayKey(Date.now()))}"></label>
+  <div class="actions">${cur?`<button type="button" class="btn danger" data-act="clearTooth" data-key="${key}">Clear</button>`:''}<div class="r"><button type="button" class="btn ghost" data-close="1">Cancel</button><button type="submit" class="btn primary" ${state.canWrite?'':'disabled'}>Save</button></div></div></form>`);
+}
+
+/* ---------- export ---------- */
+async function exportCsv(){
+  const cols=['date','time','type','details','note'];
+  const rows=[cols.join(',')].concat((await allEntries()).reverse().map(e=>[dayKey(e.start),fmtTime(e.start),T[e.type]?.label||e.type,entrySummary(e),e.note||''].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')));
+  const csv=rows.join('\n'); const name=`${(state.profile?.name||'baby').replace(/[^\w-]+/g,'-').toLowerCase()}-log-${dayKey(Date.now())}.csv`;
+  reportSave(await saveFile(name,csv,'text/csv'),'Export ready');
+}
+async function saveFile(name, data, mime){
+  if(!downloads && window.claude?.use){ try{ downloads=await window.claude.use('downloads'); }catch(e){} }
+  if(downloads){ try{ await downloads.save({filename:name,data}); return 'saved'; }catch(err){ return err?.code==='declined'?'declined':'error'; } }
+  if(!window.claude){ // self-hosted copy: a normal browser download works here
+    try{ const url=URL.createObjectURL(new Blob([data],{type:mime})); const a=document.createElement('a'); a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),3000); return 'saved'; }catch(e){ return 'error'; }
+  }
+  return 'unavailable';
+}
+function reportSave(r, ok){
+  const note=document.getElementById('exportNote');
+  if(r==='saved'){ toast(ok); if(note) note.textContent=''; }
+  else if(r==='unavailable'){ if(note) note.textContent='Downloads aren’t available in this view. Open the page on claude.ai or in a regular browser.'; }
+  else if(r==='error'){ if(note) note.textContent='The file could not be saved. Try again in a moment.'; }
+}
+const slugName = () => (state.profile?.name||'baby').replace(/[^\w-]+/g,'-').toLowerCase();
+
+/* ---------- every entry, not just the live window ---------- */
+async function allEntries(){
+  if(state.mode==='demo') return [];
+  if(state.mode==='cloud' && baby){ try{ return await fetchEntries(baby.id); }catch(e){ return [...state.entries]; } }
+  return [...state.entries];
+}
+
+/* ---------- backup + import ---------- */
+async function exportBackup(){
+  if(state.mode==='demo'){ toast('Add your baby first. Sample data isn’t backed up.'); return; }
+  let entries; try{ entries=await allEntries(); }catch(e){ reportSave('error'); return; }
+  const data=JSON.stringify({app:'nestling',version:1,exportedAt:new Date().toISOString(),profile:state.profile,entries,teeth:state.teeth});
+  const r=await saveFile(`${slugName()}-nestling-backup-${dayKey(Date.now())}.json`,data,'application/json');
+  if(r==='saved'){ prefs.lastBackup=Date.now(); savePrefs(); render(); }
+  reportSave(r,`Backup saved: ${entries.length} entries`);
+}
+const ID_OK=/^(?!\.\.?$)[A-Za-z0-9_\-.~:@+]{1,200}$/;
+function parseBackup(text){
+  const d=JSON.parse(text);
+  const list=Array.isArray(d)?d:d?.entries;
+  if(!Array.isArray(list)) throw new Error('not a backup');
+  const entries=list.filter(e=>e && typeof e==='object' && T[e.type] && typeof e.start==='number' && isFinite(e.start))
+    .map(e=>{ const c={...e}; if(!ID_OK.test(String(c.id||''))) c.id=newId(); return c; });
+  return {profile: d && d.profile && d.profile.birth ? d.profile : null, entries, teeth: d && d.teeth && typeof d.teeth==='object' ? d.teeth : {}};
+}
+let pendingImport=null;
+async function importPreview(data, source){
+  let current=[]; try{ current=await allEntries(); }catch(e){ current=state.mode==='demo'?[]:state.entries; }
+  const ids=new Set(current.map(e=>e.id)), sigs=new Set(current.map(e=>e.type+'|'+e.start));
+  const fresh=data.entries.filter(e=>!ids.has(e.id) && !sigs.has(e.type+'|'+e.start));
+  const newTeeth=Object.keys(data.teeth).filter(k=>!state.teeth[k] || state.mode==='demo').length;
+  pendingImport={...data, fresh};
+  openModal(`<h3 style="--c:var(--accent)">Import entries</h3><div class="form">
+    <p>${esc(source)} has <b>${data.entries.length}</b> entries${data.profile?` for <b>${esc(data.profile.name)}</b>`:''}.</p>
+    <p><b>${fresh.length}</b> are new and will be added. ${data.entries.length-fresh.length} are already in your log and will be skipped.${newTeeth?` ${newTeeth} teeth records will be added.`:''}</p>
+    ${state.mode==='demo'&&sb&&!session?'<p class="note">Sign in first, then import this file.</p>':''}
+    ${state.mode==='demo'&&!data.profile?'<p class="note">This file has no baby profile. Add your baby first, then import it.</p>':''}
+    ${state.mode==='demo'&&data.profile&&!(sb&&!session)?`<p class="note">The sample data will be cleared and ${esc(data.profile.name)}'s log will be ${sb?'saved to your family log':'saved in this browser'}.</p>`:''}
+    <div id="importProgress" class="note" role="status"></div>
+    <div class="actions"><div class="r"><button type="button" class="btn ghost" data-close="1">Cancel</button><button type="button" class="btn primary" data-act="doImport" ${(fresh.length||newTeeth)&&!(state.mode==='demo'&&(!data.profile||(sb&&!session)))&&state.canWrite?'':'disabled'}>Import ${fresh.length} entries</button></div></div></div>`);
+}
+async function doImport(){
+  const d=pendingImport; if(!d) return;
+  const prog=document.getElementById('importProgress'), btn=document.querySelector('[data-act="doImport"]');
+  if(btn) btn.disabled=true;
+  let n=0;
+  try{
+    if(state.mode==='demo'){
+      state.entries=[]; state.teeth={};
+      if(sb){
+        const id=must(await sb.rpc('create_baby',{p_name:d.profile.name,p_birth:d.profile.birth,p_sex:d.profile.sex||'u',p_units:d.profile.units||'imperial',p_my_name:''}));
+        await refreshMyBabies(); await openBaby(id, true);
+      } else { state.mode='local'; state.profile=d.profile; }
+    } else if(!state.profile && d.profile){ await store.setProfile(d.profile); }
+    const teeth={...d.teeth,...state.teeth};
+    if(state.mode==='cloud'){
+      for(let i=0;i<d.fresh.length;i+=200){
+        const chunk=d.fresh.slice(i,i+200).map(toRow);
+        must(await sb.from('entries').upsert(chunk,{onConflict:'baby_id,id',ignoreDuplicates:true}));
+        n+=chunk.length; if(prog) prog.textContent=`Imported ${n} of ${d.fresh.length}…`;
+      }
+      if(Object.keys(d.teeth).length) must(await sb.from('babies').update({teeth}).eq('id',baby.id));
+      state.teeth=teeth; state.entries=await fetchEntries(baby.id);
+    } else {
+      state.entries=[...d.fresh,...state.entries].sort((a,b)=>b.start-a.start); state.teeth=teeth; n=d.fresh.length;
+      if(!local.write()) throw {code:'local'};
+    }
+    pendingImport=null; state.localOffer=null; closeModal(); render(); toast(`Imported ${n} entries`);
+  }catch(err){
+    if(prog) prog.textContent = isDenied(err) ? 'You don’t have permission to add entries to this log.'
+      : err?.code==='local' ? 'This browser refused to save the entries. Free up space and try again.'
+      : `Import stopped after ${n} entries. Import the same file again; entries already added will be skipped.`;
+    if(btn) btn.disabled=false;
+  }
+}
+let offerChecked=false;
+function checkLocalOffer(){
+  const d=local.read(); if(!d || !Array.isArray(d.entries) || !d.entries.length) return;
+  const have=new Set(state.entries.map(e=>e.id));
+  const n=d.entries.filter(e=>!have.has(e.id)).length;
+  if(n && prefs.dismissLocal!==`${n}|${d.entries.length}`) state.localOffer={n,data:d};
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click', async ev=>{
+  const t=ev.target.closest('[data-view],[data-new],[data-edit],[data-act],[data-close],[data-day],[data-shift],[data-filter],[data-range],[data-tooth]');
+  if(!t) return;
+  if(t.dataset.close && ev.target!==t && t.classList.contains('scrim')) return;
+  if(t.dataset.close){ closeModal(); return; }
+  if(t.dataset.view){ state.view=t.dataset.view; render(); window.scrollTo(0,0); return; }
+  if(t.dataset.new){ if(state.canWrite) openEntry(t.dataset.new); return; }
+  if(t.dataset.edit){ const e=state.entries.find(x=>x.id===t.dataset.edit); if(e) openEntry(e.type,e); return; }
+  if(t.dataset.day){ state.selDay=+t.dataset.day; render(); return; }
+  if(t.dataset.shift){ state.selDay=Math.min(startOfDay(Date.now()), startOfDay(state.selDay+ (+t.dataset.shift)*DAY + 2*HR)); render(); return; }
+  if(t.dataset.filter){ state.filter=t.dataset.filter; render(); return; }
+  if(t.dataset.range){ state.statRange=+t.dataset.range; render(); return; }
+  if(t.dataset.tooth){ openTooth(t.dataset.tooth); return; }
+  const a=t.dataset.act, id=t.dataset.id, now=Date.now();
+  const e=id && state.entries.find(x=>x.id===id);
+  if(a==='setup'){ if(sb && !session) openSignIn('Sign in so your log is saved and can be shared with family.'); else openSetup(); }
+  else if(a==='addBaby') openSetup(true);
+  else if(a==='joinOpen') openJoin();
+  else if(a==='signout'){ try{ await sb.auth.signOut(); }catch(e){} }
+  else if(a==='invite') makeInvite();
+  else if(a==='copy'){ const v=t.dataset.copy; try{ await navigator.clipboard.writeText(v); toast('Copied'); }catch(e){ const inp=document.getElementById(t.dataset.for); if(inp){ inp.focus(); inp.select(); } toast('Press and hold to copy'); } }
+  else if(a==='removeMember'){ const self=!!t.dataset.self, m=members.find(x=>x.user_id===t.dataset.user); document.getElementById('memberConfirm').innerHTML=`<div class="confirm" style="margin-top:10px"><span>${self?'Leave this log? You’ll need a new invite to come back.':`Remove ${esc(m?.display_name||'this person')}? They’ll lose access right away.`}</span><span style="display:flex;gap:6px"><button type="button" class="btn sm ghost" data-act="noRemove">Cancel</button><button type="button" class="btn sm" style="background:var(--danger);color:#fff" data-act="doRemove" data-user="${esc(t.dataset.user)}" data-self="${self?1:''}">${self?'Leave':'Remove'}</button></span></div>`; }
+  else if(a==='noRemove'){ document.getElementById('memberConfirm').innerHTML=''; }
+  else if(a==='doRemove'){ await removeMember(t.dataset.user, !!t.dataset.self); }
+  else if(a==='export') exportCsv();
+  else if(a==='copyText'){ const v=t.dataset.text||''; try{ await navigator.clipboard.writeText(v); toast('Appointment details copied'); }catch(err){ openModal(`<h3 style="--c:var(--health)">Appointment details</h3><div class="form"><label class="field"><span>Select and copy</span><textarea id="copyBox" readonly>${esc(v)}</textarea></label><div class="actions"><div class="r"><button type="button" class="btn primary" data-close="1">Done</button></div></div></div>`); const b=document.getElementById('copyBox'); b.focus(); b.select(); } }
+  else if(a==='backup') exportBackup();
+  else if(a==='doImport') doImport();
+  else if(a==='importLocal' && state.localOffer){ try{ await importPreview(parseBackup(JSON.stringify(state.localOffer.data)),'This browser'); }catch(e){ toast('The saved entries in this browser could not be read.'); } }
+  else if(a==='dismissLocal' && state.localOffer){ prefs.dismissLocal=`${state.localOffer.n}|${state.localOffer.data.entries.length}`; savePrefs(); state.localOffer=null; render(); }
+  else if(a==='move'){ const o=tileOrder(), i=o.indexOf(t.dataset.tile), j=i+(+t.dataset.dir); if(j<0||j>=o.length) return; [o[i],o[j]]=[o[j],o[i]]; prefs.tiles=o; savePrefs(); render(); const b=document.querySelector(`[data-act="move"][data-tile="${t.dataset.tile}"][data-dir="${t.dataset.dir}"]`); (b && !b.disabled ? b : document.querySelector(`[data-act="move"][data-tile="${t.dataset.tile}"]:not(:disabled)`))?.focus(); }
+  else if(a==='resetTiles'){ prefs.tiles=null; prefs.hidden=[]; savePrefs(); render(); toast('Tiles reset'); }
+  else if(a==='arrange'){ state.view='settings'; render(); document.getElementById('tilesPanel')?.scrollIntoView({block:'start'}); }
+  else if(a==='startBreast'){ closeModal(); await safe(()=>store.add({type:'breast',start:now,end:null,left:0,right:0,active:t.dataset.side,activeSince:now}),'Timer started'); }
+  else if(a==='startSleep'){ closeModal(); const hr=new Date().getHours(); await safe(()=>store.add({type:'sleep',start:now,end:null,kind:hr>=19||hr<6?'night':'nap'}),'Sleep timer started'); }
+  else if(a==='wake' && e) await safe(()=>store.update(id,{end:now}),'Wake-up logged');
+  else if(a==='side' && e){ const tot=breastTotals(e,now); if(e.active===t.dataset.side) return; await safe(()=>store.update(id,{left:tot.L,right:tot.R,active:t.dataset.side,activeSince:now})); }
+  else if(a==='pause' && e){ const tot=breastTotals(e,now); await safe(()=>store.update(id,{left:tot.L,right:tot.R,active:null,activeSince:null})); }
+  else if(a==='finish' && e){ const tot=breastTotals(e,now); await safe(()=>store.update(id,{left:tot.L,right:tot.R,active:null,activeSince:null,end:now}),'Feed logged'); }
+  else if(a==='askDelete'){ document.getElementById('confirmSlot').innerHTML=`<div class="confirm"><span>Delete this entry for everyone?</span><span style="display:flex;gap:6px"><button type="button" class="btn sm ghost" data-act="noDelete">Keep</button><button type="button" class="btn sm" style="background:var(--danger);color:#fff" data-act="doDelete">Delete</button></span></div>`; }
+  else if(a==='noDelete'){ document.getElementById('confirmSlot').innerHTML=''; }
+  else if(a==='doDelete'){ const fid=document.getElementById('entryForm').dataset.id; closeModal(); await safe(()=>store.del(fid),'Entry deleted'); }
+  else if(a==='clearTooth'){ const k=t.dataset.key; const nt={...state.teeth}; delete nt[k]; closeModal(); await safe(()=>store.setTeeth(nt),'Tooth cleared'); }
+});
+let dragT=null;
+document.addEventListener('dragstart', ev=>{ const r=ev.target.closest?.('.arr'); if(!r) return; dragT=r.dataset.tile; r.classList.add('dragging'); try{ ev.dataTransfer.setData('text/plain',dragT); ev.dataTransfer.effectAllowed='move'; }catch(e){} });
+document.addEventListener('dragover', ev=>{ const r=ev.target.closest?.('.arr'); if(!r||!dragT) return; ev.preventDefault(); document.querySelectorAll('.arr.over').forEach(x=>x.classList.remove('over')); if(r.dataset.tile!==dragT) r.classList.add('over'); });
+document.addEventListener('drop', ev=>{ const r=ev.target.closest?.('.arr'); if(!r||!dragT) return; ev.preventDefault(); const o=tileOrder().filter(t=>t!==dragT); o.splice(o.indexOf(r.dataset.tile),0,dragT); prefs.tiles=o; dragT=null; savePrefs(); render(); });
+document.addEventListener('dragend', ()=>{ dragT=null; document.querySelectorAll('.arr.over,.arr.dragging').forEach(x=>x.classList.remove('over','dragging')); });
+document.addEventListener('change', ev=>{
+  const t=ev.target;
+  if(t.id==='importFile'){
+    const file=t.files && t.files[0]; t.value=''; if(!file) return;
+    file.text().then(txt=>importPreview(parseBackup(txt), file.name)).catch(()=>toast('That file isn’t a Nestling backup. Choose the .json file from Save backup.'));
+    return;
+  }
+  if(t.id==='babySel'){ if(t.value && t.value!==baby?.id) openBaby(t.value); return; }
+  if(!t.name || !t.name.startsWith('s_')) return;
+  if(t.name==='s_units'){ if(state.canWrite && state.profile) safe(()=>store.setProfile({...state.profile,units:t.value}),'Units updated'); return; }
+  if(t.name==='s_accent') prefs.accent=t.value;
+  if(t.name==='s_bg') prefs.bg=t.value;
+  if(t.name==='s_show'){ const h=new Set(Array.isArray(prefs.hidden)?prefs.hidden:[]); if(t.checked) h.delete(t.value); else h.add(t.value); prefs.hidden=[...h]; }
+  if(t.name==='s_mode') prefs.appearance=t.value;
+  if(t.name==='s_clock') prefs.clock=t.value;
+  savePrefs(); applyPrefs(); render();
+  document.querySelector(`input[name="${t.name}"][value="${t.value}"]`)?.focus();
+});
+document.addEventListener('keydown', ev=>{
+  if(ev.key==='Escape') closeModal();
+  if((ev.key==='Enter'||ev.key===' ') && ev.target.dataset?.tooth){ ev.preventDefault(); openTooth(ev.target.dataset.tooth); }
+});
+document.addEventListener('submit', async ev=>{
+  ev.preventDefault();
+  const f=ev.target;
+  if(f.id==='entryForm'){
+    const type=f.dataset.type, id=f.dataset.id; const data={type,...readFields(type)};
+    closeModal();
+    if(id){ const cur=state.entries.find(x=>x.id===id); if(type==='breast' && cur && cur.end==null){ data.end=null; data.active=cur.active; data.activeSince=cur.activeSince; data.left=cur.left; data.right=cur.right; data.start=fromInput(val('f_start'))||cur.start; } await safe(()=>store.update(id,data),'Saved'); }
+    else await safe(()=>store.add(data),`${T[type].label} logged`);
+  }
+  if(f.id==='setupForm'){
+    const birth=val('p_birth'); if(!birth){ document.getElementById('p_birth').focus(); return; }
+    const p={name:val('p_name').trim()||'Baby',birth,sex:radio('sex'),units:radio('units')};
+    const isNew=!!f.dataset.isnew, myName=val('p_me')||'';
+    closeModal();
+    if(isNew && sb){
+      try{ const id=must(await sb.rpc('create_baby',{p_name:p.name,p_birth:p.birth,p_sex:p.sex,p_units:p.units,p_my_name:myName})); await refreshMyBabies(); await openBaby(id); toast('Welcome, '+p.name); }
+      catch(err){ toast('Couldn’t create the log. Check your connection and try again.'); }
+    } else if(state.mode==='demo'){
+      state.entries=[]; state.teeth={}; state.mode='local'; state.profile=p; local.write(); toast('Welcome, '+p.name); render();
+    } else await safe(()=>store.setProfile(p),'Profile saved');
+  }
+  if(f.id==='signinForm'){
+    const email=val('si_email').trim(), st=document.getElementById('siStatus'), b=f.querySelector('button[type=submit]');
+    if(!email) return; b.disabled=true; st.textContent='Sending…';
+    const {error}=await sb.auth.signInWithOtp({email, options:{emailRedirectTo: location.origin+location.pathname}});
+    if(error){ st.textContent = /rate|seconds/i.test(error.message) ? 'Too many tries. Wait a minute, then send another link.' : `Couldn’t send the link: ${error.message}`; b.disabled=false; }
+    else { st.innerHTML=`Check your email. We sent a sign-in link to <b>${esc(email)}</b>. Open it on this device.`; b.textContent='Send again'; b.disabled=false; }
+  }
+  if(f.id==='joinForm'){
+    const code=val('j_code').trim(), name=val('j_name').trim(), st=document.getElementById('joinStatus'), b=f.querySelector('button[type=submit]');
+    if(!code){ document.getElementById('j_code').focus(); return; }
+    b.disabled=true; st.textContent='Joining…';
+    const {data,error}=await sb.rpc('accept_invite',{p_code:code,p_name:name});
+    if(error){ st.textContent=error.message || 'That code didn’t work. Check it and try again.'; b.disabled=false; return; }
+    clearJoin(); closeModal(); await refreshMyBabies(); await openBaby(data); toast('You joined '+(state.profile?.name||'the log'));
+  }
+  if(f.id==='nameForm'){
+    const name=val('me_name').trim(); if(!name) return;
+    try{ must(await sb.from('baby_members').update({display_name:name}).eq('baby_id',baby.id).eq('user_id',uid())); await loadMembers(baby.id); render(); toast('Name saved'); }
+    catch(e){ toast('Couldn’t save your name. Try again.'); }
+  }
+  if(f.id==='toothForm'){ const k=f.dataset.key; const nt={...state.teeth,[k]:{date:val('t_date')}}; closeModal(); await safe(()=>store.setTeeth(nt),'Tooth saved'); }
+});
+
+/* live clocks: update text only */
+setInterval(()=>{
+  const now=Date.now();
+  document.querySelectorAll('[data-live]').forEach(el=>{
+    const e=state.entries.find(x=>x.id===el.dataset.id); if(!e) return;
+    const k=el.dataset.live;
+    if(k==='sleep') el.textContent=fmtClock(now-e.start);
+    else { const t=breastTotals(e,now); el.textContent=fmtClock(k==='L'?t.L:k==='R'?t.R:t.total); }
+  });
+},1000);
+setInterval(()=>{ if(!document.querySelector('.modal') && state.view==='today') render(); },60000);
+
+/* ---------- cloud: sign-in, babies, live sync ---------- */
+const JKEY='nestling.join';
+function captureJoin(){
+  try{ const u=new URL(location.href); const c=u.searchParams.get('join'); if(c){ localStorage.setItem(JKEY,c.toUpperCase()); u.searchParams.delete('join'); history.replaceState(null,'',u.pathname+(u.search||'')+u.hash); } }catch(e){}
+}
+function pendingJoin(){ try{ return localStorage.getItem(JKEY)||''; }catch(e){ return ''; } }
+function clearJoin(){ try{ localStorage.removeItem(JKEY); }catch(e){} }
+
+function openSignIn(msg){
+  openModal(`<h3 style="--c:var(--accent)">Sign in to Nestling</h3>
+  <form class="form" id="signinForm">${msg?`<p>${esc(msg)}</p>`:''}
+    <label class="field"><span>Email</span><input type="email" id="si_email" autocomplete="email" inputmode="email" required placeholder="you@example.com"></label>
+    <p class="note">We’ll email you a sign-in link, so there’s no password to remember. Open the link on this device.</p>
+    <div id="siStatus" class="note" role="status"></div>
+    <div class="actions"><div class="r"><button type="button" class="btn ghost" data-close="1">Cancel</button><button type="submit" class="btn primary">Email me a link</button></div></div></form>`);
+}
+function openJoin(code){
+  openModal(`<h3 style="--c:var(--accent)">Join a baby’s log</h3>
+  <form class="form" id="joinForm">
+    ${F.text('j_code','Invite code',code||pendingJoin(),'8 letters and numbers')}
+    ${F.text('j_name','Your name, shown to family','','e.g. Mom, Dad, Grandma')}
+    <div id="joinStatus" class="note" role="status"></div>
+    <div class="actions"><div class="r"><button type="button" class="btn ghost" data-close="1">Cancel</button><button type="submit" class="btn primary">Join</button></div></div></form>`);
+}
+function openStart(){
+  openModal(`<h3 style="--c:var(--accent)">Welcome to Nestling</h3><div class="form">
+    <p>Start a new log for your baby, or join a log someone shared with you.</p>
+    <button class="btn primary" data-act="addBaby" style="justify-content:center">Add your baby</button>
+    <button class="btn ghost" data-act="joinOpen" style="justify-content:center">I have an invite code</button>
+    <div class="actions"><div class="r"><button type="button" class="btn ghost" data-close="1">Not now</button></div></div></div>`);
+}
+
+async function refreshMyBabies(){ myBabies=must(await sb.from('baby_members').select('baby_id,role,babies(name)').eq('user_id',uid())); }
+async function fetchEntries(id){
+  const out=[];
+  for(let from=0;;from+=1000){
+    const rows=must(await sb.from('entries').select('*').eq('baby_id',id).order('start_ms',{ascending:false}).range(from,from+999));
+    out.push(...rows); if(rows.length<1000) break;
+  }
+  return out.map(fromRow);
+}
+async function loadMembers(id){
+  members=must(await sb.from('baby_members').select('user_id,role,display_name,joined_at').eq('baby_id',id).order('joined_at'));
+  const me=myMember();
+  if(!me){ await lostAccess(); return false; }
+  state.canWrite = me.role!=='viewer';
+  return true;
+}
+async function lostAccess(){
+  if(channel){ sb.removeChannel(channel); channel=null; }
+  baby=null; members=[]; showSample();
+  try{ await refreshMyBabies(); }catch(e){}
+  if(myBabies.length) await openBaby(myBabies[0].baby_id); else { render(); toast('You no longer have access to that log.'); }
+}
+async function openBaby(id, quiet){
+  loadingFor=id;
+  try{
+    const b=must(await sb.from('babies').select('*').eq('id',id).single());
+    applyBabyRow(b);
+    if(!(await loadMembers(id))) return;
+    const es=await fetchEntries(id);
+    if(loadingFor!==id) return;
+    state.entries=es; state.mode='cloud'; state.me=uid();
+    prefs.activeBaby=id; savePrefs();
+    subscribeBaby(id);
+    offerChecked=true; state.localOffer=null; checkLocalOffer();
+    render();
+  }catch(err){ if(!quiet) toast('Couldn’t load the log. Check your connection and refresh.'); else throw err; }
+}
+function subscribeBaby(id){
+  if(channel){ sb.removeChannel(channel); channel=null; }
+  channel=sb.channel('nestling-'+id)
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'entries',filter:'baby_id=eq.'+id},p=>upsertLocal(fromRow(p.new)))
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'entries',filter:'baby_id=eq.'+id},p=>upsertLocal(fromRow(p.new)))
+    .on('postgres_changes',{event:'DELETE',schema:'public',table:'entries'},p=>{ if(!p.old || (p.old.baby_id && p.old.baby_id!==id)) return; removeLocal(p.old.id); })
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'babies',filter:'id=eq.'+id},p=>{ applyBabyRow(p.new); softRender(); })
+    .on('postgres_changes',{event:'*',schema:'public',table:'baby_members',filter:'baby_id=eq.'+id},()=>{ loadMembers(id).then(ok=>{ if(ok) softRender(); }).catch(()=>{}); })
+    .subscribe();
+}
+async function makeInvite(){
+  const role=radio('invrole')||'parent', out=document.getElementById('inviteOut');
+  try{
+    const code=must(await sb.rpc('create_invite',{p_baby:baby.id,p_role:role}));
+    const link=`${location.origin}${location.pathname}?join=${code}`;
+    out.innerHTML=`<div class="invite"><span class="label">Invite code${role==='viewer'?' · view only':''}</span><span class="code">${esc(code)}</span>
+      <span class="note">Send this link or code to your coparent. It works once and expires in 7 days.</span>
+      <div class="row"><input readonly id="invLink" value="${esc(link)}" aria-label="Invite link"><button class="btn sm primary" data-act="copy" data-copy="${esc(link)}" data-for="invLink">Copy link</button></div></div>`;
+  }catch(err){ out.innerHTML=`<p class="note">Couldn’t create an invite. ${esc(err.message||'Try again.')}</p>`; }
+}
+async function removeMember(user, self){
+  try{
+    must(await sb.from('baby_members').delete().eq('baby_id',baby.id).eq('user_id',user));
+    if(self){ toast('You left the log'); await lostAccess(); }
+    else { await loadMembers(baby.id); render(); toast('Removed'); }
+  }catch(err){ toast('Couldn’t remove them. Try again.'); }
+}
+function showSample(){ const s=sampleData(); state.mode='demo'; state.profile=s.profile; state.entries=s.entries; state.teeth=s.teeth; state.canWrite=true; }
+
+let currentUser=null;
+function startAuth(){
+  sb.auth.onAuthStateChange((event, s)=>{
+    session=s;
+    const id=s?.user?.id||null;
+    if(id && id!==currentUser){ currentUser=id; setTimeout(afterSignIn,0); }
+    else if(!id && currentUser){ currentUser=null; setTimeout(signedOut,0); }
+    else if(!id && event==='INITIAL_SESSION'){ render(); if(pendingJoin()) setTimeout(()=>openSignIn('Sign in to join the log you were invited to.'),0); }
+  });
+}
+async function afterSignIn(){
+  if(document.getElementById('signinForm')) closeModal();
+  try{ await refreshMyBabies(); }catch(e){ toast('Couldn’t load your logs. Check your connection and refresh.'); return; }
+  const code=pendingJoin(); clearJoin();
+  if(myBabies.length){ const pick=myBabies.find(m=>m.baby_id===prefs.activeBaby)||myBabies[0]; await openBaby(pick.baby_id); }
+  else render();
+  if(code) openJoin(code); else if(!myBabies.length) openStart();
+}
+function signedOut(){
+  if(channel){ sb.removeChannel(channel); channel=null; }
+  baby=null; members=[]; myBabies=[]; showSample(); render(); toast('Signed out');
+}
+let hiddenAt=0;
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){ hiddenAt=Date.now(); return; }
+  if(state.mode==='cloud' && baby && Date.now()-hiddenAt>20000){ const id=baby.id; fetchEntries(id).then(es=>{ if(baby?.id===id){ state.entries=es; softRender(); } }).catch(()=>{}); }
+});
+
+/* ---------- boot ---------- */
+function boot(){
+  captureJoin();
+  showSample(); render();
+  if(sb){ startAuth(); return; }
+  if(cloudWanted){ state.syncError=true; render(); return; }
+  fallbackLocal();
+}
+function fallbackLocal(){
+  const d=local.read();
+  if(d && d.profile){ state.mode='local'; state.profile=d.profile; state.entries=(d.entries||[]).sort((a,b)=>b.start-a.start); state.teeth=d.teeth||{}; }
+  render();
+}
+boot();
+})();
+</script>
+</body>
+</html>
