@@ -22,7 +22,7 @@
 :root{
   --bg:#f2f4f7; --surface:#ffffff; --surface-2:#e9edf3; --line:#d8dee8;
   --ink:#1b2433; --ink-2:#556074; --ink-3:#8a93a4;
-  --accent:#3d5afe; --accent-ink:#ffffff; --accent-soft:#e3e8ff;
+  --accent:#3d5afe; --accent-ink:#ffffff; --accent-soft:#e3e8ff; --tilemix:38%;
   --feed:#e8657a; --sleep:#5b5bd6; --diaper:#14a39a; --health:#d98a1c; --growth:#3f9b4f; --activity:#8b5cf6; --memory:#c2569b;
   --danger:#c93a3a; --warn-bg:#fff4dc; --warn-ink:#7a5208;
   --display:"Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
@@ -32,13 +32,13 @@
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#0f141c; --surface:#171e29; --surface-2:#202a38; --line:#2c3747;
   --ink:#e8edf5; --ink-2:#a9b3c4; --ink-3:#768195;
-  --accent:#8c9dff; --accent-ink:#0f141c; --accent-soft:#252f52;
+  --accent:#8c9dff; --accent-ink:#0f141c; --accent-soft:#252f52; --tilemix:52%;
   --feed:#f08496; --sleep:#8f8ff0; --diaper:#3cc4ba; --health:#efa840; --growth:#62bd72; --activity:#a986fa; --memory:#e07bbd;
   --danger:#f07070; --warn-bg:#3a2e14; --warn-ink:#f3cd84; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0f141c; --surface:#171e29; --surface-2:#202a38; --line:#2c3747;
   --ink:#e8edf5; --ink-2:#a9b3c4; --ink-3:#768195;
-  --accent:#8c9dff; --accent-ink:#0f141c; --accent-soft:#252f52;
+  --accent:#8c9dff; --accent-ink:#0f141c; --accent-soft:#252f52; --tilemix:52%;
   --feed:#f08496; --sleep:#8f8ff0; --diaper:#3cc4ba; --health:#efa840; --growth:#62bd72; --activity:#a986fa; --memory:#e07bbd;
   --danger:#f07070; --warn-bg:#3a2e14; --warn-ink:#f3cd84; color-scheme:dark}
 
@@ -69,7 +69,7 @@ h1,h2,h3{font-family:var(--display);font-weight:700;margin:0;text-wrap:balance;l
 /* log tile row */
 .logrow{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x proximity;padding:14px 2px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);scrollbar-width:thin}
 .lt{flex:0 0 auto;width:96px;border:0;background:none;padding:0;display:flex;flex-direction:column;align-items:center;gap:7px;scroll-snap-align:start;font-size:12.5px;font-weight:600;color:var(--ink-2)}
-.lt .sq{width:96px;height:96px;border-radius:20px;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 38%,var(--surface));color:color-mix(in srgb,var(--c) 55%,var(--ink));transition:transform .12s ease}
+.lt .sq{width:96px;height:96px;border-radius:20px;display:grid;place-items:center;background:color-mix(in srgb,var(--c) var(--tilemix),var(--surface));color:color-mix(in srgb,var(--c) 55%,var(--ink));transition:transform .12s ease}
 .lt .sq svg{width:46px;height:46px;stroke-width:2.3}
 .lt:hover .sq{transform:translateY(-2px)}
 .lt:active .sq{transform:scale(.96)}
@@ -85,6 +85,27 @@ h1,h2,h3{font-family:var(--display);font-weight:700;margin:0;text-wrap:balance;l
 .sw span{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--sw) 50%,var(--swd) 50%);box-shadow:0 0 0 2px var(--surface),0 0 0 3px var(--line)}
 .sw input:checked + span{box-shadow:0 0 0 3px var(--surface),0 0 0 5px var(--ink)}
 .sw input:focus-visible + span{outline:2px solid var(--accent);outline-offset:6px}
+.themes{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:14px}
+.th{display:flex;flex-direction:column;gap:6px;cursor:pointer;font-size:13px;font-weight:600;color:var(--ink-2)}
+.th input{position:absolute;opacity:0;pointer-events:none}
+.th .pv{display:grid;grid-template-columns:1fr 1fr;height:66px;border-radius:14px;overflow:hidden;box-shadow:0 0 0 1px var(--line)}
+.th .pv i{position:relative;display:block}
+.th .pv i:first-child{background:var(--pl)}
+.th .pv i:last-child{background:var(--dl)}
+.th .pv i::before{content:"";position:absolute;left:9px;right:9px;top:11px;height:16px;border-radius:6px;background:var(--ps)}
+.th .pv i:last-child::before{background:var(--ds)}
+.th .pv i::after{content:"";position:absolute;left:9px;bottom:9px;width:20px;height:20px;border-radius:50%;background:var(--pa)}
+.th .pv i:last-child::after{background:var(--da)}
+.th .pv.custom i{background:conic-gradient(from 90deg,#f39a86,#f2c14e,#6fd3a8,#7dbcf0,#b89cf0,#f39a86)}
+.th .pv.custom i::before,.th .pv.custom i::after{display:none}
+.th input:checked + .pv{box-shadow:0 0 0 3px var(--surface),0 0 0 5px var(--accent)}
+.th input:focus-visible + .pv{outline:2px solid var(--accent);outline-offset:6px}
+.th input:checked ~ .tn{color:var(--ink)}
+details.more{border-top:1px solid var(--line);padding-top:12px}
+details.more summary{cursor:pointer;font-weight:600;color:var(--accent)}
+.chks{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.chk{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-weight:600;font-size:14px;cursor:pointer;background:var(--bg)}
+.chk:has(input:checked){border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,var(--surface))}
 .vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;padding:0}
 label.btn{cursor:pointer}
 label.btn:has(+ .vh:focus-visible){outline:2px solid var(--accent);outline-offset:2px}
@@ -96,7 +117,7 @@ label.btn:has(+ .vh:focus-visible){outline:2px solid var(--accent);outline-offse
 .arr:last-child{border-bottom:0}
 .arr .grip{color:var(--ink-3);cursor:grab;display:grid}
 .arr .grip svg{width:18px;height:18px}
-.arr .mini{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 38%,var(--surface));color:color-mix(in srgb,var(--c) 55%,var(--ink))}
+.arr .mini{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:color-mix(in srgb,var(--c) var(--tilemix),var(--surface));color:color-mix(in srgb,var(--c) 55%,var(--ink))}
 .arr .mini svg{width:20px;height:20px;stroke-width:2.3}
 .arr .nm{font-weight:600;min-width:0}
 .arr.off .mini,.arr.off .nm{opacity:.4}
@@ -464,20 +485,32 @@ const BGS={ // [bg, surface, surface-2, line] for light, then dark
   ivory:['Ivory',['#fcfaf4','#fffefb','#f3efe4','#e6e0d0'],['#14130f','#1d1b16','#27251e','#36332a']],
   linen:['Linen',['#faf6f2','#fffdfb','#f1ebe4','#e4dbd1'],['#151210','#1e1a17','#29241f','#38312b']]
 };
+// Complete themes: [name, accent [light, dark], background [bg, surface, surface-2, line] light, then dark]
+const THEMES={
+  peach:['Peach Blossom',['#c9543f','#f39a86'],['#fff4ef','#fffaf7','#fde5da','#f5d3c4'],['#1c1412','#261b18','#33241f','#44312a']],
+  cotton:['Cotton Candy',['#c94a80','#f58bb6'],['#fff1f6','#fffafc','#fde0ea','#f5c9da'],['#1d1217','#271a20','#34222b','#47303b']],
+  lullaby:['Lullaby',['#7b55c7','#b89cf0'],['#f6f2fd','#fffdff','#ece4fa','#ddd2f2'],['#17131f','#201b2b','#2b2439','#3a3149']],
+  mint:['Mint Sprout',['#258a63','#6fd3a8'],['#effaf5','#fcfffd','#dcf3e8','#c6e8d7'],['#0f1a16','#16231e','#1f2f28','#2c4037']],
+  sky:['Sky Cradle',['#2f7fc4','#7dbcf0'],['#eef6fd','#fdfeff','#dbeefa','#c7e0f2'],['#0f1722','#16202d','#1f2c3c','#2c3c50']],
+  sunshine:['Sunshine',['#a86d00','#f2c14e'],['#fffaeb','#fffef8','#fdf0c8','#f3e2a8'],['#1b170c','#252012','#312a19','#423925']],
+  teddy:['Teddy Bear',['#9a6244','#d6a17f'],['#f7f2ec','#fffdfa','#ede4d8','#dfd2c2'],['#181410','#221c17','#2d261f','#3d342b']],
+  classic:['Classic',['#3d5afe','#8c9dff'],['#f2f4f7','#ffffff','#e9edf3','#d8dee8'],['#0f141c','#171e29','#202a38','#2c3747']]
+};
 const PKEY='nestling.prefs';
 const KEEP_TYPES=['growth','temp','med','symptom','doctor','vaccine','note'];
 const DEFAULT_TILES=['breast','bottle','solids','pump','sleep','diaper','potty','growth','temp','med','symptom','doctor','vaccine','activity','note'];
 function tileOrder(){ const o=(Array.isArray(prefs.tiles)?prefs.tiles:[]).filter(t=>DEFAULT_TILES.includes(t)); DEFAULT_TILES.forEach(t=>{ if(!o.includes(t)) o.push(t); }); return o; }
 const isHidden = t => Array.isArray(prefs.hidden) && prefs.hidden.includes(t);
-const prefs=(()=>{ let p={}; try{ p=JSON.parse(localStorage.getItem(PKEY)||'{}')||{}; }catch(e){} return Object.assign({accent:'indigo',bg:'mist',appearance:'system',clock:'12',tiles:null,hidden:[]},p); })();
+const prefs=(()=>{ let p={}; try{ p=JSON.parse(localStorage.getItem(PKEY)||'{}')||{}; }catch(e){} return Object.assign({theme:'peach',accent:'indigo',bg:'mist',appearance:'system',clock:'12',tiles:null,hidden:[]},p); })();
 function savePrefs(){ try{ localStorage.setItem(PKEY, JSON.stringify(prefs)); }catch(e){} }
 const root=document.documentElement, hostTheme=root.getAttribute('data-theme');
 function applyAccent(){
   const t=root.getAttribute('data-theme'); let dark=false;
   try{ dark = t ? t==='dark' : matchMedia('(prefers-color-scheme: dark)').matches; }catch(e){}
-  const a=ACCENTS[prefs.accent]||ACCENTS.indigo;
-  root.style.setProperty('--accent', dark?a[2]:a[1]); root.style.setProperty('--accent-ink', dark?'#0f141c':'#ffffff');
-  const b=(BGS[prefs.bg]||BGS.mist)[dark?2:1];
+  const th = prefs.theme && prefs.theme!=='custom' ? THEMES[prefs.theme] : null;
+  const a = th ? th[1] : (ACCENTS[prefs.accent]||ACCENTS.indigo).slice(1);
+  root.style.setProperty('--accent', dark?a[1]:a[0]); root.style.setProperty('--accent-ink', dark?'#0f141c':'#ffffff');
+  const b = th ? th[dark?3:2] : (BGS[prefs.bg]||BGS.mist)[dark?2:1];
   ['--bg','--surface','--surface-2','--line'].forEach((k,i)=>root.style.setProperty(k,b[i]));
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', b[0]);
 }
@@ -643,6 +676,50 @@ function napPrediction(){
   return {asleep:false, awakeSince:last.end, from:last.end+a*MIN, to:last.end+b*MIN, a, b};
 }
 
+/* ---------- today so far: pick your own stats ---------- */
+const DEFAULT_SUMS=['feeds','bottle','sleep','diapers','pumped'];
+const BASE_KINDS=['Tummy time','Bath','Walk','Play','Reading'];
+function chosenSums(){ return Array.isArray(prefs.sums) ? prefs.sums : DEFAULT_SUMS; }
+function activityKinds(){
+  const set=new Set([...BASE_KINDS, ...(Array.isArray(prefs.customKinds)?prefs.customKinds:[])]);
+  state.entries.forEach(e=>{ if(e.type==='activity' && e.kind && e.kind!=='Other') set.add(e.kind); });
+  return [...set];
+}
+function sumCatalog(day){
+  const s=daySummary(day), es=entriesOn(day), n=t=>es.filter(e=>e.type===t).length;
+  const list=[
+    ['feeds','Feeds',()=>[s.feeds, s.breastMs?`Feeds · ${fmtDur(s.breastMs)} nursing`:'Feeds']],
+    ['bottle','Bottle amount',()=>[s.bottleMl?U.vol(s.bottleMl):'—','From bottles']],
+    ['nursing','Nursing time',()=>[s.breastMs?fmtDur(s.breastMs):'—','Nursing time']],
+    ['sleep','Total sleep',()=>[fmtDur(s.sleepMs),`Sleep (naps ${fmtDur(s.napMs)})`]],
+    ['naps','Naps',()=>{ const k=es.filter(e=>e.type==='sleep' && (e.kind||'nap')==='nap').length; return [k,`Naps · ${fmtDur(s.napMs)}`]; }],
+    ['night','Night sleep',()=>[fmtDur(s.nightMs),'Night sleep']],
+    ['diapers','Diapers',()=>[s.diapers,`Diapers · ${s.wet} wet · ${s.dirty} dirty`]],
+    ['wet','Wet diapers',()=>[s.wet,'Wet diapers']],
+    ['dirty','Dirty diapers',()=>[s.dirty,'Dirty diapers']],
+    ['pumped','Pumped',()=>[s.pumpMl?U.vol(s.pumpMl):'—','Pumped']],
+    ['solids','Solid meals',()=>[s.solids,'Solid meals']],
+    ['potty','Potty',()=>[n('potty'),'Potty visits']],
+    ['meds','Medicine',()=>[n('med'),'Medicine doses']],
+  ];
+  activityKinds().forEach(k=>list.push(['act:'+k,k,()=>{
+    const a=es.filter(e=>e.type==='activity' && e.kind===k), m=a.reduce((x,e)=>x+(e.duration||0),0);
+    return m ? [`${m} min`, `${k} · ${a.length}×`] : [a.length, k];
+  }]));
+  return list;
+}
+function openSums(draft){
+  const sel=draft||chosenSums(), cat=sumCatalog(Date.now());
+  openModal(`<h3 style="--c:var(--accent)">Today so far</h3><form class="form" id="sumsForm">
+    <p class="sub">Choose up to 6 things to show.</p>
+    <div class="chks">${cat.map(([id,label])=>`<label class="chk"><input type="checkbox" name="sumsel" value="${esc(id)}" ${sel.includes(id)?'checked':''}> ${esc(label)}</label>`).join('')}</div>
+    <div class="field"><span>Add your own tracker</span><div style="display:flex;gap:8px"><input type="text" id="newKind" maxlength="40" placeholder="e.g. Vitamin D drops, Skin-to-skin"><button type="button" class="btn" data-act="addKind">Add</button></div></div>
+    <p class="note">Your own trackers also get a tile on Today, so logging one is a single tap.</p>
+    <div class="actions"><button type="button" class="btn ghost" data-act="resetSums">Reset</button><div class="r"><button type="button" class="btn ghost" data-close="1">Cancel</button><button type="submit" class="btn primary">Save</button></div></div></form>`);
+}
+function addCustomKind(k){ const list=Array.isArray(prefs.customKinds)?prefs.customKinds:[]; if(!BASE_KINDS.includes(k) && !list.includes(k)){ prefs.customKinds=[...list,k]; savePrefs(); } }
+const checkedSums = () => [...document.querySelectorAll('input[name="sumsel"]:checked')].map(x=>x.value);
+
 /* ---------- coming up ---------- */
 // Well-child visits from the AAP Bright Futures schedule: [months after birth (or days if 'd'), label]
 const CHECKUPS=[[4,'Newborn checkup (3–5 days)','d'],[1,'1-month checkup'],[2,'2-month checkup'],[4,'4-month checkup'],[6,'6-month checkup'],[9,'9-month checkup'],[12,'12-month checkup'],[15,'15-month checkup'],[18,'18-month checkup'],[24,'2-year checkup'],[30,'30-month checkup'],[36,'3-year checkup']];
@@ -797,7 +874,7 @@ function vToday(){
   let h=header(p.name?`${p.name}'s day`:'Today');
   const qs=tileOrder().filter(t=>!isHidden(t));
   const running=t=>(t==='breast'||t==='sleep') && state.entries.some(x=>x.type===t && x.end===null);
-  h+=`<div class="logrow" role="group" aria-label="Log an activity">${qs.map(t=>`<button class="lt ${running(t)?'running':''}" data-new="${t}" style="--c:${color(t)}" ${state.canWrite?'':'disabled'}><span class="sq">${svg(T[t].icon)}</span><span>${T[t].label}</span></button>`).join('')}<button class="lt arrange" data-act="arrange"><span class="sq">${svg('grip')}</span><span>Arrange</span></button></div>`;
+  h+=`<div class="logrow" role="group" aria-label="Log an activity">${qs.map(t=>`<button class="lt ${running(t)?'running':''}" data-new="${t}" style="--c:${color(t)}" ${state.canWrite?'':'disabled'}><span class="sq">${svg(T[t].icon)}</span><span>${T[t].label}</span></button>`).join('')}${(Array.isArray(prefs.customKinds)?prefs.customKinds:[]).map(k=>`<button class="lt" data-new="activity" data-kind="${esc(k)}" style="--c:var(--activity)" ${state.canWrite?'':'disabled'}><span class="sq">${svg('activity')}</span><span>${esc(k)}</span></button>`).join('')}<button class="lt arrange" data-act="arrange"><span class="sq">${svg('grip')}</span><span>Arrange</span></button></div>`;
 
   // active timers
   const active=state.entries.filter(e=>e.end==null && (e.type==='breast'||e.type==='sleep'));
@@ -829,12 +906,9 @@ function vToday(){
 
   // summary
   const s=daySummary(now);
-  h+=`<div class="grid2">${nap}<div class="panel"><h2>Today so far</h2><div class="sums">
-    <div class="sum"><b>${s.feeds}</b><span>Feeds${s.breastMs?` · ${fmtDur(s.breastMs)} nursing`:''}</span></div>
-    <div class="sum"><b>${s.bottleMl?U.vol(s.bottleMl):'—'}</b><span>From bottles</span></div>
-    <div class="sum"><b>${fmtDur(s.sleepMs)}</b><span>Sleep (naps ${fmtDur(s.napMs)})</span></div>
-    <div class="sum"><b>${s.diapers}</b><span>Diapers · ${s.wet} wet · ${s.dirty} dirty</span></div>
-    <div class="sum"><b>${s.solids}</b><span>Solid meals</span></div>
+  const cat=sumCatalog(now), picks=chosenSums().map(id=>cat.find(c=>c[0]===id)).filter(Boolean);
+  h+=`<div class="grid2">${nap}<div class="panel"><h2>Today so far <button class="btn ghost sm" data-act="editSums">Edit</button></h2><div class="sums">
+    ${picks.map(([,,f])=>{ const [v,l]=f(); return `<div class="sum"><b>${esc(v)}</b><span>${esc(l)}</span></div>`; }).join('')||'<p class="note">Tap Edit to choose what to show.</p>'}
   </div><div style="margin-top:16px"><div class="strip">${strip(now)}</div>${hoursRow}</div></div></div>`;
 
   const today=entriesOn(now);
@@ -972,13 +1046,18 @@ function vSettings(){
   ${familyPanel()}
   ${accountPanel()}
   ${installPanel()}
-  <div class="panel"><h2>Appearance</h2><div class="form">
-    <div class="field"><span>Theme color</span><div class="swatches" role="radiogroup" aria-label="Theme color">${Object.entries(ACCENTS).map(([k,[n,l,d]])=>`<label class="sw"><input type="radio" name="s_accent" value="${k}" ${prefs.accent===k?'checked':''}><span style="--sw:${l};--swd:${d}"></span>${n}</label>`).join('')}</div></div>
-    <div class="field"><span>Background</span><div class="swatches" role="radiogroup" aria-label="Background">${Object.entries(BGS).map(([k,[n,l,d]])=>`<label class="sw"><input type="radio" name="s_bg" value="${k}" ${prefs.bg===k?'checked':''}><span style="--sw:${l[0]};--swd:${d[0]}"></span>${n}</label>`).join('')}</div></div>
+  <div class="panel" id="themePanel"><h2>Theme</h2><div class="form">
+    <div class="themes" role="radiogroup" aria-label="Theme">${Object.entries(THEMES).map(([k,[n,ac,l,d]])=>`<label class="th"><input type="radio" name="s_theme" value="${k}" ${prefs.theme===k?'checked':''}><span class="pv" style="--pl:${l[0]};--ps:${l[1]};--pa:${ac[0]};--dl:${d[0]};--ds:${d[2]};--da:${ac[1]}"><i></i><i></i></span><span class="tn">${n}</span></label>`).join('')}${prefs.theme==='custom'?`<label class="th"><input type="radio" name="s_theme" value="custom" checked><span class="pv custom"><i></i><i></i></span><span class="tn">Your mix</span></label>`:''}</div>
     ${F.seg('s_mode','Light or dark',[['system','Match device'],['light','Light'],['dark','Dark']],prefs.appearance)}
+    <details class="more" ${prefs.theme==='custom'?'open':''}><summary>Mix your own colors</summary><div class="form" style="margin-top:12px">
+      <div class="field"><span>Accent color</span><div class="swatches" role="radiogroup" aria-label="Accent color">${Object.entries(ACCENTS).map(([k,[n,l,d]])=>`<label class="sw"><input type="radio" name="s_accent" value="${k}" ${prefs.theme==='custom'&&prefs.accent===k?'checked':''}><span style="--sw:${l};--swd:${d}"></span>${n}</label>`).join('')}</div></div>
+      <div class="field"><span>Background</span><div class="swatches" role="radiogroup" aria-label="Background">${Object.entries(BGS).map(([k,[n,l,d]])=>`<label class="sw"><input type="radio" name="s_bg" value="${k}" ${prefs.theme==='custom'&&prefs.bg===k?'checked':''}><span style="--sw:${l[0]};--swd:${d[0]}"></span>${n}</label>`).join('')}</div></div>
+      <p class="note">Picking a color here switches to your own mix. Tap a theme above to go back.</p></div></details>
+    <p class="note">Saved on this device, so each parent can pick their own.</p></div></div>
+  <div class="panel"><h2>Display</h2><div class="form">
     ${F.seg('s_clock','Clock',[['12','12-hour'],['24','24-hour']],prefs.clock)}
     ${F.seg('s_units','Units',[['imperial','oz · lb · in · °F'],['metric','ml · kg · cm · °C']],p.units||'imperial')}
-    <p class="note">Theme color, background, light or dark, and clock apply to this device only. Units apply to everyone sharing this log.</p></div></div>
+    <p class="note">Clock is saved on this device. Units apply to everyone sharing this log; you can still pick oz or ml on each bottle.</p></div></div>
   <div class="panel" id="tilesPanel"><h2>Log tiles <button class="btn ghost sm" data-act="resetTiles">Reset</button></h2>
     <p class="note" style="margin-top:-6px">Drag rows or use the arrows to change the order on Today. Untick a tile to hide it. Saved on this device.</p>
     <div class="arrlist">${tileOrder().map((t,i,arr)=>`<div class="arr ${isHidden(t)?'off':''}" draggable="true" data-tile="${t}" style="--c:${color(t)}">
@@ -1078,7 +1157,7 @@ function fieldsFor(type, e){
     case 'symptom': return F.time('f_start','Time',e.start||now)+F.area('f_note','What did you notice?',e.note);
     case 'doctor': return F.time('f_start','Date and time',e.start||now)+F.text('f_title','Reason',e.title,'e.g. 4-month checkup, ear check')+F.area('f_note','Notes',e.note)+`<p class="note">Pick a future date to add an upcoming appointment. It shows under Coming up on Today.</p>`;
     case 'vaccine': return F.time('f_start','Date',e.start||now)+F.text('f_name','Vaccine(s)',e.name,'e.g. 2-month vaccines')+F.text('f_note','Note',e.note);
-    case 'activity': return F.time('f_start','Time',e.start||now)+F.seg('akind','Activity',[['Tummy time','Tummy time'],['Bath','Bath'],['Walk','Walk'],['Play','Play'],['Reading','Reading'],['Other','Other']],e.kind||'Tummy time')+F.num('f_dur','Duration',e.duration,'min','1')+F.text('f_note','Note',e.note);
+    case 'activity': return F.time('f_start','Time',e.start||now)+F.seg('akind','Activity',activityKinds().map(k=>[k,k]),e.kind||'Tummy time')+F.text('f_aother','Or type something else','','e.g. Vitamin D drops')+F.num('f_dur','Duration',e.duration,'min','1')+F.text('f_note','Note',e.note);
     case 'note': return F.time('f_start','When',e.start||now)+F.text('f_title','What happened',e.title,'e.g. First giggle')+F.check('f_ms','This is a milestone',e.milestone)+F.area('f_note','Details',e.note);
   }
 }
@@ -1098,12 +1177,12 @@ function readFields(type){
     case 'symptom': return {start,note};
     case 'doctor': return {start,title:val('f_title').trim()||undefined,note};
     case 'vaccine': return {start,name:val('f_name').trim(),note};
-    case 'activity': return {start,kind:radio('akind'),duration:numv('f_dur'),note};
+    case 'activity': { const other=(val('f_aother')||'').trim(); if(other) addCustomKind(other); return {start,kind:other||radio('akind'),duration:numv('f_dur'),note}; }
     case 'note': return {start,title:val('f_title').trim(),milestone:document.getElementById('f_ms').checked,note};
   }
 }
-function openEntry(type, existing){
-  const e=existing||{}; const t=T[type];
+function openEntry(type, existing, kind){
+  const e=existing||(kind?{kind}:{}); const t=T[type];
   let top='';
   if(!existing && type==='breast' && !state.entries.some(x=>x.type==='breast'&&x.end==null))
     top=`<div class="field"><span>Start a timer</span><div class="row2"><button class="btn primary" data-act="startBreast" data-side="L" style="justify-content:center">Left side</button><button class="btn primary" data-act="startBreast" data-side="R" style="justify-content:center">Right side</button></div></div><div class="divider">or enter manually</div>`;
@@ -1247,7 +1326,7 @@ document.addEventListener('click', async ev=>{
   if(t.dataset.close && ev.target!==t && t.classList.contains('scrim')) return;
   if(t.dataset.close){ closeModal(); return; }
   if(t.dataset.view){ state.view=t.dataset.view; render(); window.scrollTo(0,0); return; }
-  if(t.dataset.new){ if(state.canWrite) openEntry(t.dataset.new); return; }
+  if(t.dataset.new){ if(state.canWrite) openEntry(t.dataset.new, null, t.dataset.kind); return; }
   if(t.dataset.edit){ const e=state.entries.find(x=>x.id===t.dataset.edit); if(e) openEntry(e.type,e); return; }
   if(t.dataset.day){ state.selDay=+t.dataset.day; render(); return; }
   if(t.dataset.shift){ state.selDay=Math.min(startOfDay(Date.now()), startOfDay(state.selDay+ (+t.dataset.shift)*DAY + 2*HR)); render(); return; }
@@ -1266,6 +1345,9 @@ document.addEventListener('click', async ev=>{
   else if(a==='noRemove'){ document.getElementById('memberConfirm').innerHTML=''; }
   else if(a==='doRemove'){ await removeMember(t.dataset.user, !!t.dataset.self); }
   else if(a==='export') exportCsv();
+  else if(a==='editSums') openSums();
+  else if(a==='resetSums'){ prefs.sums=null; savePrefs(); closeModal(); render(); toast('Back to the default stats'); }
+  else if(a==='addKind'){ const k=(val('newKind')||'').trim().replace(/\s+/g,' '); if(!k){ document.getElementById('newKind').focus(); return; } addCustomKind(k); const d=checkedSums(); if(!d.includes('act:'+k)){ if(d.length>=6) toast('Showing 6 already. Untick one to show '+k+'.'); else d.push('act:'+k); } openSums(d); render(); }
   else if(a==='install' && installEvt){ installEvt.prompt(); try{ await installEvt.userChoice; }catch(err){} installEvt=null; render(); }
   else if(a==='copyText'){ const v=t.dataset.text||''; try{ await navigator.clipboard.writeText(v); toast('Appointment details copied'); }catch(err){ openModal(`<h3 style="--c:var(--health)">Appointment details</h3><div class="form"><label class="field"><span>Select and copy</span><textarea id="copyBox" readonly>${esc(v)}</textarea></label><div class="actions"><div class="r"><button type="button" class="btn primary" data-close="1">Done</button></div></div></div>`); const b=document.getElementById('copyBox'); b.focus(); b.select(); } }
   else if(a==='backup') exportBackup();
@@ -1299,6 +1381,7 @@ document.addEventListener('change', ev=>{
     return;
   }
   if(t.id==='babySel'){ if(t.value && t.value!==baby?.id) openBaby(t.value); return; }
+  if(t.name==='sumsel'){ if(checkedSums().length>6){ t.checked=false; toast('Pick up to 6'); } return; }
   if(t.name==='vunit'){
     const prev=val('f_vprev'), next=t.value; if(prev===next) return;
     ['f_amt','f_l','f_r'].forEach(id=>{ const el=document.getElementById(id); if(el && el.value!==''){ el.value=U.volTo(U.volFrom(el.value,prev),next); } });
@@ -1306,8 +1389,9 @@ document.addEventListener('change', ev=>{
   }
   if(!t.name || !t.name.startsWith('s_')) return;
   if(t.name==='s_units'){ if(state.canWrite && state.profile) safe(()=>store.setProfile({...state.profile,units:t.value}),'Units updated'); return; }
-  if(t.name==='s_accent') prefs.accent=t.value;
-  if(t.name==='s_bg') prefs.bg=t.value;
+  if(t.name==='s_theme') prefs.theme=t.value;
+  if(t.name==='s_accent'){ prefs.accent=t.value; prefs.theme='custom'; }
+  if(t.name==='s_bg'){ prefs.bg=t.value; prefs.theme='custom'; }
   if(t.name==='s_show'){ const h=new Set(Array.isArray(prefs.hidden)?prefs.hidden:[]); if(t.checked) h.delete(t.value); else h.add(t.value); prefs.hidden=[...h]; }
   if(t.name==='s_mode') prefs.appearance=t.value;
   if(t.name==='s_clock') prefs.clock=t.value;
@@ -1371,6 +1455,7 @@ document.addEventListener('submit', async ev=>{
     try{ must(await sb.from('baby_members').update({display_name:name}).eq('baby_id',baby.id).eq('user_id',uid())); await loadMembers(baby.id); render(); toast('Name saved'); }
     catch(e){ toast('Couldn’t save your name. Try again.'); }
   }
+  if(f.id==='sumsForm'){ const order=sumCatalog(Date.now()).map(c=>c[0]); prefs.sums=checkedSums().sort((a,b)=>order.indexOf(a)-order.indexOf(b)); savePrefs(); closeModal(); render(); toast('Today so far updated'); return; }
   if(f.id==='toothForm'){ const k=f.dataset.key; const nt={...state.teeth,[k]:{date:val('t_date')}}; closeModal(); await safe(()=>store.setTeeth(nt),'Tooth saved'); }
 });
 
