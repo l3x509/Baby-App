@@ -8,7 +8,7 @@
 <title>Nestling Baby Log</title>
 <meta name="apple-mobile-web-app-title" content="Nestling">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="theme-color" content="#f2f4f7">
+<meta name="theme-color" content="#fff4ef">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -355,6 +355,13 @@ tr:last-child td{border-bottom:0}
 <script>
 (() => {
 "use strict";
+/* Switches. payments: Premium plans (needs Google Play Billing first, so it stays off for now). */
+const CONFIG={payments:false};
+const APP_VERSION="1.0";  /* keep equal to versionName in android-app/android/app/build.gradle */
+/* Running inside the Android app? The app build adds vendor/capacitor.js, which registers the native plugins. */
+const NATIVE=!!(window.Capacitor&&typeof window.Capacitor.isNativePlatform==="function"&&window.Capacitor.isNativePlatform());
+const capPlugin=n=>{try{return NATIVE&&window.capacitorExports?window.capacitorExports.registerPlugin(n):null}catch(e){return null}};
+const NATIVE_APP=capPlugin("App");
 /* ---------- icons ---------- */
 const I = {
   today:'<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>',
@@ -535,10 +542,17 @@ function applyAccent(){
   ['--bg','--surface','--surface-2','--line'].forEach((k,i)=>root.style.setProperty(k,b[i]));
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', b[0]);
 }
+function setBars(){
+  const bars=NATIVE&&window.capacitorExports&&window.capacitorExports.SystemBars; if(!bars) return;
+  const t=root.getAttribute('data-theme'); let dark=false;
+  try{ dark = t ? t==='dark' : matchMedia('(prefers-color-scheme: dark)').matches; }catch(e){}
+  const style=dark?'DARK':'LIGHT';
+  bars.setStyle({style,bar:'StatusBar'}).catch(()=>{}); bars.setStyle({style,bar:'NavigationBar'}).catch(()=>{});
+}
 function applyPrefs(){
   if(prefs.appearance==='system'){ if(hostTheme) root.setAttribute('data-theme',hostTheme); else root.removeAttribute('data-theme'); }
   else root.setAttribute('data-theme',prefs.appearance);
-  applyAccent();
+  applyAccent(); setBars();
 }
 try{ matchMedia('(prefers-color-scheme: dark)').addEventListener('change',applyAccent); }catch(e){}
 new MutationObserver(applyAccent).observe(root,{attributes:true,attributeFilter:['data-theme']});
@@ -1093,7 +1107,7 @@ function vSettings(){
     <p>Save a backup file to keep a safe copy or to move your log to another copy of Nestling. Importing adds new entries and skips ones you already have, so it's safe to import the same file twice.</p>
     <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" data-act="backup" ${state.mode==='demo'?'disabled':''}>${svg('download','width="16" height="16"')} Save backup</button><label class="btn ghost" for="importFile">Import backup</label><input type="file" id="importFile" class="vh" accept=".json,application/json"><button class="btn ghost" data-act="export">Export CSV</button></div>
     <p class="note">${prefs.lastBackup?`Last backup from this device: ${new Date(prefs.lastBackup).toLocaleDateString()}.`:'No backup saved from this device yet.'} CSV is for spreadsheets and your pediatrician; only a backup file can be imported.</p><p class="note" id="exportNote"></p></div>
-  <div class="panel"><h2>About Nestling</h2><p class="note">Nap windows use typical awake times by age from Cleveland Clinic and The Sleep Lady. Growth reference lines use the WHO Child Growth Standards medians (0–24 months). Teeth timing follows the American Dental Association chart. Checkups follow the AAP Bright Futures schedule. A fever is 100.4 °F (38 °C) or higher. Nestling is a log, not medical advice. Call your pediatrician with any health concerns.</p></div></div>`;
+  <div class="panel"><h2>About Nestling <span class="note" style="font-weight:500">Version ${APP_VERSION}</span></h2><p style="display:flex;gap:14px;flex-wrap:wrap;margin-top:0"><a href="privacy.html" target="_blank" rel="noopener">Privacy policy</a><a href="terms.html" target="_blank" rel="noopener">Terms of use</a><a href="delete-account.html" target="_blank" rel="noopener">Delete account</a></p><p class="note">Nap windows use typical awake times by age from Cleveland Clinic and The Sleep Lady. Growth reference lines use the WHO Child Growth Standards medians (0–24 months). Teeth timing follows the American Dental Association chart. Checkups follow the AAP Bright Futures schedule. A fever is 100.4 °F (38 °C) or higher. Nestling is a log, not medical advice. Call your pediatrician with any health concerns.</p></div></div>`;
   return h;
 }
 
@@ -1110,6 +1124,7 @@ const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.
 window.addEventListener('beforeinstallprompt', e=>{ e.preventDefault(); installEvt=e; if(state.view==='settings') softRender(); });
 window.addEventListener('appinstalled', ()=>{ installEvt=null; toast('Nestling is on your home screen'); softRender(); });
 function installPanel(){
+  if(NATIVE) return '';
   if(isStandalone()) return `<div class="panel"><h2>App</h2><p>Nestling is installed on this device. Open it from your home screen.</p></div>`;
   const body = installEvt
     ? `<p>Add Nestling to your home screen so it opens full screen, like an app.</p><button class="btn primary" data-act="install">Install app</button>`
@@ -1141,7 +1156,14 @@ function accountPanel(){
   return `<div class="panel"><h2>Account</h2><p>Signed in as <b>${esc(session.user.email||'')}</b></p>
     ${state.mode==='cloud'?`<form class="form" id="nameForm"><div class="row2" style="align-items:end">${F.text('me_name','Your name, shown to family',me?.display_name||'','e.g. Mom, Dad, Grandma')}<div><button class="btn" type="submit">Save name</button></div></div></form>`:''}
     ${myBabies.length>1?`<label class="field" style="margin-top:12px"><span>Baby</span><select id="babySel">${myBabies.map(m=>`<option value="${esc(m.baby_id)}" ${m.baby_id===baby?.id?'selected':''}>${esc(m.babies?.name||'Baby')}</option>`).join('')}</select></label>`:''}
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">${state.mode==='cloud'?`<button class="btn ghost" data-act="addBaby">Add another baby</button><button class="btn ghost" data-act="joinOpen">Join with a code</button>`:''}<button class="btn danger" data-act="signout">Sign out</button></div></div>`;
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">${state.mode==='cloud'?`<button class="btn ghost" data-act="addBaby">Add another baby</button><button class="btn ghost" data-act="joinOpen">Join with a code</button>`:''}<button class="btn danger" data-act="signout">Sign out</button></div>
+    <details class="more" style="margin-top:16px"><summary style="color:var(--danger)">Delete my account</summary><div class="form" style="margin-top:10px">
+      <p>This permanently deletes your sign-in and your name from every log.</p>
+      <ul style="margin:0;padding-left:20px;color:var(--ink-2)"><li>A log someone else also uses stays with them, and they become its owner.</li><li>A log only you use is deleted with all its entries.</li></ul>
+      <p class="note">Save a backup first if you want a copy (Backup &amp; restore below).</p>
+      <label class="field"><span>Type DELETE to confirm</span><input type="text" id="delConfirm" autocomplete="off" autocapitalize="characters"></label>
+      <div><button class="btn danger" data-act="deleteAccount">Delete my account</button></div>
+      <div id="delStatus" class="note" role="status"></div></div></details></div>`;
 }
 
 /* ---------- modal + forms ---------- */
@@ -1367,6 +1389,13 @@ document.addEventListener('click', async ev=>{
   else if(a==='noRemove'){ document.getElementById('memberConfirm').innerHTML=''; }
   else if(a==='doRemove'){ await removeMember(t.dataset.user, !!t.dataset.self); }
   else if(a==='export') exportCsv();
+  else if(a==='deleteAccount'){ const st=document.getElementById('delStatus');
+    if((val('delConfirm')||'').trim().toUpperCase()!=='DELETE'){ st.textContent='Type DELETE in the box to confirm.'; document.getElementById('delConfirm').focus(); return; }
+    t.disabled=true; st.textContent='Deleting your account…';
+    const {error}=await sb.rpc('delete_my_account');
+    if(error){ st.textContent = /function .*does not exist|could not find the function/i.test(error.message) ? 'Account deletion isn’t set up in the database yet. Run migrations/002-account-deletion.sql in Supabase.' : `Couldn’t delete your account: ${error.message}`; t.disabled=false; return; }
+    try{ await sb.auth.signOut(); }catch(err){}
+    toast('Your account was deleted'); }
   else if(a==='editSums') openSums();
   else if(a==='resetSums'){ prefs.sums=null; savePrefs(); closeModal(); render(); toast('Back to the default stats'); }
   else if(a==='addKind'){ const k=(val('newKind')||'').trim().replace(/\s+/g,' '); if(!k){ document.getElementById('newKind').focus(); return; } addCustomKind(k); const d=checkedSums(); if(!d.includes('act:'+k)){ if(d.length>=6) toast('Showing 6 already. Untick one to show '+k+'.'); else d.push('act:'+k); } openSums(d); render(); }
@@ -1636,7 +1665,17 @@ function fallbackLocal(){
   render();
 }
 boot();
-if('serviceWorker' in navigator && (location.protocol==='https:' || location.hostname==='localhost')){
+if(NATIVE && NATIVE_APP){
+  /* Android Back: close an open form, else go back to Today, and exit only from Today. */
+  NATIVE_APP.addListener('backButton',()=>{
+    if(document.querySelector('.modal')){ closeModal(); return; }
+    if(state.view!=='today'){ state.view='today'; render(); window.scrollTo(0,0); return; }
+    NATIVE_APP.exitApp();
+  });
+  try{ matchMedia('(prefers-color-scheme: dark)').addEventListener('change',setBars); }catch(e){}
+}
+/* Not inside the Android app: it already has every file on the phone, and a cache there could show last version's files after an update. */
+if(!NATIVE && 'serviceWorker' in navigator && (location.protocol==='https:' || location.hostname==='localhost')){
   window.addEventListener('load', ()=>{ navigator.serviceWorker.register('./sw.js').catch(()=>{}); });
 }
 })();

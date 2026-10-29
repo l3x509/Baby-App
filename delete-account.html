@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<title>Delete your Nestling account</title>
+<meta name="description" content="Delete your Nestling Baby Log account and data.">
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<style>
+:root{--bg:#fff4ef;--card:#fffaf7;--fg:#2a1f1c;--muted:#6b5852;--line:#f0d3c6;--accent:#c9543f;--danger:#b3261e}
+@media (prefers-color-scheme:dark){:root{--bg:#1c1412;--card:#261b18;--fg:#f4ece9;--muted:#c4b2ab;--line:#44312a;--accent:#f39a86;--danger:#f28b82}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.6 "Segoe UI",Roboto,Arial,sans-serif}
+main{max-width:640px;margin:0 auto;padding:32px 16px 64px}
+h1{font-size:1.9rem;margin:0 0 6px;line-height:1.2}
+h2{font-size:1.2rem;margin:28px 0 6px}
+.muted{color:var(--muted);font-size:.95rem}
+a{color:var(--accent)}
+nav{display:flex;gap:16px;flex-wrap:wrap;margin:12px 0 24px;font-size:.95rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:18px}
+label{display:block;font-weight:600;font-size:.95rem;margin:12px 0 4px}
+input{width:100%;font:inherit;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--fg)}
+button{font:inherit;font-weight:600;border:0;border-radius:99px;padding:10px 18px;margin-top:14px;cursor:pointer;background:var(--accent);color:#fff}
+button.danger{background:var(--danger)}
+button:disabled{opacity:.6;cursor:default}
+#status{margin-top:12px;font-size:.95rem}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+<h1>Delete your Nestling account</h1>
+<p class="muted">Nestling Baby Log · Lexcellent Solutions LLC</p>
+<nav><a href="./">Back to Nestling</a><a href="privacy.html">Privacy policy</a><a href="terms.html">Terms of use</a></nav>
+
+<p>You can delete your account here without the app, or in the app under <b>Settings → Account → Delete my account</b>.</p>
+<h2>What gets deleted</h2>
+<ul>
+<li>Your sign-in (email and password) and your name in every baby's log.</li>
+<li>Any baby's log that only you use, with all of its entries.</li>
+</ul>
+<h2>What stays</h2>
+<ul>
+<li>A baby's log that someone else also uses stays with them, and they become its owner. Entries you added stay in that log for them, without your name.</li>
+</ul>
+<p>Deletion is immediate and can't be undone. To keep a copy, open the app first and use <b>Settings → Backup &amp; restore → Save backup</b>.</p>
+
+<div class="card" id="signin">
+<h2 style="margin-top:0">Sign in to confirm it's you</h2>
+<form id="f1">
+<label for="email">Email</label><input type="email" id="email" autocomplete="email" required>
+<label for="pass">Password</label><input type="password" id="pass" autocomplete="current-password" required>
+<button type="submit">Continue</button>
+</form>
+</div>
+
+<div class="card" id="confirm" hidden>
+<h2 style="margin-top:0">Delete <span id="who"></span>?</h2>
+<label for="typed">Type DELETE to confirm</label><input type="text" id="typed" autocomplete="off" autocapitalize="characters">
+<button class="danger" id="go">Delete my account</button>
+</div>
+
+<p id="status" role="status"></p>
+
+<h2>Can't sign in?</h2>
+<p>Email <a href="mailto:privacy@lexcellentsolutions.com">privacy@lexcellentsolutions.com</a> from the address on your account and ask us to delete it. We'll confirm within 30 days.</p>
+</main>
+<script>
+(() => {
+  const cfg = window.NESTLING_CONFIG || {};
+  const status = document.getElementById('status');
+  if (!cfg.supabaseUrl || !cfg.supabaseAnonKey || !window.supabase) {
+    status.textContent = 'The account service isn’t reachable right now. Try again later, or email us using the address below.';
+    document.getElementById('signin').hidden = true;
+    return;
+  }
+  const sb = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
+  document.getElementById('f1').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = e.target.querySelector('button'); btn.disabled = true; status.textContent = 'Signing in…';
+    const { data, error } = await sb.auth.signInWithPassword({ email: document.getElementById('email').value.trim(), password: document.getElementById('pass').value });
+    btn.disabled = false;
+    if (error) { status.textContent = /invalid login/i.test(error.message) ? 'Wrong email or password.' : 'Couldn’t sign in: ' + error.message; return; }
+    status.textContent = '';
+    const u = (data && (data.user || (data.session && data.session.user))) || {};
+    document.getElementById('who').textContent = u.email || document.getElementById('email').value.trim();
+    document.getElementById('signin').hidden = true;
+    document.getElementById('confirm').hidden = false;
+    document.getElementById('typed').focus();
+  });
+  document.getElementById('go').addEventListener('click', async (e) => {
+    if (document.getElementById('typed').value.trim().toUpperCase() !== 'DELETE') { status.textContent = 'Type DELETE in the box to confirm.'; return; }
+    e.target.disabled = true; status.textContent = 'Deleting your account…';
+    const { error } = await sb.rpc('delete_my_account');
+    if (error) { status.textContent = 'Couldn’t delete your account: ' + error.message + ' Please email us instead.'; e.target.disabled = false; return; }
+    try { await sb.auth.signOut(); } catch (err) {}
+    document.getElementById('confirm').hidden = true;
+    status.textContent = 'Your account was deleted.';
+  });
+})();
+</script>
+</body>
+</html>

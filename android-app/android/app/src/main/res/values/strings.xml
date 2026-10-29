@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Nestling</string>
+    <string name="title_activity_main">Nestling</string>
+    <string name="package_name">app.lexcellent.nestling</string>
+    <string name="custom_url_scheme">app.lexcellent.nestling</string>
+</resources>

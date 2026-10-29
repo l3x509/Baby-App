@@ -1,0 +1,8 @@
+{
+  "appId": "app.lexcellent.nestling",
+  "appName": "Nestling",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#FFF4EF"
+  }
+}

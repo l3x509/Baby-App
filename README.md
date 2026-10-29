@@ -8,6 +8,9 @@ A baby tracker for feeds, sleep, diapers, growth, teeth and health, shared live 
 | `config.js` | Your Supabase keys (the only file you edit) |
 | `schema.sql` | Run once in Supabase to create the tables and access rules |
 | `manifest.webmanifest`, `sw.js`, `icons/` | Let you add Nestling to your home screen as an app |
+| `privacy.html`, `terms.html`, `delete-account.html` | Privacy policy, terms of use, and the web page for deleting an account (required by Google Play) |
+| `migrations/` | Database changes to run in Supabase after the first setup |
+| `android-app/` | The Google Play app: the same web app packaged with Capacitor. Build steps in `android-app/README.md` |
 | `README.md` | This setup guide |
 
 ## Setup
@@ -98,6 +101,14 @@ Entries always come live from Supabase. If you're offline, the app still opens, 
 2. On your website, after you've signed in, go to **Settings → Backup & restore → Import backup** and choose that file.
 
 Import skips anything you already have, so running it twice is safe.
+
+## Database updates
+
+If you set up Supabase before October 29, 2026, run `migrations/002-account-deletion.sql` once in the SQL Editor. It adds account deletion (Settings → Account → Delete my account). A new setup gets it from `schema.sql` automatically.
+
+## Android app
+
+The Google Play app is the same web app packaged with Capacitor, following the same setup as Paskle. Build steps, store listing text and graphics are in `android-app/`.
 
 ## Updating the app later
 

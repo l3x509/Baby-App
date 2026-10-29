@@ -1,0 +1,21 @@
+{
+  "name": "nestling-android",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Android app for Nestling (Capacitor). The web app in the repo root is copied into www/ and packaged as is.",
+  "scripts": {
+    "sync": "node scripts/sync-www.mjs && npx cap sync android",
+    "icons": "npx capacitor-assets generate --android --iconBackgroundColor \"#E8735E\" --iconBackgroundColorDark \"#E8735E\" --splashBackgroundColor \"#FFF4EF\" --splashBackgroundColorDark \"#1C1412\"",
+    "open": "npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.5.3",
+    "@capacitor/app": "8.1.2",
+    "@capacitor/core": "8.5.3",
+    "@supabase/supabase-js": "2.45.4"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "3.0.5",
+    "@capacitor/cli": "8.5.3"
+  }
+}
