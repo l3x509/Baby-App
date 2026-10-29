@@ -7,6 +7,7 @@ A baby tracker for feeds, sleep, diapers, growth, teeth and health, shared live 
 | `index.html` | The whole app |
 | `config.js` | Your Supabase keys (the only file you edit) |
 | `schema.sql` | Run once in Supabase to create the tables and access rules |
+| `manifest.webmanifest`, `sw.js`, `icons/` | Let you add Nestling to your home screen as an app |
 | `README.md` | This setup guide |
 
 ## Setup
@@ -80,6 +81,16 @@ Open the site, tap **Sign in**, choose **Create account**, and add your baby.
 
 Each code works once and expires after 7 days. Make a new one for each person.
 To remove someone, use **Remove** next to their name in Family.
+
+## Add it to your home screen
+
+Nestling installs like an app, opening full screen with its own icon.
+
+- **iPhone (Safari):** tap **⋯** next to the address bar, then **Share**, then **Add to Home Screen**. Keep **Open as Web App** on and tap **Add**. On older iPhones, the Share button is at the bottom of the screen.
+- **Android (Chrome):** tap **⋮**, then **Add to Home screen** or **Install app**.
+
+Settings → **Add to home screen** in the app shows the same steps, plus a one-tap **Install app** button where the phone supports it.
+Entries always come live from Supabase. If you're offline, the app still opens, but it can't save new entries until you're back online.
 
 ## Moving entries from the Claude version
 
