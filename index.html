@@ -702,11 +702,15 @@ function wakeWindow(days){
   if(w<104) return [240,360];  // 15–24 months
   return [300,360];            // 2 years+
 }
+const FUTURE_OK=['doctor','vaccine'];           // appointments can be scheduled ahead
+const isFuture = (e, now=Date.now()) => !FUTURE_OK.includes(e.type) && e.start > now + 2*MIN;
+const past = () => { const now=Date.now(); return state.entries.filter(e=>!isFuture(e,now)); };
 function napPrediction(){
   const days=ageDays(state.profile?.birth); if(days==null) return null;
-  const sleeps=state.entries.filter(e=>e.type==='sleep');
+  const now=Date.now(), sleeps=past().filter(e=>e.type==='sleep');
   const active=sleeps.find(e=>e.end==null); if(active) return {asleep:true, since:active.start};
-  const last=sleeps.filter(e=>e.end!=null).sort((a,b)=>b.end-a.end)[0]; if(!last) return null;
+  const last=sleeps.filter(e=>e.end!=null && e.end<=now+2*MIN).sort((a,b)=>b.end-a.end)[0]; if(!last) return null;
+  if(now-last.end > 12*HR) return {stale:true, lastEnd:last.end};
   const [a,b]=wakeWindow(days);
   return {asleep:false, awakeSince:last.end, from:last.end+a*MIN, to:last.end+b*MIN, a, b};
 }
@@ -797,7 +801,8 @@ function comingUp(p, now){
   const items=[];
   const row=(c,icon,label,main,sub,extra='',attrs='')=>`<div class="cu" style="--c:${c}" ${attrs}><span class="ic ${IC()}">${svg(icon)}</span><div class="cx"><span class="label">${label}</span><b class="num">${main}</b>${sub?`<span class="sub">${sub}</span>`:''}${extra}</div></div>`;
   const np=napPrediction();
-  if(np && !np.asleep){
+  if(np && np.stale) items.push(row('var(--sleep)','sleep','Next sleep','No recent sleep logged',`The last sleep ended ${fmtDate(np.lastEnd)} at ${fmtTime(np.lastEnd)}. Log naps and night sleep to see the next nap window.`));
+  else if(np && !np.asleep){
     const span=np.to-np.awakeSince, pct=Math.min(100,(now-np.awakeSince)/span*100), from=(np.from-np.awakeSince)/span*100;
     const status = now<np.from ? `Window opens in ${fmtDur(np.from-now)}` : now<=np.to ? 'In the nap window now' : `Past the window by ${fmtDur(now-np.to)}. Watch for tired cues.`;
     items.push(row('var(--sleep)','sleep','Next sleep',`${fmtTime(np.from)} – ${fmtTime(np.to)}`,status,`<div class="bar"><b style="left:${from}%;right:0"></b><i style="width:${pct}%"></i></div>`));
@@ -924,14 +929,17 @@ function vToday(){
   }
 
   // since last
-  const last = types => state.entries.find(e=>types.includes(e.type));
+  const last = types => past().find(e=>types.includes(e.type));
   const lf=last(['breast','bottle','solids']), ld=last(['diaper','potty']);
-  const sl=state.entries.filter(e=>e.type==='sleep');
-  const asleep=sl.find(e=>e.end==null), lastSleep=sl.filter(e=>e.end!=null).sort((a,b)=>b.end-a.end)[0];
+  const sl=past().filter(e=>e.type==='sleep');
+  const asleep=sl.find(e=>e.end==null), lastSleep=sl.filter(e=>e.end!=null && e.end<=now+2*MIN).sort((a,b)=>b.end-a.end)[0];
+  const staleSleep = lastSleep && now-lastSleep.end > 12*HR;
+  const fut=state.entries.filter(e=>isFuture(e,now));
+  if(fut.length) h+=`<div class="banner"><span>${fut.length===1?'One entry is':fut.length+' entries are'} set to a time that hasn’t happened yet: ${fut.slice(0,3).map(e=>`${esc(T[e.type]?.label||e.type)} at ${fmtTime(e.start)}${startOfDay(e.start)!==startOfDay(now)?' on '+fmtDate(e.start):''}`).join(', ')}. Was AM or PM mixed up?</span><button class="btn" data-edit="${esc(fut[0].id)}">Fix time</button></div>`;
   const tile=(c,label,big,meta)=>`<div class="tile" style="--c:${c}"><span class="label">${label}</span><span class="big">${big}</span><span class="meta">${meta}</span></div>`;
   h+=`<div class="since">
     ${tile('var(--feed)','Last feed', lf?fmtDur(now-(lf.end||lf.start))+' ago':'—', lf?`${T[lf.type].label} at ${fmtTime(lf.start)}`:'No feeds yet')}
-    ${asleep? tile('var(--sleep)','Asleep for', fmtDur(now-asleep.start), `Since ${fmtTime(asleep.start)}`) : tile('var(--sleep)','Awake for', lastSleep?fmtDur(now-lastSleep.end):'—', lastSleep?`Woke at ${fmtTime(lastSleep.end)}`:'No sleep yet')}
+    ${asleep? tile('var(--sleep)','Asleep for', fmtDur(now-asleep.start), `Since ${fmtTime(asleep.start)}`) : (staleSleep ? tile('var(--sleep)','Awake for','—',`No sleep logged since ${fmtDate(lastSleep.end)}, ${fmtTime(lastSleep.end)}`) : tile('var(--sleep)','Awake for', lastSleep?fmtDur(now-lastSleep.end):'—', lastSleep?`Woke at ${fmtTime(lastSleep.end)}`:'No sleep yet'))}
     ${tile('var(--diaper)','Last diaper', ld?fmtDur(now-ld.start)+' ago':'—', ld?`${esc(entrySummary(ld))} at ${fmtTime(ld.start)}`:'No changes yet')}
   </div>`;
 
@@ -1389,6 +1397,8 @@ document.addEventListener('click', async ev=>{
   else if(a==='noRemove'){ document.getElementById('memberConfirm').innerHTML=''; }
   else if(a==='doRemove'){ await removeMember(t.dataset.user, !!t.dataset.self); }
   else if(a==='export') exportCsv();
+  else if(a==='fixAmPm'){ ['f_start','f_end'].forEach(fid=>{ const el=document.getElementById(fid); const v=el&&fromInput(el.value); if(v && v>Date.now()+2*MIN) el.value=toInput(v-12*HR); }); const f=document.getElementById('entryForm'); f.requestSubmit(); }
+  else if(a==='saveFuture'){ const f=document.getElementById('entryForm'); f.dataset.allowFuture='1'; f.requestSubmit(); }
   else if(a==='deleteAccount'){ const st=document.getElementById('delStatus');
     if((val('delConfirm')||'').trim().toUpperCase()!=='DELETE'){ st.textContent='Type DELETE in the box to confirm.'; document.getElementById('delConfirm').focus(); return; }
     t.disabled=true; st.textContent='Deleting your account…';
@@ -1459,6 +1469,12 @@ document.addEventListener('submit', async ev=>{
   const f=ev.target;
   if(f.id==='entryForm'){
     const type=f.dataset.type, id=f.dataset.id; const data={type,...readFields(type)};
+    const nowS=Date.now(), late=[data.start,data.end].filter(t=>t!=null && t>nowS+2*MIN);
+    if(!FUTURE_OK.includes(type) && late.length && !f.dataset.allowFuture){
+      const t=late[0], other=t-12*HR;
+      document.getElementById('confirmSlot').innerHTML=`<div class="confirm"><span>${fmtTime(t)}${startOfDay(t)!==startOfDay(nowS)?' on '+fmtDate(t):''} hasn’t happened yet. ${other<=nowS && new Date(t).getHours()>=12?`Did you mean ${fmtTime(other)}?`:'Check the time.'}</span><span style="display:flex;gap:6px;flex-wrap:wrap">${other<=nowS && new Date(t).getHours()>=12?`<button type="button" class="btn sm" data-act="fixAmPm">Use ${fmtTime(other)}</button>`:''}<button type="button" class="btn sm ghost" data-act="saveFuture">Save anyway</button></span></div>`;
+      return;
+    }
     closeModal();
     if(id){ const cur=state.entries.find(x=>x.id===id); if(type==='breast' && cur && cur.end==null){ data.end=null; data.active=cur.active; data.activeSince=cur.activeSince; data.left=cur.left; data.right=cur.right; data.start=fromInput(val('f_start'))||cur.start; } await safe(()=>store.update(id,data),'Saved'); }
     else await safe(()=>store.add(data),`${T[type].label} logged`);
