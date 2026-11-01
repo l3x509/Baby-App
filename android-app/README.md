@@ -55,6 +55,7 @@ Inside the app:
 
 - the phone's Back button closes an open form, then goes back to Today, and closes the app from Today (`@capacitor/app`);
 - the status bar and navigation bar icons follow the app's light or dark theme;
+- the screen stays on while a feed, sleep or activity timer is running (`@capacitor-community/keep-awake`; parents can turn it off in Settings → Display);
 - the website's offline service worker and the "Add to home screen" section are not used, since the app is already installed.
 
 Your Supabase keys come from `config.js` in the repo root, so the app and the website share the same family logs.

@@ -143,6 +143,9 @@ details.more summary{cursor:pointer;font-weight:600;color:var(--accent)}
 .dots i:nth-child(2){animation-delay:.2s}.dots i:nth-child(3){animation-delay:.4s}
 @keyframes dot{0%,80%,100%{opacity:.25}40%{opacity:1}}
 @media (prefers-reduced-motion:reduce){.dots i{animation:none}}
+.tgoal{margin-top:8px;max-width:320px}
+.tgoal .bar{height:6px;border-radius:3px;background:color-mix(in srgb,var(--activity) 15%,var(--surface));overflow:hidden;margin-bottom:4px}
+.tgoal .bar i{display:block;height:100%;background:var(--activity);border-radius:3px}
 .vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;padding:0}
 label.btn{cursor:pointer}
 label.btn:has(+ .vh:focus-visible){outline:2px solid var(--accent);outline-offset:2px}
@@ -405,6 +408,7 @@ const I = {
   activity:'<circle cx="9" cy="9" r="5.5"/><path d="M13 13l7 7"/><circle cx="7.5" cy="8" r="1" fill="currentColor"/><circle cx="10.5" cy="10.5" r="1" fill="currentColor"/>',
   note:'<path d="M12 2l2.9 6.2 6.6.6-5 4.5 1.5 6.7L12 16.6 6 20l1.5-6.7-5-4.5 6.6-.6z"/>',
   plus:'<path d="M12 5v14M5 12h14"/>',
+  tummy:'<circle cx="7" cy="9.5" r="3"/><path d="M10 12.5h8.5a2.5 2.5 0 0 1 0 5H5"/><path d="M3 20h18"/>',
   spark:'<path d="M12 3l1.8 4.9L19 9.7l-4.3 3 1.4 5.3L12 15l-4.1 3 1.4-5.3L5 9.7l5.2-1.8z"/>',
   search:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>',
   book:'<path d="M4 5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5M8 7h6"/>',
@@ -415,7 +419,7 @@ const I = {
   down:'<path d="M6 9l6 6 6-6"/>',
   download:'<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>'
 };
-const EMOJI={breast:'🤱',bottle:'🍼',solids:'🥣',pump:'🥛',sleep:'😴',diaper:'🧷',potty:'🚽',ruler:'📏',temp:'🌡️',med:'💊',symptom:'🤒',doctor:'🩺',vaccine:'💉',activity:'🧸',note:'⭐',tooth:'🦷'};
+const EMOJI={breast:'🤱',bottle:'🍼',solids:'🥣',pump:'🥛',sleep:'😴',diaper:'🧷',potty:'🚽',ruler:'📏',temp:'🌡️',med:'💊',symptom:'🤒',doctor:'🩺',vaccine:'💉',activity:'🧸',tummy:'👶',note:'⭐',tooth:'🦷'};
 const ICON_STYLES=[['line','Classic lines'],['soft','Soft fill'],['chunky','Chunky'],['bubble','Bubbles'],['emoji','Emoji']];
 const IC = (st) => 'st-'+(st||prefs.icons||'line');
 const svg = (k, s='', st) => ((st||prefs.icons)==='emoji' && EMOJI[k]) ? `<span class="emo" aria-hidden="true">${EMOJI[k]}</span>` : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ${s}>${I[k]||''}</svg>`;
@@ -437,6 +441,7 @@ const T = {
   doctor:{label:'Doctor visit',cat:'health',icon:'doctor'},
   vaccine:{label:'Vaccine',cat:'health',icon:'vaccine'},
   activity:{label:'Activity',cat:'activity',icon:'activity'},
+  tummy:{label:'Tummy time',cat:'activity',icon:'tummy'},
   note:{label:'Moment',cat:'memory',icon:'note'}
 };
 const color = t => CAT[T[t]?.cat] || 'var(--ink-3)';
@@ -514,7 +519,7 @@ function entrySummary(e){
     case 'temp': return U.tmp(e.value)+(e.value!=null && e.value>=37.995 ? ' · Fever' : '');
     case 'med': return [e.name, e.dose].filter(Boolean).join(' · ');
     case 'vaccine': return e.name||'';
-    case 'activity': return [e.kind, e.duration?`${e.duration} min`:''].filter(Boolean).join(' · ');
+    case 'activity': return e.end===null ? `${e.kind||'Activity'} · in progress` : [e.kind, e.duration?`${e.duration} min`:''].filter(Boolean).join(' · ');
     case 'note': return (e.milestone?'Milestone · ':'')+(e.title||'');
     case 'doctor': return (e.start>Date.now()?'Upcoming · ':'')+(e.title||'');
     default: return '';
@@ -552,7 +557,7 @@ const THEMES={
 };
 const PKEY='nestling.prefs';
 const KEEP_TYPES=['growth','temp','med','symptom','doctor','vaccine','note'];
-const DEFAULT_TILES=['breast','bottle','solids','pump','sleep','diaper','potty','growth','temp','med','symptom','doctor','vaccine','activity','note'];
+const DEFAULT_TILES=['breast','bottle','solids','pump','sleep','diaper','potty','tummy','growth','temp','med','symptom','doctor','vaccine','activity','note'];
 function tileOrder(){ const o=(Array.isArray(prefs.tiles)?prefs.tiles:[]).filter(t=>DEFAULT_TILES.includes(t)); DEFAULT_TILES.forEach(t=>{ if(!o.includes(t)) o.push(t); }); return o; }
 const isHidden = t => Array.isArray(prefs.hidden) && prefs.hidden.includes(t);
 const prefs=(()=>{ let p={}; try{ p=JSON.parse(localStorage.getItem(PKEY)||'{}')||{}; }catch(e){} return Object.assign({theme:'peach',accent:'indigo',bg:'mist',appearance:'system',clock:'12',tiles:null,hidden:[]},p); })();
@@ -932,6 +937,29 @@ async function askReport(i, reason){
   m.reporting=false; m.reported=true; renderAsk(); toast('Thanks. We’ll review this answer.');
 }
 
+/* ---------- tummy time goal (NIH Safe to Sleep) ---------- */
+function tummyToday(now){
+  const s=startOfDay(now), es=state.entries.filter(e=>e.type==='activity'&&e.kind==='Tummy time'&&e.start>=s&&e.start<=now);
+  return {n:es.length, mins:Math.round(es.reduce((a,e)=>a+(e.end===null?Math.max(0,(now-e.start)/MIN):(e.duration||0)),0))};
+}
+function tummyGoal(){ const d=ageDays(state.profile?.birth)??0;
+  return d<56 ? {by:'sessions',min:2,max:3,text:'2–3 short sessions of 3–5 minutes a day'} : {by:'minutes',min:15,max:30,text:'15–30 minutes a day in total'}; }
+function tummyGoalLine(now){ const t=tummyToday(now), g=tummyGoal(), v=g.by==='sessions'?t.n:t.mins;
+  return `<div class="tgoal"><div class="bar"><i style="width:${Math.min(100,v/g.min*100)}%"></i></div><span class="sub">${g.by==='sessions'?`${t.n} of ${g.min}–${g.max} sessions today${t.mins?' · '+t.mins+' min':''}`:`${t.mins} of ${g.min}–${g.max} min today`}</span></div>`; }
+
+/* ---------- keep the screen on while a timer runs ---------- */
+let wakeLock=null;
+async function syncWakeLock(){
+  const want = prefs.keepAwake!==false && state.entries.some(e=>(e.end==null&&(e.type==='breast'||e.type==='sleep'))||(e.type==='activity'&&e.end===null));
+  const ka=(typeof NATIVE!=='undefined'&&NATIVE&&typeof capPlugin==='function')?capPlugin('KeepAwake'):null;
+  if(ka){ try{ want?await ka.keepAwake():await ka.allowSleep(); }catch(e){} return; }
+  try{
+    if(want && !wakeLock && 'wakeLock' in navigator && document.visibilityState==='visible'){ wakeLock=await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release',()=>{ wakeLock=null; }); }
+    else if(!want && wakeLock){ const w=wakeLock; wakeLock=null; await w.release(); }
+  }catch(e){ wakeLock=null; }
+}
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') syncWakeLock(); });
+
 /* ---------- coming up ---------- */
 // Well-child visits from the AAP Bright Futures schedule: [months after birth (or days if 'd'), label]
 const CHECKUPS=[[4,'Newborn checkup (3–5 days)','d'],[1,'1-month checkup'],[2,'2-month checkup'],[4,'4-month checkup'],[6,'6-month checkup'],[9,'9-month checkup'],[12,'12-month checkup'],[15,'15-month checkup'],[18,'18-month checkup'],[24,'2-year checkup'],[30,'30-month checkup'],[36,'3-year checkup']];
@@ -975,6 +1003,8 @@ function comingUp(p, now){
   const row=(c,icon,label,main,sub,extra='',attrs='')=>`<div class="cu" style="--c:${c}" ${attrs}><span class="ic ${IC()}">${svg(icon)}</span><div class="cx"><span class="label">${label}</span><b class="num">${main}</b>${sub?`<span class="sub">${sub}</span>`:''}${extra}</div></div>`;
   const fe=feedEstimate(now);
   if(fe) items.push(row('var(--feed)','bottle','Next feed',`Around ${fmtTime(fe.next)}`, (fe.next<=now?'Due now':`In ${fmtDur(fe.next-now)}`)+` · usually every ${fmtDur(fe.gap)} lately`));
+  if((ageDays(p?.birth)??999)<183){ const t=tummyToday(now), g=tummyGoal(), run=state.entries.some(e=>e.type==='activity'&&e.kind==='Tummy time'&&e.end===null);
+    items.push(row('var(--activity)','tummy','Tummy time today', g.by==='sessions'?`${t.n} of ${g.min}–${g.max} sessions${t.mins?' · '+t.mins+' min':''}`:`${t.mins} of ${g.min}–${g.max} min`, `Aim for ${g.text}, while she’s awake and you’re watching.`.replace('she’s', state.profile?.sex==='m'?'he’s':state.profile?.sex==='f'?'she’s':'baby’s'), tummyGoalLine(now).replace(/<span class="sub">.*<\/span>/,'')+(run||!state.canWrite?'':`<div><button class="btn ghost sm" data-act="startTummy">Start tummy time</button></div>`))); }
   const appts=state.entries.filter(e=>e.type==='doctor' && e.start>now).sort((a,b)=>a.start-b.start);
   appts.slice(0,3).forEach(a=>{
     const text=`${p?.name?p.name+': ':''}${a.title||'Doctor appointment'}, ${fmtDate(a.start)} at ${fmtTime(a.start)}${a.note?'. Notes: '+a.note:''}`;
@@ -991,7 +1021,7 @@ function comingUp(p, now){
   if(med && now-med.start<2*DAY) items.push(row('var(--health)','med','Last medicine',now-med.start<MIN?'Just now':`${fmtDur(now-med.start)} ago`,`${esc(med.name||'Medicine')}${med.dose?' · '+esc(med.dose):''} at ${fmtTime(med.start)}. Check the label or your doctor's directions before the next dose.`));
   const tw=nextTeeth(p, now);
   if(tw) items.push(row('var(--health)','tooth','Teeth to watch for',tw.label,`Usually ${tw.range} months · record them in Health`));
-  return `<div class="panel up"><h2>Coming up</h2><div class="cus">${items.join('')}</div><p class="note">Feed timing uses your last 3 days. Checkups follow the AAP schedule. Every baby is different, so follow your baby's cues and your pediatrician's advice.</p></div>`;
+  return `<div class="panel up"><h2>Coming up</h2><div class="cus">${items.join('')}</div><p class="note">Feed timing uses your last 3 days. Checkups follow the AAP schedule. Tummy time goals follow NIH Safe to Sleep. Every baby is different, so follow your baby's cues and your pediatrician's advice.</p></div>`;
 }
 
 /* ---------- derived ---------- */
@@ -1040,6 +1070,7 @@ function render(){
   h+=({today:vToday,timeline:vTimeline,stats:vStats,health:vHealth,settings:vSettings}[state.view])();
   app.innerHTML=h;
   resolveNames();
+  syncWakeLock();
 }
 
 function header(title, sub){
@@ -1078,14 +1109,15 @@ function vToday(){
   const p=state.profile||{};
   let h=header(p.name?`${p.name}'s day`:'Today');
   const qs=tileOrder().filter(t=>!isHidden(t));
-  const running=t=>(t==='breast'||t==='sleep') && state.entries.some(x=>x.type===t && x.end===null);
-  h+=`<div class="logrow" role="group" aria-label="Log an activity">${qs.map(t=>`<button class="lt ${running(t)?'running':''}" data-new="${t}" style="--c:${color(t)}" ${state.canWrite?'':'disabled'}><span class="sq ${IC()}">${svg(T[t].icon)}</span><span>${T[t].label}</span></button>`).join('')}${(Array.isArray(prefs.customKinds)?prefs.customKinds:[]).map(k=>`<button class="lt" data-new="activity" data-kind="${esc(k)}" style="--c:var(--activity)" ${state.canWrite?'':'disabled'}><span class="sq ${IC()}">${svg('activity')}</span><span>${esc(k)}</span></button>`).join('')}<button class="lt arrange" data-act="arrange"><span class="sq">${svg('grip')}</span><span>Arrange</span></button></div>`;
+  const running=t=>t==='tummy' ? state.entries.some(x=>x.type==='activity'&&x.kind==='Tummy time'&&x.end===null) : (t==='breast'||t==='sleep') && state.entries.some(x=>x.type===t && x.end===null);
+  h+=`<div class="logrow" role="group" aria-label="Log an activity">${qs.map(t=>`<button class="lt ${running(t)?'running':''}" ${t==='tummy'?'data-new="activity" data-kind="Tummy time"':`data-new="${t}"`} style="--c:${color(t)}" ${state.canWrite?'':'disabled'}><span class="sq ${IC()}">${svg(T[t].icon)}</span><span>${T[t].label}</span></button>`).join('')}${(Array.isArray(prefs.customKinds)?prefs.customKinds:[]).map(k=>`<button class="lt" data-new="activity" data-kind="${esc(k)}" style="--c:var(--activity)" ${state.canWrite?'':'disabled'}><span class="sq ${IC()}">${svg('activity')}</span><span>${esc(k)}</span></button>`).join('')}<button class="lt arrange" data-act="arrange"><span class="sq">${svg('grip')}</span><span>Arrange</span></button></div>`;
   h+=askCard();
 
   // active timers
-  const active=state.entries.filter(e=>e.end==null && (e.type==='breast'||e.type==='sleep'));
+  const active=state.entries.filter(e=>(e.end==null && (e.type==='breast'||e.type==='sleep')) || (e.type==='activity' && e.end===null));
   if(active.length){
     h+='<div class="timers">'+active.map(e=>{
+      if(e.type==='activity') return `<div class="timer" style="--c:var(--activity)"><div style="min-width:0;flex:1"><div class="label"><span class="pulse"></span>${esc(e.kind||'Activity')} · started ${fmtTime(e.start)}</div><div class="t" data-live="act" data-id="${e.id}">${fmtClock(now-e.start)}</div>${e.kind==='Tummy time'?tummyGoalLine(now):''}</div><div style="display:flex;gap:8px"><button class="btn ghost sm" data-edit="${e.id}">Edit</button><button class="btn primary" data-act="actDone" data-id="${e.id}">Done</button></div></div>`;
       if(e.type==='sleep') return `<div class="timer" style="--c:var(--sleep)"><div><div class="label"><span class="pulse"></span>Sleeping since ${fmtTime(e.start)}</div><div class="t" data-live="sleep" data-id="${e.id}">${fmtClock(now-e.start)}</div></div><div style="display:flex;gap:8px"><button class="btn ghost sm" data-edit="${e.id}">Edit</button><button class="btn primary" data-act="wake" data-id="${e.id}">Woke up</button></div></div>`;
       const t=breastTotals(e);
       return `<div class="timer" style="--c:var(--feed)"><div><div class="label">${e.active?'<span class="pulse"></span>':''}Breastfeeding · started ${fmtTime(e.start)}</div><div class="t" data-live="breast" data-id="${e.id}">${fmtClock(t.total)}</div></div>
@@ -1266,6 +1298,7 @@ function vSettings(){
     <p class="note">Saved on this device, so each parent can pick their own.</p></div></div>
   <div class="panel"><h2>Display</h2><div class="form">
     ${F.seg('s_clock','Clock',[['12','12-hour'],['24','24-hour']],prefs.clock)}
+    ${F.seg('s_awake','Keep screen on while a timer runs',[['on','On'],['off','Off']],prefs.keepAwake===false?'off':'on')}
     ${F.seg('s_units','Units',[['imperial','oz · lb · in · °F'],['metric','ml · kg · cm · °C']],p.units||'imperial')}
     <p class="note">Clock is saved on this device. Units apply to everyone sharing this log; you can still pick oz or ml on each bottle.</p></div></div>
   <div class="panel" id="tilesPanel"><h2>Log tiles <button class="btn ghost sm" data-act="resetTiles">Reset</button></h2>
@@ -1281,7 +1314,7 @@ function vSettings(){
     <p>Save a backup file to keep a safe copy or to move your log to another copy of Nestling. Importing adds new entries and skips ones you already have, so it's safe to import the same file twice.</p>
     <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" data-act="backup" ${state.mode==='demo'?'disabled':''}>${svg('download','width="16" height="16"')} Save backup</button><label class="btn ghost" for="importFile">Import backup</label><input type="file" id="importFile" class="vh" accept=".json,application/json"><button class="btn ghost" data-act="export">Export CSV</button></div>
     <p class="note">${prefs.lastBackup?`Last backup from this device: ${new Date(prefs.lastBackup).toLocaleDateString()}.`:'No backup saved from this device yet.'} CSV is for spreadsheets and your pediatrician; only a backup file can be imported.</p><p class="note" id="exportNote"></p></div>
-  <div class="panel"><h2>About Nestling <span class="note" style="font-weight:500">Version ${APP_VERSION}</span></h2><p style="display:flex;gap:14px;flex-wrap:wrap;margin-top:0"><a href="privacy.html" target="_blank" rel="noopener">Privacy policy</a><a href="terms.html" target="_blank" rel="noopener">Terms of use</a><a href="delete-account.html" target="_blank" rel="noopener">Delete account</a></p><p class="note">Nap windows use typical awake times by age from Cleveland Clinic and The Sleep Lady. Growth reference lines use the WHO Child Growth Standards medians (0–24 months). Teeth timing follows the American Dental Association chart. Checkups follow the AAP Bright Futures schedule. A fever is 100.4 °F (38 °C) or higher. Nestling is a log, not medical advice. Call your pediatrician with any health concerns.</p></div></div>`;
+  <div class="panel"><h2>About Nestling <span class="note" style="font-weight:500">Version ${APP_VERSION}</span></h2><p style="display:flex;gap:14px;flex-wrap:wrap;margin-top:0"><a href="privacy.html" target="_blank" rel="noopener">Privacy policy</a><a href="terms.html" target="_blank" rel="noopener">Terms of use</a><a href="delete-account.html" target="_blank" rel="noopener">Delete account</a></p><p class="note">Nap windows use typical awake times by age from Cleveland Clinic and The Sleep Lady. Growth reference lines use the WHO Child Growth Standards medians (0–24 months). Teeth timing follows the American Dental Association chart. Checkups follow the AAP Bright Futures schedule. Tummy time goals follow NIH Safe to Sleep. A fever is 100.4 °F (38 °C) or higher. Nestling is a log, not medical advice. Call your pediatrician with any health concerns.</p></div></div>`;
   return h;
 }
 
@@ -1412,6 +1445,8 @@ function openEntry(type, existing, kind){
   let top='';
   if(!existing && type==='breast' && !state.entries.some(x=>x.type==='breast'&&x.end==null))
     top=`<div class="field"><span>Start a timer</span><div class="row2"><button class="btn primary" data-act="startBreast" data-side="L" style="justify-content:center">Left side</button><button class="btn primary" data-act="startBreast" data-side="R" style="justify-content:center">Right side</button></div></div><div class="divider">or enter manually</div>`;
+  if(!existing && type==='activity')
+    top=`<button class="btn primary" data-act="startAct" style="justify-content:center">Start timer now</button><div class="divider">or enter manually</div>`;
   if(!existing && type==='sleep' && !state.entries.some(x=>x.type==='sleep'&&x.end==null))
     top=`<button class="btn primary" data-act="startSleep" style="justify-content:center">Start sleep timer now</button><div class="divider">or enter manually</div>`;
   openModal(`<h3 style="--c:${color(type)}"><span class="ic ${IC()}">${svg(t.icon)}</span>${existing?'Edit ':''}${t.label}</h3>
@@ -1598,6 +1633,9 @@ document.addEventListener('click', async ev=>{
   else if(a==='resetTiles'){ prefs.tiles=null; prefs.hidden=[]; savePrefs(); render(); toast('Tiles reset'); }
   else if(a==='arrange'){ state.view='settings'; render(); document.getElementById('tilesPanel')?.scrollIntoView({block:'start'}); }
   else if(a==='startBreast'){ closeModal(); await safe(()=>store.add({type:'breast',start:now,end:null,left:0,right:0,active:t.dataset.side,activeSince:now}),'Timer started'); }
+  else if(a==='startAct'){ const other=(val('f_aother')||'').trim(); const kind=other||radio('akind')||'Tummy time'; if(other) addCustomKind(other); closeModal(); await safe(()=>store.add({type:'activity',kind,start:now,end:null}),`${kind} timer started`); }
+  else if(a==='startTummy'){ await safe(()=>store.add({type:'activity',kind:'Tummy time',start:now,end:null}),'Tummy time timer started'); }
+  else if(a==='actDone' && e){ const mins=Math.max(1,Math.round((now-e.start)/MIN)); await safe(()=>store.update(id,{end:now,duration:mins}),`${e.kind||'Activity'}: ${mins} min logged`); }
   else if(a==='startSleep'){ closeModal(); const hr=new Date().getHours(); await safe(()=>store.add({type:'sleep',start:now,end:null,kind:hr>=19||hr<6?'night':'nap'}),'Sleep timer started'); }
   else if(a==='wake' && e) await safe(()=>store.update(id,{end:now}),'Wake-up logged');
   else if(a==='side' && e){ const tot=breastTotals(e,now); if(e.active===t.dataset.side) return; await safe(()=>store.update(id,{left:tot.L,right:tot.R,active:t.dataset.side,activeSince:now})); }
@@ -1640,6 +1678,7 @@ document.addEventListener('change', ev=>{
   if(t.name==='s_show'){ const h=new Set(Array.isArray(prefs.hidden)?prefs.hidden:[]); if(t.checked) h.delete(t.value); else h.add(t.value); prefs.hidden=[...h]; }
   if(t.name==='s_mode') prefs.appearance=t.value;
   if(t.name==='s_clock') prefs.clock=t.value;
+  if(t.name==='s_awake') prefs.keepAwake=t.value==='on';
   savePrefs(); applyPrefs(); render();
   document.querySelector(`input[name="${t.name}"][value="${t.value}"]`)?.focus();
 });
@@ -1717,7 +1756,7 @@ setInterval(()=>{
   document.querySelectorAll('[data-live]').forEach(el=>{
     const e=state.entries.find(x=>x.id===el.dataset.id); if(!e) return;
     const k=el.dataset.live;
-    if(k==='sleep') el.textContent=fmtClock(now-e.start);
+    if(k==='sleep'||k==='act') el.textContent=fmtClock(now-e.start);
     else { const t=breastTotals(e,now); el.textContent=fmtClock(k==='L'?t.L:k==='R'?t.R:t.total); }
   });
 },1000);
