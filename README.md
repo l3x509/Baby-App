@@ -10,6 +10,7 @@ A baby tracker for feeds, sleep, diapers, growth, teeth and health, shared live 
 | `manifest.webmanifest`, `sw.js`, `icons/` | Let you add Nestling to your home screen as an app |
 | `privacy.html`, `terms.html`, `delete-account.html` | Privacy policy, terms of use, and the web page for deleting an account (required by Google Play) |
 | `migrations/` | Database changes to run in Supabase after the first setup |
+| `supabase/functions/ask/` | The server code for Ask Nestling's personal answers |
 | `android-app/` | The Google Play app: the same web app packaged with Capacitor. Build steps in `android-app/README.md` |
 | `README.md` | This setup guide |
 
@@ -102,9 +103,20 @@ Entries always come live from Supabase. If you're offline, the app still opens, 
 
 Import skips anything you already have, so running it twice is safe.
 
+## Ask Nestling (AI answers)
+
+Common questions are answered from guides built into the app, with no setup. Personal answers that look at your baby's log use Claude through a Supabase Edge Function, so your Anthropic key never reaches the app or this repo.
+
+1. **Get an API key:** console.anthropic.com → API keys → Create key. Add a few dollars of credit and set a monthly spend limit there.
+2. **Run `migrations/003-ask.sql`** in the SQL Editor (daily limits and answer reports). A new setup gets it from `schema.sql`.
+3. **Create the function:** Supabase → Edge Functions → Deploy a new function → Via Editor. Name it `ask`, replace the code with `supabase/functions/ask/index.ts`, and click Deploy.
+4. **Add the key:** Edge Functions → Secrets → add `ANTHROPIC_API_KEY` with your key. Optional: `ASK_DAILY_LIMIT` (questions per person per day, default 20) and `ANTHROPIC_MODEL` (default `claude-haiku-5-5`).
+
+Reported answers appear in Table Editor → `ask_reports`. Review them now and then; Google Play expects reports to be used to improve answers.
+
 ## Database updates
 
-If you set up Supabase before October 29, 2026, run `migrations/002-account-deletion.sql` once in the SQL Editor. It adds account deletion (Settings → Account → Delete my account). A new setup gets it from `schema.sql` automatically.
+If you set up Supabase before November 1, 2026, run the migrations you haven't run yet in the SQL Editor, in order: `migrations/002-account-deletion.sql` (account deletion), then `migrations/003-ask.sql` (Ask Nestling). A new setup gets both from `schema.sql` automatically.
 
 ## Android app
 

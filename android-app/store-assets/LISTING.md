@@ -66,6 +66,11 @@ YOUR DATA, YOUR CALL
 • Save a backup or export a spreadsheet for your pediatrician.
 • Delete your account any time, in the app or on the web.
 
+ASK NESTLING
+• Ask questions like "Is she getting enough milk?" and get answers from trusted pediatric sources.
+• Personal answers look at your baby's recent feeds and diapers.
+• Urgent symptoms always point you to 911 or your pediatrician first.
+
 Nestling is a log, not medical advice. Nap windows, growth reference lines and fever notes are general information from public sources (Cleveland Clinic, the World Health Organization, the American Academy of Pediatrics, the American Dental Association). Always follow your pediatrician's guidance.
 
 ---
@@ -83,11 +88,13 @@ Nestling is a log, not medical advice. Nap windows, growth reference lines and f
 **Data safety:**
 - Data collected: Personal info → Email address, Name (the family display name) · Health and fitness → Health info (the baby's logs). Optional: none of it is used for ads or analytics.
 - Purpose: App functionality and Account management.
-- Shared with third parties: No (Supabase is a service provider processing data on our behalf, which Play doesn't count as sharing).
+- Shared with third parties: No (Supabase and Anthropic are service providers processing data on our behalf, which Play doesn't count as sharing). Ask Nestling sends the question and a log summary (no names or email) to Anthropic only when a parent asks for a personal answer.
 - Encrypted in transit: Yes.
 - Users can request deletion: Yes, in the app and at the account deletion URL above.
 
 **Health apps declaration** (App content → Health apps): Nestling has health features. Closest categories: Nutrition and Weight Management (feeding), Sleep Management (sleep), Activity and Fitness (growth measurements), Medication and Treatment Management (medicine log), and health status monitoring (temperature). It doesn't connect to medical devices and isn't a regulated medical device.
+
+**AI-generated content:** Ask Nestling uses Claude (Anthropic) for personal answers. Every AI answer has a Report button (reasons: wrong or unsafe, not helpful, offensive); reports are saved to the ask_reports table for review. Emergencies (trouble breathing, turning blue, seizure, hard to wake) skip the AI and show "Call 911 now".
 
 **Account deletion:** In-app at Settings → Account → Delete my account; web at the account deletion URL above.
 
