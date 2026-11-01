@@ -482,8 +482,8 @@ function entrySummary(e){
     case 'solids': return [e.food, e.amountText, e.reaction && e.reaction!=='neutral' ? ({liked:'Liked it',disliked:'Disliked',reaction:'⚠ Reaction'}[e.reaction]) : ''].filter(Boolean).join(' · ');
     case 'pump': { const vu=e.volUnit||(U.imp()?'oz':'ml'); return [e.left!=null?`L ${U.volAs(e.left,vu)}`:'', e.right!=null?`R ${U.volAs(e.right,vu)}`:'', (e.left||0)+(e.right||0)?`Total ${U.volAs((e.left||0)+(e.right||0),vu)}`:'', e.duration?`${e.duration} min`:''].filter(Boolean).join(' · '); }
     case 'sleep': return e.end==null ? `Asleep · ${fmtDur(Date.now()-e.start)}` : `${fmtDur(e.end-e.start)} · until ${fmtTime(e.end)}${e.kind==='night'?' · Night':''}`;
-    case 'diaper': { const pc=POO_COLORS.find(c=>c[0]===e.pcolor), A={small:'small',medium:'medium',large:'large'};
-      const wetT='Wet'+(e.pee?` (${A[e.pee]})`:''), dirT=(e.kind==='mixed'?'dirty':'Dirty')+(e.poo?` (${A[e.poo]})`:'');
+    case 'diaper': { const pc=POO_COLORS.find(c=>c[0]===e.pcolor), AP={small:'light',medium:'medium',large:'heavy'}, AD={small:'little',medium:'medium',large:'big'};
+      const wetT='Wet'+(e.pee?` (${AP[e.pee]})`:''), dirT=(e.kind==='mixed'?'dirty':'Dirty')+(e.poo?` (${AD[e.poo]})`:'');
       return [({wet:wetT,dirty:dirT,mixed:wetT+' + '+dirT,dry:'Dry'}[e.kind]||''),
         pc?pc[1].toLowerCase():'', e.cons?{seedy:'seedy',soft:'soft',runny:'runny',firm:'firm',mucus:'mucus'}[e.cons]:'', e.rash?'Diaper rash':'', e.color||''].filter(Boolean).join(' · '); }
     case 'potty': return ({pee:'Pee',poo:'Poo',both:'Pee + poo',none:'Tried, nothing'}[e.result]||'');
@@ -1206,8 +1206,8 @@ function fieldsFor(type, e){
     case 'sleep': return F.seg('kind','Type',[['nap','Nap'],['night','Night sleep']],e.kind||(new Date().getHours()>=19||new Date().getHours()<6?'night':'nap'))+F.time('f_start','Fell asleep',e.start||now-60*MIN)+F.time('f_end','Woke up (leave empty if still asleep)',e.id?e.end:now)+F.text('f_note','Note',e.note);
     case 'diaper': { const k=e.kind||'wet', wet=k!=='dirty'&&k!=='dry', poo=k==='dirty'||k==='mixed';
       return F.time('f_start','Time',e.start||now)+F.seg('kind','Diaper',[['wet','Wet'],['dirty','Dirty'],['mixed','Both'],['dry','Dry']],k)
-      +`<div id="peeBox" ${wet?'':'hidden'}>${F.seg('pee','Pee amount',[['small','Small'],['medium','Medium'],['large','Large']],e.pee||'')}</div>`
-      +`<div id="pooBox" class="form" ${poo?'':'hidden'}>${F.seg('poo','Poo amount',[['small','Small'],['medium','Medium'],['large','Large']],e.poo||'')}
+      +`<div id="peeBox" ${wet?'':'hidden'}>${F.seg('pee','Pee amount',[['small','Light'],['medium','Medium'],['large','Heavy']],e.pee||'')}</div>`
+      +`<div id="pooBox" class="form" ${poo?'':'hidden'}>${F.seg('poo','Poo amount',[['small','Little'],['medium','Medium'],['large','Big']],e.poo||'')}
         <div class="field"><span>Color</span><div class="swatches" role="radiogroup" aria-label="Poo color">${POO_COLORS.map(([v,n,c])=>`<label class="sw"><input type="radio" name="pcolor" value="${v}" ${e.pcolor===v?'checked':''}><span style="--sw:${c};--swd:${c}"></span>${n}</label>`).join('')}</div>
         <p class="note" id="pcolorNote" ${['red','black','white'].includes(e.pcolor)?'':'hidden'}></p></div>
         ${F.seg('cons','Texture',[['seedy','Seedy'],['soft','Soft'],['runny','Runny'],['firm','Firm'],['mucus','Mucus']],e.cons||'')}</div>`
