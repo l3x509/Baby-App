@@ -35,7 +35,10 @@ LOG IN ONE TAP
 • Breastfeeding with a left and right timer, bottles in oz or ml, solids and pumping.
 • Sleep with a live timer, naps and night sleep.
 • Wet and dirty diapers, and potty training.
+• Spit-ups, with a clear note when it's time to call the doctor.
 • Growth, teeth, temperature, medicine, symptoms, doctor visits and vaccines.
+• A daily vitamin D check-off, so two parents never miss or double a day.
+• A milestones checklist for 2, 4, 6, 9 and 12 months.
 • Tummy time, bath, walks, and your own trackers, like vitamin D drops.
 
 SHARED WITH YOUR COPARENT
@@ -92,7 +95,7 @@ Nestling is a log, not medical advice. Nap windows, growth reference lines and f
 - Encrypted in transit: Yes.
 - Users can request deletion: Yes, in the app and at the account deletion URL above.
 
-**Health apps declaration** (App content → Health apps): Nestling has health features. Closest categories: Nutrition and Weight Management (feeding), Sleep Management (sleep), Activity and Fitness (growth measurements), Medication and Treatment Management (medicine log), and health status monitoring (temperature). It doesn't connect to medical devices and isn't a regulated medical device.
+**Health apps declaration** (App content → Health apps): Nestling has health features, including a spit-up log, vitamin D check-off and a developmental milestones checklist. Closest categories: Nutrition and Weight Management (feeding), Sleep Management (sleep), Activity and Fitness (growth measurements), Medication and Treatment Management (medicine log), and health status monitoring (temperature). It doesn't connect to medical devices and isn't a regulated medical device.
 
 **AI-generated content:** Ask Nestling uses Claude (Anthropic) for personal answers. Every AI answer has a Report button (reasons: wrong or unsafe, not helpful, offensive); reports are saved to the ask_reports table for review. Emergencies (trouble breathing, turning blue, seizure, hard to wake) skip the AI and show "Call 911 now".
 
