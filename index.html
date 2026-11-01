@@ -804,14 +804,6 @@ function nextTeeth(p, now){
 function comingUp(p, now){
   const items=[];
   const row=(c,icon,label,main,sub,extra='',attrs='')=>`<div class="cu" style="--c:${c}" ${attrs}><span class="ic ${IC()}">${svg(icon)}</span><div class="cx"><span class="label">${label}</span><b class="num">${main}</b>${sub?`<span class="sub">${sub}</span>`:''}${extra}</div></div>`;
-  const np=napPrediction();
-  if(np && np.stale) items.push(row('var(--sleep)','sleep','Next sleep','No recent sleep logged',`The last sleep ended ${fmtDate(np.lastEnd)} at ${fmtTime(np.lastEnd)}. Log naps and night sleep to see the next nap window.`));
-  else if(np && !np.asleep){
-    const span=np.to-np.awakeSince, pct=Math.min(100,(now-np.awakeSince)/span*100), from=(np.from-np.awakeSince)/span*100;
-    const status = now<np.from ? `Window opens in ${fmtDur(np.from-now)}` : now<=np.to ? 'In the nap window now' : `Past the window by ${fmtDur(now-np.to)}. Watch for tired cues.`;
-    items.push(row('var(--sleep)','sleep','Next sleep',`${fmtTime(np.from)} – ${fmtTime(np.to)}`,status,`<div class="bar"><b style="left:${from}%;right:0"></b><i style="width:${pct}%"></i></div>`));
-  } else if(np && np.asleep) items.push(row('var(--sleep)','sleep','Sleep','Sleeping now',`Since ${fmtTime(np.since)}. The next window appears after you log the wake-up.`));
-  else items.push(row('var(--sleep)','sleep','Next sleep','Not enough data yet','Log a sleep with an end time to see the next nap window.'));
   const fe=feedEstimate(now);
   if(fe) items.push(row('var(--feed)','bottle','Next feed',`Around ${fmtTime(fe.next)}`, (fe.next<=now?'Due now':`In ${fmtDur(fe.next-now)}`)+` · usually every ${fmtDur(fe.gap)} lately`));
   const appts=state.entries.filter(e=>e.type==='doctor' && e.start>now).sort((a,b)=>a.start-b.start);
@@ -830,7 +822,7 @@ function comingUp(p, now){
   if(med && now-med.start<2*DAY) items.push(row('var(--health)','med','Last medicine',now-med.start<MIN?'Just now':`${fmtDur(now-med.start)} ago`,`${esc(med.name||'Medicine')}${med.dose?' · '+esc(med.dose):''} at ${fmtTime(med.start)}. Check the label or your doctor's directions before the next dose.`));
   const tw=nextTeeth(p, now);
   if(tw) items.push(row('var(--health)','tooth','Teeth to watch for',tw.label,`Usually ${tw.range} months · record them in Health`));
-  return `<div class="panel up"><h2>Coming up</h2><div class="cus">${items.join('')}</div><p class="note">Nap times use typical awake windows for ${esc(ageText(p?.birth)||'this age')}. Feed timing uses your last 3 days. Checkups follow the AAP schedule. Every baby is different, so follow your baby's cues and your pediatrician's advice.</p></div>`;
+  return `<div class="panel up"><h2>Coming up</h2><div class="cus">${items.join('')}</div><p class="note">Feed timing uses your last 3 days. Checkups follow the AAP schedule. Every baby is different, so follow your baby's cues and your pediatrician's advice.</p></div>`;
 }
 
 /* ---------- derived ---------- */
