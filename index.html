@@ -482,7 +482,10 @@ function entrySummary(e){
     case 'solids': return [e.food, e.amountText, e.reaction && e.reaction!=='neutral' ? ({liked:'Liked it',disliked:'Disliked',reaction:'⚠ Reaction'}[e.reaction]) : ''].filter(Boolean).join(' · ');
     case 'pump': { const vu=e.volUnit||(U.imp()?'oz':'ml'); return [e.left!=null?`L ${U.volAs(e.left,vu)}`:'', e.right!=null?`R ${U.volAs(e.right,vu)}`:'', (e.left||0)+(e.right||0)?`Total ${U.volAs((e.left||0)+(e.right||0),vu)}`:'', e.duration?`${e.duration} min`:''].filter(Boolean).join(' · '); }
     case 'sleep': return e.end==null ? `Asleep · ${fmtDur(Date.now()-e.start)}` : `${fmtDur(e.end-e.start)} · until ${fmtTime(e.end)}${e.kind==='night'?' · Night':''}`;
-    case 'diaper': return ({wet:'Wet',dirty:'Dirty',mixed:'Wet + dirty',dry:'Dry'}[e.kind]||'')+(e.color?` · ${e.color}`:'');
+    case 'diaper': { const pc=POO_COLORS.find(c=>c[0]===e.pcolor), A={small:'small',medium:'medium',large:'large'};
+      const wetT='Wet'+(e.pee?` (${A[e.pee]})`:''), dirT=(e.kind==='mixed'?'dirty':'Dirty')+(e.poo?` (${A[e.poo]})`:'');
+      return [({wet:wetT,dirty:dirT,mixed:wetT+' + '+dirT,dry:'Dry'}[e.kind]||''),
+        pc?pc[1].toLowerCase():'', e.cons?{seedy:'seedy',soft:'soft',runny:'runny',firm:'firm',mucus:'mucus'}[e.cons]:'', e.rash?'Diaper rash':'', e.color||''].filter(Boolean).join(' · '); }
     case 'potty': return ({pee:'Pee',poo:'Poo',both:'Pee + poo',none:'Tried, nothing'}[e.result]||'');
     case 'growth': return [e.weight!=null?U.wt(e.weight):'', e.length!=null?U.len(e.length):'', e.head!=null?`Head ${U.len(e.head)}`:''].filter(Boolean).join(' · ');
     case 'temp': return U.tmp(e.value)+(e.value!=null && e.value>=37.995 ? ' · Fever' : '');
@@ -702,6 +705,7 @@ function wakeWindow(days){
   if(w<104) return [240,360];  // 15–24 months
   return [300,360];            // 2 years+
 }
+const POO_COLORS=[["yellow", "Yellow", "#E8C33A"], ["mustard", "Mustard", "#C9962A"], ["green", "Green", "#6E9B3A"], ["brown", "Brown", "#7A5130"], ["black", "Black", "#262626"], ["red", "Red", "#C43C34"], ["white", "White / pale", "#F2EEE4"]];
 const FUTURE_OK=['doctor','vaccine'];           // appointments can be scheduled ahead
 const isFuture = (e, now=Date.now()) => !FUTURE_OK.includes(e.type) && e.start > now + 2*MIN;
 const past = () => { const now=Date.now(); return state.entries.filter(e=>!isFuture(e,now)); };
@@ -1200,7 +1204,14 @@ function fieldsFor(type, e){
     case 'solids': return F.time('f_start','Time',e.start||now)+F.text('f_food','Food',e.food,'e.g. mashed banana')+F.text('f_amtt','Amount',e.amountText,'e.g. 2 tbsp')+F.seg('reaction','How it went',[['liked','Liked'],['neutral','Okay'],['disliked','Disliked'],['reaction','Reaction']],e.reaction||'liked')+F.text('f_note','Note',e.note);
     case 'pump': { const vu=volUnitFor(e); return F.time('f_start','Time',e.start||now)+F.seg('vunit','Unit',[['oz','oz'],['ml','ml']],vu)+`<input type="hidden" id="f_vprev" value="${vu}">`+`<div class="row2">${F.num('f_l','Left',U.volTo(e.left,vu),'')}${F.num('f_r','Right',U.volTo(e.right,vu),'')}</div>`+F.num('f_dur','Duration',e.duration,'min','1')+F.text('f_note','Note',e.note); }
     case 'sleep': return F.seg('kind','Type',[['nap','Nap'],['night','Night sleep']],e.kind||(new Date().getHours()>=19||new Date().getHours()<6?'night':'nap'))+F.time('f_start','Fell asleep',e.start||now-60*MIN)+F.time('f_end','Woke up (leave empty if still asleep)',e.id?e.end:now)+F.text('f_note','Note',e.note);
-    case 'diaper': return F.time('f_start','Time',e.start||now)+F.seg('kind','Diaper',[['wet','Wet'],['dirty','Dirty'],['mixed','Both'],['dry','Dry']],e.kind||'wet')+F.text('f_color','Color / consistency',e.color,'optional')+F.text('f_note','Note',e.note);
+    case 'diaper': { const k=e.kind||'wet', wet=k!=='dirty'&&k!=='dry', poo=k==='dirty'||k==='mixed';
+      return F.time('f_start','Time',e.start||now)+F.seg('kind','Diaper',[['wet','Wet'],['dirty','Dirty'],['mixed','Both'],['dry','Dry']],k)
+      +`<div id="peeBox" ${wet?'':'hidden'}>${F.seg('pee','Pee amount',[['small','Small'],['medium','Medium'],['large','Large']],e.pee||'')}</div>`
+      +`<div id="pooBox" class="form" ${poo?'':'hidden'}>${F.seg('poo','Poo amount',[['small','Small'],['medium','Medium'],['large','Large']],e.poo||'')}
+        <div class="field"><span>Color</span><div class="swatches" role="radiogroup" aria-label="Poo color">${POO_COLORS.map(([v,n,c])=>`<label class="sw"><input type="radio" name="pcolor" value="${v}" ${e.pcolor===v?'checked':''}><span style="--sw:${c};--swd:${c}"></span>${n}</label>`).join('')}</div>
+        <p class="note" id="pcolorNote" ${['red','black','white'].includes(e.pcolor)?'':'hidden'}></p></div>
+        ${F.seg('cons','Texture',[['seedy','Seedy'],['soft','Soft'],['runny','Runny'],['firm','Firm'],['mucus','Mucus']],e.cons||'')}</div>`
+      +F.check('f_rash','Diaper rash',e.rash)+F.text('f_note','Note',e.note||(e.color&&!e.pcolor?e.color:'')); }
     case 'potty': return F.time('f_start','Time',e.start||now)+F.seg('result','Result',[['pee','Pee'],['poo','Poo'],['both','Both'],['none','Nothing']],e.result||'pee')+F.text('f_note','Note',e.note);
     case 'growth': return F.time('f_start','Measured',e.start||now)+F.num('f_w','Weight',U.wtOut(e.weight),U.wtU())+`<div class="row2">${F.num('f_len','Length',U.lenOut(e.length),U.lenU())}${F.num('f_head','Head',U.lenOut(e.head),U.lenU())}</div>`+F.text('f_note','Note',e.note);
     case 'temp': return F.time('f_start','Time',e.start||now)+F.num('f_val','Temperature',U.tmpOut(e.value),U.tmpU())+F.seg('method','Method',[['rectal','Rectal'],['armpit','Armpit'],['ear','Ear'],['forehead','Forehead']],e.method||'rectal')+F.text('f_note','Note',e.note)
@@ -1221,7 +1232,8 @@ function readFields(type){
     case 'solids': return {start,food:val('f_food').trim(),amountText:val('f_amtt').trim(),reaction:radio('reaction'),note};
     case 'pump': return {start,left:U.volFrom(val('f_l'),radio('vunit')),right:U.volFrom(val('f_r'),radio('vunit')),volUnit:radio('vunit'),duration:numv('f_dur'),note};
     case 'sleep': { const end=fromInput(val('f_end')); return {start,end: end && end>start ? end : null,kind:radio('kind'),note}; }
-    case 'diaper': return {start,kind:radio('kind'),color:val('f_color').trim()||undefined,note};
+    case 'diaper': { const k=radio('kind'), wet=k==='wet'||k==='mixed', poo=k==='dirty'||k==='mixed';
+      return {start,kind:k,pee:wet?radio('pee')||undefined:undefined,poo:poo?radio('poo')||undefined:undefined,pcolor:poo?radio('pcolor')||undefined:undefined,cons:poo?radio('cons')||undefined:undefined,rash:document.getElementById('f_rash').checked||undefined,color:undefined,note}; }
     case 'potty': return {start,result:radio('result'),note};
     case 'growth': return {start,weight:U.wtIn(val('f_w')),length:U.lenIn(val('f_len')),head:U.lenIn(val('f_head')),note};
     case 'temp': return {start,value:U.tmpIn(val('f_val')),method:radio('method'),note};
@@ -1443,6 +1455,10 @@ document.addEventListener('change', ev=>{
   }
   if(t.id==='babySel'){ if(t.value && t.value!==baby?.id) openBaby(t.value); return; }
   if(t.name==='sumsel'){ if(checkedSums().length>6){ t.checked=false; toast('Pick up to 6'); } return; }
+  if(t.name==='kind' && document.getElementById('peeBox')){ const k=t.value; document.getElementById('peeBox').hidden=!(k==='wet'||k==='mixed'); document.getElementById('pooBox').hidden=!(k==='dirty'||k==='mixed'); return; }
+  if(t.name==='pcolor'){ const n=document.getElementById('pcolorNote'), v=t.value, days=ageDays(state.profile?.birth)??99;
+    const msg = v==='white' ? 'White or pale poop needs a prompt call to your pediatrician.' : v==='red' ? 'Red can mean blood. Call your pediatrician to have it checked.' : v==='black' ? (days<4 ? 'Black, sticky poop is normal in the first few days.' : 'Black poop after the first few days can mean blood. Call your pediatrician.') : '';
+    n.textContent=msg; n.hidden=!msg; n.style.color = msg && !(v==='black'&&days<4) ? 'var(--danger)' : ''; return; }
   if(t.name==='vunit'){
     const prev=val('f_vprev'), next=t.value; if(prev===next) return;
     ['f_amt','f_l','f_r'].forEach(id=>{ const el=document.getElementById(id); if(el && el.value!==''){ el.value=U.volTo(U.volFrom(el.value,prev),next); } });
