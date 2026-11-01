@@ -146,6 +146,9 @@ details.more summary{cursor:pointer;font-weight:600;color:var(--accent)}
 .tgoal{margin-top:8px;max-width:320px}
 .tgoal .bar{height:6px;border-radius:3px;background:color-mix(in srgb,var(--activity) 15%,var(--surface));overflow:hidden;margin-bottom:4px}
 .tgoal .bar i{display:block;height:100%;background:var(--activity);border-radius:3px}
+.asklog.page{max-height:none;min-height:180px}
+.seg2{margin-bottom:4px}
+.tabbar button[data-view="ask"] svg{width:36px;height:36px;padding:7px;margin-top:-8px;border-radius:50%;background:color-mix(in srgb,var(--accent) 16%,var(--surface));color:var(--accent)}
 .vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;padding:0}
 label.btn{cursor:pointer}
 label.btn:has(+ .vh:focus-visible){outline:2px solid var(--accent);outline-offset:2px}
@@ -408,6 +411,9 @@ const I = {
   activity:'<circle cx="9" cy="9" r="5.5"/><path d="M13 13l7 7"/><circle cx="7.5" cy="8" r="1" fill="currentColor"/><circle cx="10.5" cy="10.5" r="1" fill="currentColor"/>',
   note:'<path d="M12 2l2.9 6.2 6.6.6-5 4.5 1.5 6.7L12 16.6 6 20l1.5-6.7-5-4.5 6.6-.6z"/>',
   plus:'<path d="M12 5v14M5 12h14"/>',
+  history:'<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/>',
+  ask:'<path d="M12 3l1.8 4.9L19 9.7l-4.3 3 1.4 5.3L12 15l-4.1 3 1.4-5.3L5 9.7l5.2-1.8z"/>',
+  family:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17.5" cy="9.5" r="2.5"/><path d="M16 14.2a5 5 0 0 1 6 4.8"/>',
   tummy:'<circle cx="7" cy="9.5" r="3"/><path d="M10 12.5h8.5a2.5 2.5 0 0 1 0 5H5"/><path d="M3 20h18"/>',
   spark:'<path d="M12 3l1.8 4.9L19 9.7l-4.3 3 1.4 5.3L12 15l-4.1 3 1.4-5.3L5 9.7l5.2-1.8z"/>',
   search:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>',
@@ -908,6 +914,7 @@ function renderAsk(){
       ${m.reporting?`<div class="chips" style="margin-top:6px">${[['unsafe','Wrong or unsafe'],['unhelpful','Not helpful'],['offensive','Offensive']].map(([k,l])=>`<button class="chip" data-act="askReportSend" data-i="${i}" data-reason="${k}">${l}</button>`).join('')}</div>`:''}</div>`;
   }).join('');
   box.scrollTop=box.scrollHeight;
+  if(state.ask.length!==renderAsk.n){ renderAsk.n=state.ask.length; box.lastElementChild?.scrollIntoView({block:'nearest'}); }
 }
 async function askSend(q, forceAI){
   q=(q||'').trim(); if(!q) return;
@@ -1048,9 +1055,10 @@ function daySummary(day){
 }
 
 /* ---------- rendering ---------- */
-const VIEWS=[['today','Today'],['timeline','Timeline'],['stats','Stats'],['health','Health & growth'],['settings','Settings']];
+const VIEWS=[['today','Today'],['history','History'],['ask','Ask'],['health','Health'],['family','Family']];
 function renderNav(){
-  const b=(k,l)=>`<button data-view="${k}" ${state.view===k?'aria-current="page"':''}>${svg(k)}<span>${l}</span></button>`;
+  const cur=state.view==='settings'?'family':state.view;
+  const b=(k,l)=>`<button data-view="${k}" ${cur===k?'aria-current="page"':''}>${svg(k)}<span>${l}</span></button>`;
   document.getElementById('nav').innerHTML=VIEWS.map(([k,l])=>b(k,l)).join('');
   document.getElementById('tabbar').innerHTML=VIEWS.map(([k,l])=>b(k,l)).join('');
   const sync=document.getElementById('sync');
@@ -1067,8 +1075,12 @@ function render(){
   else if(!state.canWrite) h+=`<div class="banner"><span>You can view this log, but you don't have permission to add entries.</span></div>`;
   if(state.localOffer && state.mode==='cloud' && state.canWrite) h+=`<div class="banner"><span>Found ${state.localOffer.n} entries saved in this browser that aren't in the shared log yet.</span><span style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost" style="color:inherit;border-color:currentColor" data-act="dismissLocal">Not now</button><button class="btn" data-act="importLocal">Review and import</button></span></div>`;
   if(state.view==='growth') state.view='health';
-  h+=({today:vToday,timeline:vTimeline,stats:vStats,health:vHealth,settings:vSettings}[state.view])();
+  if(state.view==='timeline'){ state.view='history'; state.histTab='days'; }
+  if(state.view==='stats'){ state.view='history'; state.histTab='trends'; }
+  h+=({today:vToday,history:vHistory,ask:vAsk,health:vHealth,family:vFamily,settings:vSettingsPage}[state.view]||vToday)();
+  const aq=document.getElementById('askQ'), aqv=aq?aq.value:'', aqf=aq&&document.activeElement===aq;
   app.innerHTML=h;
+  if(state.view==='ask'){ renderAsk(); const n=document.getElementById('askQ'); if(n){ n.value=aqv; if(aqf) n.focus(); } }
   resolveNames();
   syncWakeLock();
 }
@@ -1111,7 +1123,6 @@ function vToday(){
   const qs=tileOrder().filter(t=>!isHidden(t));
   const running=t=>t==='tummy' ? state.entries.some(x=>x.type==='activity'&&x.kind==='Tummy time'&&x.end===null) : (t==='breast'||t==='sleep') && state.entries.some(x=>x.type===t && x.end===null);
   h+=`<div class="logrow" role="group" aria-label="Log an activity">${qs.map(t=>`<button class="lt ${running(t)?'running':''}" ${t==='tummy'?'data-new="activity" data-kind="Tummy time"':`data-new="${t}"`} style="--c:${color(t)}" ${state.canWrite?'':'disabled'}><span class="sq ${IC()}">${svg(T[t].icon)}</span><span>${T[t].label}</span></button>`).join('')}${(Array.isArray(prefs.customKinds)?prefs.customKinds:[]).map(k=>`<button class="lt" data-new="activity" data-kind="${esc(k)}" style="--c:var(--activity)" ${state.canWrite?'':'disabled'}><span class="sq ${IC()}">${svg('activity')}</span><span>${esc(k)}</span></button>`).join('')}<button class="lt arrange" data-act="arrange"><span class="sq">${svg('grip')}</span><span>Arrange</span></button></div>`;
-  h+=askCard();
 
   // active timers
   const active=state.entries.filter(e=>(e.end==null && (e.type==='breast'||e.type==='sleep')) || (e.type==='activity' && e.end===null));
@@ -1158,9 +1169,9 @@ function vToday(){
 }
 
 /* --- Timeline --- */
-function vTimeline(){
+function vTimeline(noHead){
   const sel=state.selDay;
-  let h=header('Timeline', 'Tap a day to see its entries');
+  let h=noHead?'':header('Timeline', 'Tap a day to see its entries');
   const rows=[]; for(let i=0;i<7;i++){ const d=startOfDay(Date.now())-i*DAY; rows.push(d); }
   h+=`<div class="panel"><h2>Last 7 days</h2><div class="days">${rows.map(d=>`<div class="dayrow ${d===sel?'sel':''}"><span class="dl">${i18nDay(d)}</span><button class="strip" data-day="${d}" aria-label="Show ${fmtDate(d)}">${strip(d)}</button></div>`).join('')}
     <div class="dayrow"><span></span>${hoursRow}</div></div><div style="margin-top:12px">${legend}</div></div>`;
@@ -1191,10 +1202,10 @@ function barChart(days, series, fmt, title){
   return `<div class="panel"><h2><span>${title}</span><span class="sub num">Avg ${fmt(avg)}/day</span></h2>${lg}<div class="chartwrap"><svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${title}">${g}</svg></div></div>`;
 }
 function niceMax(v){ const p=Math.pow(10,Math.floor(Math.log10(v))); const n=v/p; return (n<=1?1:n<=2?2:n<=2.5?2.5:n<=5?5:10)*p; }
-function vStats(){
+function vStats(noHead){
   const n=state.statRange; const days=[]; for(let i=n-1;i>=0;i--) days.push(startOfDay(Date.now())-i*DAY);
   const S=days.map(daySummary);
-  let h=header('Stats', `Daily patterns over the last ${n} days`);
+  let h=noHead?'':header('Stats', `Daily patterns over the last ${n} days`);
   h+=`<div class="chips">${[7,14,30].map(k=>`<button class="chip" data-range="${k}" aria-pressed="${n===k}">${k} days</button>`).join('')}</div>`;
   const hrs=(v,axis)=> axis? `${Math.round(v/HR)}h` : fmtDur(v);
   h+=`<div class="grid2">`;
@@ -1263,7 +1274,7 @@ function mouthSvg(){
   return `<svg class="mouth" viewBox="0 0 340 300" aria-label="Teeth chart">${g}</svg>`;
 }
 function vHealth(){
-  let h=header('Health & growth', 'Growth, teeth, temperatures, medicine, visits and vaccines');
+  let h=header('Health', 'Growth, teeth, temperatures, medicine, visits and vaccines');
   h+=vGrowth();
   h+=`<div class="head" style="align-items:center;margin-top:8px"><h2 style="font-size:21px">Health</h2></div>`;
   const count=Object.keys(state.teeth).length;
@@ -1280,13 +1291,11 @@ function vHealth(){
 /* --- Settings --- */
 function vSettings(){
   const p=state.profile||{};
-  let h=header('Settings', 'Baby profile, units, sharing and export');
+  let h='';
   h+=`<div class="grid2"><div class="panel"><h2>Baby</h2>
     <div class="sums"><div class="sum"><b>${esc(p.name||'—')}</b><span>Name</span></div><div class="sum"><b>${p.birth?new Date(p.birth+'T00:00').toLocaleDateString():'—'}</b><span>Born</span></div><div class="sum"><b>${U.imp()?'US':'Metric'}</b><span>Units</span></div></div>
     <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" data-act="setup" ${state.canWrite?'':'disabled'}>${state.mode==='demo'?'Add your baby':'Edit profile'}</button></div></div>
   ${familyPanel()}
-  ${accountPanel()}
-  ${installPanel()}
   <div class="panel" id="themePanel"><h2>Theme</h2><div class="form">
     <div class="themes" role="radiogroup" aria-label="Theme">${Object.entries(THEMES).map(([k,[n,ac,l,d]])=>`<label class="th"><input type="radio" name="s_theme" value="${k}" ${prefs.theme===k?'checked':''}><span class="pv" style="--pl:${l[0]};--ps:${l[1]};--pa:${ac[0]};--dl:${d[0]};--ds:${d[2]};--da:${ac[1]}"><i></i><i></i></span><span class="tn">${n}</span></label>`).join('')}${prefs.theme==='custom'?`<label class="th"><input type="radio" name="s_theme" value="custom" checked><span class="pv custom"><i></i><i></i></span><span class="tn">Your mix</span></label>`:''}</div>
     ${F.seg('s_mode','Light or dark',[['system','Match device'],['light','Light'],['dark','Dark']],prefs.appearance)}
@@ -1307,6 +1316,8 @@ function vSettings(){
       <span class="grip" aria-hidden="true">${svg('grip')}</span><span class="mini ${IC()}">${svg(T[t].icon)}</span><span class="nm">${T[t].label}</span>
       <label class="show"><input type="checkbox" name="s_show" value="${t}" ${isHidden(t)?'':'checked'}> Show</label>
       <span class="mv"><button type="button" data-act="move" data-tile="${t}" data-dir="-1" aria-label="Move ${T[t].label} up" ${i===0?'disabled':''}>${svg('up')}</button><button type="button" data-act="move" data-tile="${t}" data-dir="1" aria-label="Move ${T[t].label} down" ${i===arr.length-1?'disabled':''}>${svg('down')}</button></span></div>`).join('')}</div></div>
+  ${accountPanel()}
+  ${installPanel()}
   <div class="panel"><h2>Backup &amp; restore</h2>
     <p>${state.mode==='cloud'?'Entries are saved in your Supabase database and sync to everyone in Family. Updating index.html never touches them.'
       : state.mode==='local'?'Entries are saved in this browser. They stay when the file is updated at the same web address, but not if you open the file from a different address or browser.'
@@ -1316,6 +1327,29 @@ function vSettings(){
     <p class="note">${prefs.lastBackup?`Last backup from this device: ${new Date(prefs.lastBackup).toLocaleDateString()}.`:'No backup saved from this device yet.'} CSV is for spreadsheets and your pediatrician; only a backup file can be imported.</p><p class="note" id="exportNote"></p></div>
   <div class="panel"><h2>About Nestling <span class="note" style="font-weight:500">Version ${APP_VERSION}</span></h2><p style="display:flex;gap:14px;flex-wrap:wrap;margin-top:0"><a href="privacy.html" target="_blank" rel="noopener">Privacy policy</a><a href="terms.html" target="_blank" rel="noopener">Terms of use</a><a href="delete-account.html" target="_blank" rel="noopener">Delete account</a></p><p class="note">Nap windows use typical awake times by age from Cleveland Clinic and The Sleep Lady. Growth reference lines use the WHO Child Growth Standards medians (0–24 months). Teeth timing follows the American Dental Association chart. Checkups follow the AAP Bright Futures schedule. Tummy time goals follow NIH Safe to Sleep. A fever is 100.4 °F (38 °C) or higher. Nestling is a log, not medical advice. Call your pediatrician with any health concerns.</p></div></div>`;
   return h;
+}
+
+/* --- History, Ask, Family, Settings pages --- */
+function vHistory(){
+  const tab=state.histTab||'days';
+  let h=header('History', tab==='days'?'Tap a day to see its entries':`Daily patterns over the last ${state.statRange} days`);
+  h+=`<div class="chips seg2" role="tablist" aria-label="History view"><button class="chip" role="tab" data-hist="days" aria-pressed="${tab==='days'}">Days</button><button class="chip" role="tab" data-hist="trends" aria-pressed="${tab==='trends'}">Trends</button></div>`;
+  return h+(tab==='days'?vTimeline(true):vStats(true));
+}
+function vAsk(){
+  const name=esc(state.profile?.name||'your baby');
+  return header('Ask Nestling', `Trusted answers, plus ${name}’s own log`)+`<div class="panel askpage"><div id="askLog" class="asklog page" aria-live="polite"></div>
+    <form id="askForm" class="askform"><input id="askQ" maxlength="500" autocomplete="off" placeholder="Ask about ${name}…"><button class="btn primary" type="submit">Ask</button></form>
+    <p class="note" style="margin:8px 0 0">General information, not medical advice. In an emergency, call 911.</p></div>`;
+}
+const SETTINGS_SPLIT='<div class="panel" id="themePanel">';
+function vFamily(){
+  const all=vSettings(), i=all.indexOf(SETTINGS_SPLIT), name=esc(state.profile?.name||'your baby');
+  return `<div class="head"><div><div class="sub">Who can see and add to ${name}’s log</div><h1>Family</h1></div><button class="btn ghost" data-view="settings">${svg('settings','width="18" height="18"')} Settings</button></div>`+all.slice(0,i)+'</div>';
+}
+function vSettingsPage(){
+  const all=vSettings(), i=all.indexOf(SETTINGS_SPLIT);
+  return `<div class="head"><div><button class="btn ghost sm" data-view="family" style="margin-bottom:8px">‹ Family</button><h1>Settings</h1></div></div><div class="grid2">`+all.slice(i);
 }
 
 /* ---------- names (who logged) ---------- */
@@ -1582,11 +1616,12 @@ function checkLocalOffer(){
 
 /* ---------- events ---------- */
 document.addEventListener('click', async ev=>{
-  const t=ev.target.closest('[data-view],[data-new],[data-edit],[data-act],[data-close],[data-day],[data-shift],[data-filter],[data-range],[data-tooth]');
+  const t=ev.target.closest('[data-hist],[data-view],[data-new],[data-edit],[data-act],[data-close],[data-day],[data-shift],[data-filter],[data-range],[data-tooth]');
   if(!t) return;
   if(t.dataset.close && ev.target!==t && t.classList.contains('scrim')) return;
   if(t.dataset.close){ closeModal(); return; }
-  if(t.dataset.view){ state.view=t.dataset.view; render(); window.scrollTo(0,0); return; }
+  if(t.dataset.hist){ state.histTab=t.dataset.hist; render(); return; }
+  if(t.dataset.view){ state.view=t.dataset.view; render(); window.scrollTo(0,0); if(state.view==='ask') document.getElementById('askQ')?.focus({preventScroll:true}); return; }
   if(t.dataset.new){ if(state.canWrite) openEntry(t.dataset.new, null, t.dataset.kind); return; }
   if(t.dataset.edit){ const e=state.entries.find(x=>x.id===t.dataset.edit); if(e) openEntry(e.type,e); return; }
   if(t.dataset.day){ state.selDay=+t.dataset.day; render(); return; }
@@ -1606,8 +1641,8 @@ document.addEventListener('click', async ev=>{
   else if(a==='noRemove'){ document.getElementById('memberConfirm').innerHTML=''; }
   else if(a==='doRemove'){ await removeMember(t.dataset.user, !!t.dataset.self); }
   else if(a==='export') exportCsv();
-  else if(a==='askOpen') openAsk();
-  else if(a==='askSuggest'){ if(document.getElementById('askLog')) askSend(t.dataset.q); else openAsk(t.dataset.q); }
+  else if(a==='askOpen'){ state.view='ask'; render(); window.scrollTo(0,0); }
+  else if(a==='askSuggest'){ if(!document.getElementById('askLog')){ state.view='ask'; render(); } askSend(t.dataset.q); }
   else if(a==='askPersonal'){ const m=state.ask[+t.dataset.i]; if(m){ m.followed=true; askSend(m.q,true); } }
   else if(a==='askReport'){ const m=state.ask[+t.dataset.i]; if(m){ m.reporting=!m.reporting; renderAsk(); } }
   else if(a==='askReportSend') askReport(+t.dataset.i, t.dataset.reason);
@@ -1822,11 +1857,11 @@ async function openBaby(id, quiet){
   loadingFor=id;
   try{
     const b=must(await sb.from('babies').select('*').eq('id',id).single());
+    if(baby?.id!==id) state.ask=[];
     applyBabyRow(b);
     if(!(await loadMembers(id))) return;
     const es=await fetchEntries(id);
     if(loadingFor!==id) return;
-    if(baby?.id!==id) state.ask=[];
     state.entries=es; state.mode='cloud'; state.me=uid();
     prefs.activeBaby=id; savePrefs();
     subscribeBaby(id);
@@ -1909,6 +1944,7 @@ if(NATIVE && NATIVE_APP){
   /* Android Back: close an open form, else go back to Today, and exit only from Today. */
   NATIVE_APP.addListener('backButton',()=>{
     if(document.querySelector('.modal')){ closeModal(); return; }
+    if(state.view==='settings'){ state.view='family'; render(); window.scrollTo(0,0); return; }
     if(state.view!=='today'){ state.view='today'; render(); window.scrollTo(0,0); return; }
     NATIVE_APP.exitApp();
   });
