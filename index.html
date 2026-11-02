@@ -208,6 +208,7 @@ main{min-width:0;padding-block:24px 96px;padding-left:max(16px,env(safe-area-ins
 .tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column;gap:2px;border-top:4px solid var(--c)}
 .tile .big{font-family:var(--display);font-size:clamp(20px,3vw,28px);font-weight:700;font-variant-numeric:tabular-nums}
 .tile .meta{color:var(--ink-2);font-size:13px}
+.linkb{background:none;border:0;padding:0;font:inherit;font-weight:600;color:var(--accent);text-decoration:underline;cursor:pointer}
 
 /* timers */
 .timers{display:flex;flex-direction:column;gap:12px}
@@ -519,9 +520,9 @@ function breastTotals(e, now=Date.now()){
 function entrySummary(e){
   switch(e.type){
     case 'breast': { const t=breastTotals(e); const parts=[]; if(t.L) parts.push(`L ${fmtDur(t.L)}`); if(t.R) parts.push(`R ${fmtDur(t.R)}`); return (e.end==null?'In progress · ':'')+(parts.join(' · ')||'—'); }
-    case 'bottle': return [U.volAs(e.amount, e.volUnit||(U.imp()?'oz':'ml')), e.contents==='formula'?'Formula':e.contents==='breastmilk'?'Breast milk':''].filter(Boolean).join(' · ');
+    case 'bottle': return [e.amount==null?'':U.vol(e.amount)+(e.volUnit && e.volUnit!==(U.imp()?'oz':'ml') ? ` (${U.volAs(e.amount,e.volUnit)})` : ''), e.contents==='formula'?'Formula':e.contents==='breastmilk'?'Breast milk':''].filter(Boolean).join(' · ');
     case 'solids': return [e.food, e.amountText, e.reaction && e.reaction!=='neutral' ? ({liked:'Liked it',disliked:'Disliked',reaction:'⚠ Reaction'}[e.reaction]) : ''].filter(Boolean).join(' · ');
-    case 'pump': { const vu=e.volUnit||(U.imp()?'oz':'ml'); return [e.left!=null?`L ${U.volAs(e.left,vu)}`:'', e.right!=null?`R ${U.volAs(e.right,vu)}`:'', (e.left||0)+(e.right||0)?`Total ${U.volAs((e.left||0)+(e.right||0),vu)}`:'', e.duration?`${e.duration} min`:''].filter(Boolean).join(' · '); }
+    case 'pump': { const vu=U.imp()?'oz':'ml'; return [e.left!=null?`L ${U.volAs(e.left,vu)}`:'', e.right!=null?`R ${U.volAs(e.right,vu)}`:'', (e.left||0)+(e.right||0)?`Total ${U.volAs((e.left||0)+(e.right||0),vu)}`:'', e.duration?`${e.duration} min`:''].filter(Boolean).join(' · '); }
     case 'sleep': return e.end==null ? `Asleep · ${fmtDur(Date.now()-e.start)}` : `${fmtDur(e.end-e.start)} · until ${fmtTime(e.end)}${e.kind==='night'?' · Night':''}`;
     case 'diaper': { const pc=POO_COLORS.find(c=>c[0]===e.pcolor), AP={small:'light',medium:'medium',large:'heavy'}, AD={small:'little',medium:'medium',large:'big'};
       const wetT='Wet'+(e.pee?` (${AP[e.pee]})`:''), dirT=(e.kind==='mixed'?'dirty':'Dirty')+(e.poo?` (${AD[e.poo]})`:'');
@@ -777,10 +778,10 @@ function sumCatalog(day){
     ['feeds','Feeds',()=>[s.feeds, s.breastMs?`Feeds · ${fmtDur(s.breastMs)} nursing`:'Feeds']],
     ['bottle','Bottle amount',()=>[s.bottleMl?U.vol(s.bottleMl):'—','From bottles']],
     ['nursing','Nursing time',()=>[s.breastMs?fmtDur(s.breastMs):'—','Nursing time']],
-    ['sleep','Total sleep',()=>[fmtDur(s.sleepMs),`Sleep (naps ${fmtDur(s.napMs)})`]],
+    ['sleep','Total sleep',()=>[fmtDur(s.sleepMs),(s.napMs && s.nightMs ? `Sleep · naps ${fmtDur(s.napMs)} · night ${fmtDur(s.nightMs)}` : s.nightMs ? 'Sleep (night)' : 'Sleep')]],
     ['naps','Naps',()=>{ const k=es.filter(e=>e.type==='sleep' && (e.kind||'nap')==='nap').length; return [k,`Naps · ${fmtDur(s.napMs)}`]; }],
     ['night','Night sleep',()=>[fmtDur(s.nightMs),'Night sleep']],
-    ['diapers','Diapers',()=>[s.diapers,`Diapers · ${s.wet} wet · ${s.dirty} dirty`]],
+    ['diapers','Diapers',()=>[s.diapers,['Diapers',...[[s.wetOnly,'wet'],[s.dirtyOnly,'dirty'],[s.mixed,'both'],[s.dry,'dry']].filter(x=>x[0]).map(x=>x[0]+' '+x[1])].join(' · ')]],
     ['wet','Wet diapers',()=>[s.wet,'Wet diapers']],
     ['dirty','Dirty diapers',()=>[s.dirty,'Dirty diapers']],
     ['pumped','Pumped',()=>[s.pumpMl?U.vol(s.pumpMl):'—','Pumped']],
@@ -1131,7 +1132,11 @@ function daySummary(day){
     dirty:es.filter(e=>e.type==='diaper' && (e.kind==='dirty'||e.kind==='mixed')).length,
     diapers:es.filter(e=>e.type==='diaper').length,
     pumpMl:es.filter(e=>e.type==='pump').reduce((a,e)=>a+(e.left||0)+(e.right||0),0),
-    spit:es.filter(e=>e.type==='spit').length
+    spit:es.filter(e=>e.type==='spit').length,
+    wetOnly:es.filter(e=>e.type==='diaper' && e.kind==='wet').length,
+    dirtyOnly:es.filter(e=>e.type==='diaper' && e.kind==='dirty').length,
+    mixed:es.filter(e=>e.type==='diaper' && e.kind==='mixed').length,
+    dry:es.filter(e=>e.type==='diaper' && e.kind==='dry').length
   };
 }
 
@@ -1224,12 +1229,14 @@ function vToday(){
   const sl=past().filter(e=>e.type==='sleep');
   const asleep=sl.find(e=>e.end==null), lastSleep=sl.filter(e=>e.end!=null && e.end<=now+2*MIN).sort((a,b)=>b.end-a.end)[0];
   const staleSleep = lastSleep && now-lastSleep.end > 12*HR;
+  const ageD=ageDays(state.profile?.birth), wwMax=ageD!=null?wakeWindow(ageD)[1]:null;
+  const longAwake = !asleep && !staleSleep && lastSleep && wwMax!=null && now-lastSleep.end > 2*wwMax*MIN;
   const fut=state.entries.filter(e=>isFuture(e,now));
   if(fut.length) h+=`<div class="banner"><span>${fut.length===1?'One entry is':fut.length+' entries are'} set to a time that hasn’t happened yet: ${fut.slice(0,3).map(e=>`${esc(T[e.type]?.label||e.type)} at ${fmtTime(e.start)}${startOfDay(e.start)!==startOfDay(now)?' on '+fmtDate(e.start):''}`).join(', ')}. Was AM or PM mixed up?</span><button class="btn" data-edit="${esc(fut[0].id)}">Fix time</button></div>`;
   const tile=(c,label,big,meta)=>`<div class="tile" style="--c:${c}"><span class="label">${label}</span><span class="big">${big}</span><span class="meta">${meta}</span></div>`;
   h+=`<div class="since">
     ${tile('var(--feed)','Last feed', lf?fmtDur(now-(lf.end||lf.start))+' ago':'—', lf?`${T[lf.type].label} at ${fmtTime(lf.start)}`:'No feeds yet')}
-    ${asleep? tile('var(--sleep)','Asleep for', fmtDur(now-asleep.start), `Since ${fmtTime(asleep.start)}`) : (staleSleep ? tile('var(--sleep)','Awake for','—',`No sleep logged since ${fmtDate(lastSleep.end)}, ${fmtTime(lastSleep.end)}`) : tile('var(--sleep)','Awake for', lastSleep?fmtDur(now-lastSleep.end):'—', lastSleep?`Woke at ${fmtTime(lastSleep.end)}`:'No sleep yet'))}
+    ${asleep? tile('var(--sleep)','Asleep for', fmtDur(now-asleep.start), `Since ${fmtTime(asleep.start)}`) : (longAwake ? tile('var(--sleep)','Last sleep', `Ended ${fmtTime(lastSleep.end)}`, `${fmtDur(now-lastSleep.end)} ago${state.canWrite?` · <button class="linkb" data-new="sleep">Log a missed sleep?</button>`:''}`) : staleSleep ? tile('var(--sleep)','Awake for','—',`No sleep logged since ${fmtDate(lastSleep.end)}, ${fmtTime(lastSleep.end)}`) : tile('var(--sleep)','Awake for', lastSleep?fmtDur(now-lastSleep.end):'—', lastSleep?`Woke at ${fmtTime(lastSleep.end)}`:'No sleep yet'))}
     ${tile('var(--diaper)','Last diaper', ld?fmtDur(now-ld.start)+' ago':'—', ld?`${esc(entrySummary(ld))} at ${fmtTime(ld.start)}`:'No changes yet')}
   </div>`;
 
