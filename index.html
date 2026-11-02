@@ -248,6 +248,13 @@ main{min-width:0;padding-block:24px 96px;padding-left:max(16px,env(safe-area-ins
 .q .ic svg{width:21px;height:21px}
 
 /* summary stats */
+.glance{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.gl{background:none;border:0;border-left:3px solid var(--c);text-align:left;font:inherit;color:inherit;padding:2px 0 2px 10px;display:flex;flex-direction:column;gap:1px;min-width:0}
+.gl[data-view]{cursor:pointer}
+.gl b{font-family:var(--display);font-size:20px;line-height:1.2}
+.gl .sub{font-size:12.5px}
+.chg{white-space:nowrap}
+.strip.typ .lay{position:absolute;inset:0}
 .sums{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px}
 .sum b{display:block;font-family:var(--display);font-size:22px;font-variant-numeric:tabular-nums}
 .sum span{color:var(--ink-2);font-size:13px}
@@ -802,7 +809,7 @@ function openSums(draft){
     <p class="sub">Choose up to 6 things to show.</p>
     <div class="chks">${cat.map(([id,label])=>`<label class="chk"><input type="checkbox" name="sumsel" value="${esc(id)}" ${sel.includes(id)?'checked':''}> ${esc(label)}</label>`).join('')}</div>
     <div class="field"><span>Add your own tracker</span><div style="display:flex;gap:8px"><input type="text" id="newKind" maxlength="40" placeholder="e.g. Vitamin D drops, Skin-to-skin"><button type="button" class="btn" data-act="addKind">Add</button></div></div>
-    <p class="note">Your own trackers also get a tile on Today, so logging one is a single tap.</p>
+    <p class="note">Your own trackers also get a tile on Home, so logging one is a single tap.</p>
     <div class="actions"><button type="button" class="btn ghost" data-act="resetSums">Reset</button><div class="r"><button type="button" class="btn ghost" data-close="1">Cancel</button><button type="submit" class="btn primary">Save</button></div></div></form>`);
 }
 function addCustomKind(k){ const list=Array.isArray(prefs.customKinds)?prefs.customKinds:[]; if(!BASE_KINDS.includes(k) && !list.includes(k)){ prefs.customKinds=[...list,k]; savePrefs(); } }
@@ -1141,7 +1148,8 @@ function daySummary(day){
 }
 
 /* ---------- rendering ---------- */
-const VIEWS=[['today','Today'],['history','History'],['ask','Ask'],['health','Health'],['family','Family']];
+const APP_NAME='Nestling';
+const VIEWS=[['today','Home'],['history','History'],['ask','Ask'],['health','Health'],['family','Family']];
 function renderNav(){
   const cur=state.view==='settings'?'family':state.view;
   const b=(k,l)=>`<button data-view="${k}" ${cur===k?'aria-current="page"':''}>${svg(k)}<span>${l}</span></button>`;
@@ -1201,7 +1209,76 @@ function strip(day){
 const hoursRow = `<div class="hours"><span>12a</span><span>3a</span><span>6a</span><span>9a</span><span>12p</span><span>3p</span><span>6p</span><span>9p</span><span>12a</span></div>`;
 const legend = `<div class="legend"><span><i style="background:var(--sleep)"></i>Sleep</span><span><i style="background:var(--feed)"></i>Feeding</span><span><i style="background:var(--diaper)"></i>Diaper</span><span><i style="background:var(--health)"></i>Health</span><span><i style="background:var(--activity)"></i>Activity</span><span><i style="background:var(--memory)"></i>Moment</span></div>`;
 
-/* --- Today --- */
+
+/* ---------- at a glance + weekly summary ---------- */
+function rangeSummary(a,b){
+  const es=state.entries.filter(x=>x.start>=a && x.start<b && !isFuture(x,b)), now=Date.now();
+  const d=k=>es.filter(e=>e.type==='diaper' && e.kind===k).length;
+  return {
+    feeds:es.filter(e=>e.type==='breast'||e.type==='bottle').length,
+    bottleMl:es.filter(e=>e.type==='bottle').reduce((t,e)=>t+(e.amount||0),0),
+    breastMs:es.filter(e=>e.type==='breast').reduce((t,e)=>t+breastTotals(e).total,0),
+    diapers:es.filter(e=>e.type==='diaper').length, wetOnly:d('wet'), dirtyOnly:d('dirty'), mixed:d('mixed'), dry:d('dry'),
+    sleepMs:state.entries.filter(x=>x.type==='sleep').reduce((t,x)=>t+Math.max(0,Math.min(b,x.end??now)-Math.max(a,x.start)),0),
+    any:es.length>0
+  };
+}
+const diaperBreak = s => [[s.wetOnly,'wet'],[s.dirtyOnly,'dirty'],[s.mixed,'both'],[s.dry,'dry']].filter(x=>x[0]).map(x=>x[0]+' '+x[1]).join(' · ');
+function wtDelta(kg){
+  const sign=kg<0?'−':'+', a=Math.abs(kg);
+  if(!U.imp()) return `${sign}${Math.round(a*1000)} g`;
+  const oz=Math.round(a*35.274); return oz>=16 ? `${sign}${Math.floor(oz/16)} lb ${oz%16} oz` : `${sign}${oz} oz`;
+}
+function glance(now){
+  const p=state.profile||{}, nm=esc(p.name||'Baby');
+  const g=state.entries.filter(e=>e.type==='growth' && e.start<=now).sort((a,b)=>b.start-a.start);
+  const lastOf=k=>{ const i=g.findIndex(e=>e[k]!=null); return i<0?null:{e:g[i], prev:g.slice(i+1).find(e=>e[k]!=null)}; };
+  const shortD=ms=>new Date(ms).toLocaleDateString([], {month:'short',day:'numeric'});
+  const cell=(c,label,big,meta,attrs='')=>{ const tg=attrs?'button type="button"':'div'; return `<${tg} class="gl" style="--c:${c}" ${attrs}><span class="label">${label}</span><b class="num">${big}</b><span class="sub">${meta}</span></${attrs?'button':'div'}>`; };
+  const cells=[];
+  const w=lastOf('weight'), l=lastOf('length'), hd=lastOf('head');
+  if(w) cells.push(cell('var(--growth)','Weight',U.wt(w.e.weight), w.prev?`${wtDelta(w.e.weight-w.prev.weight)} since ${shortD(w.prev.start)}`:`On ${shortD(w.e.start)}`, `data-view="health"`));
+  if(l) cells.push(cell('var(--growth)','Length',U.len(l.e.length), `On ${shortD(l.e.start)}`, `data-view="health"`));
+  if(hd && cells.length<2) cells.push(cell('var(--growth)','Head',U.len(hd.e.head), `On ${shortD(hd.e.start)}`, `data-view="health"`));
+  const r=rangeSummary(now-DAY, now);
+  cells.push(cell('var(--feed)','Feeds · 24 h', r.feeds, [r.bottleMl?U.vol(r.bottleMl)+' by bottle':'', r.breastMs?fmtDur(r.breastMs)+' nursing':''].filter(Boolean).join(' · ')||'No feeds logged'));
+  cells.push(cell('var(--diaper)','Diapers · 24 h', r.diapers, diaperBreak(r)||'No changes logged'));
+  cells.push(cell('var(--sleep)','Sleep · 24 h', r.sleepMs?fmtDur(r.sleepMs):'—', r.sleepMs?'Logged sleep':'No sleep logged'));
+  const add = !w && state.canWrite ? `<p class="note" style="margin:10px 0 0">Add ${nm}'s weight to see growth here. <button class="linkb" data-new="growth">Add weight</button></p>` : '';
+  return `<div class="panel"><h2>${nm} at a glance</h2><div class="glance">${cells.join('')}</div>${add}</div>`;
+}
+function weekly(now){
+  const p=state.profile||{}, born=p.birth?new Date(p.birth+'T00:00').getTime():0;
+  const end=startOfDay(now), start=end-7*DAY; // full days only
+  const days=[]; for(let d=start; d<end; d+=DAY) if(d+DAY>born && state.entries.some(x=>x.start>=d && x.start<d+DAY)) days.push(d);
+  if(days.length<2) return '';
+  const S=days.map(d=>daySummary(d)), n=days.length, avg=k=>S.reduce((t,s)=>t+s[k],0)/n;
+  // compare with the 7 days before
+  const prevDays=[]; for(let d=start-7*DAY; d<start; d+=DAY) if(d+DAY>born && state.entries.some(x=>x.start>=d && x.start<d+DAY)) prevDays.push(d);
+  const P=prevDays.length>=5 ? prevDays.map(d=>daySummary(d)) : null, pavg=k=>P.reduce((t,s)=>t+s[k],0)/P.length;
+  const ch=(k,fmt)=>{ if(!P) return ''; const dlt=avg(k)-pavg(k); if(Math.abs(dlt) < (k==='sleepMs'?15*MIN:k==='bottleMl'?15:0.5)) return '<span class="chg">about the same</span>'; return `<span class="chg">${dlt>0?'↑':'↓'} ${fmt(Math.abs(dlt))}</span>`; };
+  const r1=v=>(Math.round(v*10)/10).toString();
+  const items=[
+    ['var(--feed)','Feeds',r1(avg('feeds')),ch('feeds',r1)],
+    ...(avg('bottleMl')?[['var(--feed)','By bottle',U.vol(avg('bottleMl')),ch('bottleMl',v=>U.vol(v))]]:[]),
+    ['var(--diaper)','Diapers',r1(avg('diapers')),ch('diapers',r1)],
+    ['var(--sleep)','Sleep',fmtDur(avg('sleepMs')),ch('sleepMs',fmtDur)]
+  ];
+  const text=`${p.name||'Baby'} · last ${n} days, per day: ${r1(avg('feeds'))} feeds${avg('bottleMl')?' ('+U.vol(avg('bottleMl'))+' by bottle)':''}, ${r1(avg('diapers'))} diapers, ${fmtDur(avg('sleepMs'))} sleep. Logged with ${APP_NAME}.`;
+  return `<div class="panel"><h2><span>Last ${n} days <span class="sub" style="font-weight:500">· daily average</span></span><button class="btn ghost sm" data-act="shareText" data-text="${esc(text)}">Share</button></h2>
+    <div class="sums">${items.map(([c,l,v,cg])=>`<div class="sum"><b>${esc(v)}</b><span>${l}${cg?' · '+cg:''}</span></div>`).join('')}</div>
+    ${P?'<p class="note" style="margin:10px 0 0">Arrows compare with the 7 days before.</p>':''}</div>`;
+}
+function typicalDay(){
+  const t=startOfDay(Date.now()), days=[];
+  for(let i=1;i<=7;i++){ const d=t-i*DAY; if(state.entries.some(x=>x.start>=d && x.start<d+DAY)) days.push(d); }
+  if(days.length<3) return '';
+  return `<div class="panel"><h2><span>Typical day <span class="sub" style="font-weight:500">· last ${days.length} full days layered</span></span></h2>
+    <div class="strip typ">${days.map(d=>`<div class="lay" style="opacity:${(1/days.length*1.6).toFixed(2)}">${strip(d)}</div>`).join('')}</div>${hoursRow}
+    <p class="note" style="margin:8px 0 0">Darker means it happens at that time on most days.</p></div>`;
+}
+
+/* --- Home --- */
 function vToday(){
   const now=Date.now();
   const p=state.profile||{};
@@ -1240,6 +1317,7 @@ function vToday(){
     ${tile('var(--diaper)','Last diaper', ld?fmtDur(now-ld.start)+' ago':'—', ld?`${esc(entrySummary(ld))} at ${fmtTime(ld.start)}`:'No changes yet')}
   </div>`;
 
+  h+=glance(now);
   // prediction + quick log
   const nap=comingUp(p, now);
 
@@ -1250,6 +1328,7 @@ function vToday(){
   h+=`<div class="grid2">${nap}<div class="panel"><h2>Today so far <button class="btn ghost sm" data-act="editSums">Edit</button></h2><div class="sums">
     ${picks.map(([,,f])=>{ const [v,l]=f(); return `<div class="sum"><b>${esc(v)}</b><span>${esc(l)}</span></div>`; }).join('')||'<p class="note">Tap Edit to choose what to show.</p>'}
   </div><div style="margin-top:16px"><div class="strip">${strip(now)}</div>${hoursRow}</div></div></div>`;
+  h+=weekly(now);
 
   const today=entriesOn(now);
   h+=`<div class="panel"><h2>Today's log <button class="btn ghost sm" data-view="timeline">Full timeline</button></h2><div class="list">${today.length?today.map(entryRow).join(''):'<div class="empty">Nothing logged today. Tap an activity above to add the first entry.</div>'}</div></div>`;
@@ -1260,6 +1339,7 @@ function vToday(){
 function vTimeline(noHead){
   const sel=state.selDay;
   let h=noHead?'':header('Timeline', 'Tap a day to see its entries');
+  h+=typicalDay();
   const rows=[]; for(let i=0;i<7;i++){ const d=startOfDay(Date.now())-i*DAY; rows.push(d); }
   h+=`<div class="panel"><h2>Last 7 days</h2><div class="days">${rows.map(d=>`<div class="dayrow ${d===sel?'sel':''}"><span class="dl">${i18nDay(d)}</span><button class="strip" data-day="${d}" aria-label="Show ${fmtDate(d)}">${strip(d)}</button></div>`).join('')}
     <div class="dayrow"><span></span>${hoursRow}</div></div><div style="margin-top:12px">${legend}</div></div>`;
@@ -1401,7 +1481,7 @@ function vSettings(){
     ${F.seg('s_units','Units',[['imperial','oz · lb · in · °F'],['metric','ml · kg · cm · °C']],p.units||'imperial')}
     <p class="note">Clock is saved on this device. Units apply to everyone sharing this log; you can still pick oz or ml on each bottle.</p></div></div>
   <div class="panel" id="tilesPanel"><h2>Log tiles <button class="btn ghost sm" data-act="resetTiles">Reset</button></h2>
-    <p class="note" style="margin-top:-6px">Drag rows or use the arrows to change the order on Today. Untick a tile to hide it. Saved on this device.</p>
+    <p class="note" style="margin-top:-6px">Drag rows or use the arrows to change the order on Home. Untick a tile to hide it. Saved on this device.</p>
     <div class="arrlist">${tileOrder().map((t,i,arr)=>`<div class="arr ${isHidden(t)?'off':''}" draggable="true" data-tile="${t}" style="--c:${color(t)}">
       <span class="grip" aria-hidden="true">${svg('grip')}</span><span class="mini ${IC()}">${svg(T[t].icon)}</span><span class="nm">${T[t].label}</span>
       <label class="show"><input type="checkbox" name="s_show" value="${t}" ${isHidden(t)?'':'checked'}> Show</label>
@@ -1537,7 +1617,7 @@ function fieldsFor(type, e){
       +`<p class="note">A temperature of 100.4 °F (38 °C) or higher is a fever. ${(ageDays(state.profile?.birth)??999)<91?'<b>Your baby is under 3 months: call your pediatrician right away for a fever.</b> ':''}Rectal is the most accurate method for babies. When you call, say which method you used.</p>`;
     case 'med': return F.time('f_start','Time given',e.start||now)+F.text('f_name','Medicine',e.name)+F.text('f_dose','Dose',e.dose,'as on the label or prescription')+F.text('f_note','Note',e.note);
     case 'symptom': return F.time('f_start','Time',e.start||now)+F.area('f_note','What did you notice?',e.note);
-    case 'doctor': return F.time('f_start','Date and time',e.start||now)+F.text('f_title','Reason',e.title,'e.g. 4-month checkup, ear check')+F.area('f_note','Notes',e.note)+`<p class="note">Pick a future date to add an upcoming appointment. It shows under Coming up on Today.</p>`;
+    case 'doctor': return F.time('f_start','Date and time',e.start||now)+F.text('f_title','Reason',e.title,'e.g. 4-month checkup, ear check')+F.area('f_note','Notes',e.note)+`<p class="note">Pick a future date to add an upcoming appointment. It shows under Coming up on Home.</p>`;
     case 'vaccine': return F.time('f_start','Date',e.start||now)+F.text('f_name','Vaccine(s)',e.name,'e.g. 2-month vaccines')+F.text('f_note','Note',e.note);
     case 'activity': return F.time('f_start','Time',e.start||now)+F.seg('akind','Activity',activityKinds().map(k=>[k,k]),e.kind||'Tummy time')+F.text('f_aother','Or type something else','','e.g. Vitamin D drops')+F.num('f_dur','Duration',e.duration,'min','1')+F.text('f_note','Note',e.note);
     case 'note': return F.time('f_start','When',e.start||now)+F.text('f_title','What happened',e.title,'e.g. First giggle')+F.check('f_ms','This is a milestone',e.milestone)+F.area('f_note','Details',e.note);
@@ -1761,6 +1841,7 @@ document.addEventListener('click', async ev=>{
   else if(a==='resetSums'){ prefs.sums=null; savePrefs(); closeModal(); render(); toast('Back to the default stats'); }
   else if(a==='addKind'){ const k=(val('newKind')||'').trim().replace(/\s+/g,' '); if(!k){ document.getElementById('newKind').focus(); return; } addCustomKind(k); const d=checkedSums(); if(!d.includes('act:'+k)){ if(d.length>=6) toast('Showing 6 already. Untick one to show '+k+'.'); else d.push('act:'+k); } openSums(d); render(); }
   else if(a==='install' && installEvt){ installEvt.prompt(); try{ await installEvt.userChoice; }catch(err){} installEvt=null; render(); }
+  else if(a==='shareText'){ const v=t.dataset.text||''; try{ if(navigator.share){ await navigator.share({text:v}); return; } }catch(err){ if(err&&err.name==='AbortError') return; } try{ await navigator.clipboard.writeText(v); toast('Summary copied'); }catch(err){ openModal(`<h3>Share summary</h3><div class="form"><label class="field"><span>Select and copy</span><textarea id="copyBox" readonly>${esc(v)}</textarea></label><div class="actions"><div class="r"><button type="button" class="btn primary" data-close="1">Done</button></div></div></div>`); const b=document.getElementById('copyBox'); b.focus(); b.select(); } }
   else if(a==='copyText'){ const v=t.dataset.text||''; try{ await navigator.clipboard.writeText(v); toast('Appointment details copied'); }catch(err){ openModal(`<h3 style="--c:var(--health)">Appointment details</h3><div class="form"><label class="field"><span>Select and copy</span><textarea id="copyBox" readonly>${esc(v)}</textarea></label><div class="actions"><div class="r"><button type="button" class="btn primary" data-close="1">Done</button></div></div></div>`); const b=document.getElementById('copyBox'); b.focus(); b.select(); } }
   else if(a==='backup') exportBackup();
   else if(a==='doImport') doImport();
@@ -2049,7 +2130,7 @@ function fallbackLocal(){
 }
 boot();
 if(NATIVE && NATIVE_APP){
-  /* Android Back: close an open form, else go back to Today, and exit only from Today. */
+  /* Android Back: close an open form, else go back to Home, and exit only from Home. */
   NATIVE_APP.addListener('backButton',()=>{
     if(document.querySelector('.modal')){ closeModal(); return; }
     if(state.view==='settings'){ state.view='family'; render(); window.scrollTo(0,0); return; }
