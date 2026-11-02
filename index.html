@@ -248,11 +248,12 @@ main{min-width:0;padding-block:24px 96px;padding-left:max(16px,env(safe-area-ins
 .q .ic svg{width:21px;height:21px}
 
 /* summary stats */
-.vitals{display:flex;gap:0;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:6px 4px;font:inherit;color:inherit;text-align:left}
+.vitals{display:flex;gap:0;background:transparent;border:0;border-radius:10px;padding:2px 0;font:inherit;color:inherit;text-align:left}
 .vitals .vt{display:flex;flex-direction:column;padding:0 10px;border-left:1px solid var(--line);min-width:0}
 .vitals .vt:first-child{border-left:0}
-.vitals small{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);font-weight:700}
-.vitals b{font-size:14px;font-weight:700;white-space:nowrap}
+.vitals small{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);font-weight:600}
+.vitals b{font-size:14px;font-weight:600;color:var(--ink-2);white-space:nowrap}
+.vitals:hover b{color:var(--ink)}
 .glance{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .gl{background:none;border:0;border-left:3px solid var(--c);text-align:left;font:inherit;color:inherit;padding:2px 0 2px 10px;display:flex;flex-direction:column;gap:1px;min-width:0}
 .gl[data-view]{cursor:pointer}
@@ -1326,7 +1327,6 @@ function vToday(){
     ${tile('var(--diaper)','Last diaper', ld?fmtDur(now-ld.start)+' ago':'—', ld?`${esc(entrySummary(ld))} at ${fmtTime(ld.start)}`:'No changes yet')}
   </div>`;
 
-  h+=glance(now);
   // prediction + quick log
   const nap=comingUp(p, now);
 
@@ -1337,7 +1337,6 @@ function vToday(){
   h+=`<div class="grid2">${nap}<div class="panel"><h2>Today so far <button class="btn ghost sm" data-act="editSums">Edit</button></h2><div class="sums">
     ${picks.map(([,,f])=>{ const [v,l]=f(); return `<div class="sum"><b>${esc(v)}</b><span>${esc(l)}</span></div>`; }).join('')||'<p class="note">Tap Edit to choose what to show.</p>'}
   </div><div style="margin-top:16px"><div class="strip">${strip(now)}</div>${hoursRow}</div></div></div>`;
-  h+=weekly(now);
 
   const today=entriesOn(now);
   h+=`<div class="panel"><h2>Today's log <button class="btn ghost sm" data-view="timeline">Full timeline</button></h2><div class="list">${today.length?today.map(entryRow).join(''):'<div class="empty">Nothing logged today. Tap an activity above to add the first entry.</div>'}</div></div>`;
