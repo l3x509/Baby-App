@@ -1305,7 +1305,14 @@ function typicalDay(){
 function rightNow(now){
   const p=state.profile||{}, age=ageDays(p.birth,now);
   const ps=past(), lastOf=types=>ps.find(e=>types.includes(e.type));
-  const r=rangeSummary(now-DAY, now);
+  const wk=prefs.rnRange==='7d';
+  let r=rangeSummary(now-DAY, now), per='24 h';
+  if(wk){
+    const born=p.birth?new Date(p.birth+'T00:00').getTime():0, first=Math.min(now,...state.entries.map(e=>e.start));
+    const span=Math.max(1, (now-Math.max(now-7*DAY, born, first))/DAY), raw=rangeSummary(now-7*DAY, now), r1=v=>Math.round(v/span*10)/10;
+    r={...raw}; ['feeds','bottleMl','breastMs','diapers','wetOnly','dirtyOnly','mixed','dry','sleepMs'].forEach(k=>r[k]=k==='bottleMl'||k==='breastMs'||k==='sleepMs'?raw[k]/span:r1(raw[k]));
+    per='a day';
+  }
   const ago=ms=>ms<MIN?'just now':fmtDur(ms)+' ago';
   const bar=(v,max,c)=>max?`<div class="rb"><i style="width:${Math.min(100,Math.round(v/max*100))}%;background:${c}"></i></div>`:'';
   const row=(lbl,c,main,sub,val,valsub,b)=>`<div class="rn" style="--c:${c}"><span class="rl">${lbl}</span><div class="rm"><span class="rt">${main}</span>${sub?`<span class="rs">${sub}</span>`:''}${b||''}</div><div class="rv"><b class="num">${val}</b>${valsub?`<span class="rs">${valsub}</span>`:''}</div></div>`;
@@ -1313,7 +1320,7 @@ function rightNow(now){
   // feed
   const lf=lastOf(['breast','bottle','solids']), fe=feedEstimate(now);
   const feedSub=fe?(fe.next<=now?'Next feed due now':`Next around ${fmtTime(fe.next)}`):'';
-  rows.push(row('Feed','var(--fbar)', lf?`${ago(now-(lf.end||lf.start))} · ${esc(T[lf.type].label)}`:'No feeds yet', feedSub, r.feeds, r.feeds===1?'feed':'feeds', age!=null&&age<56?bar(r.feeds,8,'var(--fbar)'):''));
+  rows.push(row('Feed','var(--fbar)', lf?`${ago(now-(lf.end||lf.start))} · ${esc(T[lf.type].label)}`:'No feeds yet', feedSub, r.feeds, wk?'feeds a day':r.feeds===1?'feed':'feeds', age!=null&&age<56?bar(r.feeds,8,'var(--fbar)'):''));
   // milk
   const bottleRecent=state.entries.some(e=>e.type==='bottle' && e.start>now-3*DAY && e.start<=now);
   const g=state.entries.filter(e=>e.type==='growth' && e.weight!=null && e.start<=now).sort((a,b)=>b.start-a.start)[0];
@@ -1322,15 +1329,15 @@ function rightNow(now){
   const nurse=r.breastMs?fmtDur(r.breastMs)+' nursing':'';
   if(bottleRecent || !r.breastMs){
     const sub=[usual?`Usual about ${U.vol(usual).replace(/\.\d oz/,' oz')} a day`:'', nurse?'+ '+nurse:''].filter(Boolean).join(' · ');
-    rows.push(row('Milk','var(--fbar)', lb?`Last bottle ${U.vol(lb.amount)} · ${ago(now-lb.start)}`:'No bottles yet', sub||(g?'':'Add a weight in Growth to see the usual amount'), r.bottleMl?U.vol(r.bottleMl):'—', '24 h', usual?bar(r.bottleMl,usual,'var(--fbar)'):''));
+    rows.push(row('Milk','var(--fbar)', lb?`Last bottle ${U.vol(lb.amount)} · ${ago(now-lb.start)}`:'No bottles yet', sub||(g?'':'Add a weight in Growth to see the usual amount'), r.bottleMl?U.vol(r.bottleMl):'—', per, usual?bar(r.bottleMl,usual,'var(--fbar)'):''));
   } else {
-    rows.push(row('Milk','var(--fbar)', 'Nursing', 'Breast milk can’t be measured, so this shows time', fmtDur(r.breastMs), '24 h', ''));
+    rows.push(row('Milk','var(--fbar)', 'Nursing', 'Breast milk can’t be measured, so this shows time', fmtDur(r.breastMs), per, ''));
   }
   // diaper
   const ld=lastOf(['diaper','potty']), wet=r.wetOnly+r.mixed;
-  rows.push(row('Diaper','var(--diaper)', ld?`${ago(now-ld.start)} · ${esc(entrySummary(ld).split(' · ')[0])}`:'No changes yet', diaperBreak(r), r.diapers, r.diapers===1?'diaper':'diapers', age!=null&&age>=5&&age<183?bar(wet,6,'var(--diaper)'):''));
-  return `<div class="panel rnow"><h2><span>Right now</span><span class="rs" style="font-weight:500">last · 24 h</span></h2>${rows.join('')}
-    <p class="note" style="margin:8px 0 0">Bars show a usual day: 8+ feeds for newborns, 6+ wet diapers from day 5, about 2½ oz of formula per lb (AAP). Every baby is different, so feed on demand.</p></div>`;
+  rows.push(row('Diaper','var(--diaper)', ld?`${ago(now-ld.start)} · ${esc(entrySummary(ld).split(' · ')[0])}`:'No changes yet', diaperBreak(r), r.diapers, wk?'diapers a day':r.diapers===1?'diaper':'diapers', age!=null&&age>=5&&age<183?bar(wet,6,'var(--diaper)'):''));
+  return `<div class="panel rnow"><h2><span>Right now</span><span class="chips" role="group" aria-label="Range"><button class="chip" data-act="rnRange" data-r="24h" aria-pressed="${!wk}">24 h</button><button class="chip" data-act="rnRange" data-r="7d" aria-pressed="${wk}">7 days</button></span></h2>${rows.join('')}
+    <p class="note" style="margin:8px 0 0">${wk?'7 days shows the daily average. ':''}Bars show a usual day: 8+ feeds for newborns, 6+ wet diapers from day 5, about 2½ oz of formula per lb (AAP). Every baby is different, so feed on demand.</p></div>`;
 }
 
 /* --- Home --- */
@@ -1890,6 +1897,7 @@ document.addEventListener('click', async ev=>{
   else if(a==='resetSums'){ prefs.sums=null; savePrefs(); closeModal(); render(); toast('Back to the default stats'); }
   else if(a==='addKind'){ const k=(val('newKind')||'').trim().replace(/\s+/g,' '); if(!k){ document.getElementById('newKind').focus(); return; } addCustomKind(k); const d=checkedSums(); if(!d.includes('act:'+k)){ if(d.length>=6) toast('Showing 6 already. Untick one to show '+k+'.'); else d.push('act:'+k); } openSums(d); render(); }
   else if(a==='install' && installEvt){ installEvt.prompt(); try{ await installEvt.userChoice; }catch(err){} installEvt=null; render(); }
+  else if(a==='rnRange'){ prefs.rnRange=t.dataset.r; savePrefs(); render(); }
   else if(a==='shareText'){ const v=t.dataset.text||''; try{ if(navigator.share){ await navigator.share({text:v}); return; } }catch(err){ if(err&&err.name==='AbortError') return; } try{ await navigator.clipboard.writeText(v); toast('Summary copied'); }catch(err){ openModal(`<h3>Share summary</h3><div class="form"><label class="field"><span>Select and copy</span><textarea id="copyBox" readonly>${esc(v)}</textarea></label><div class="actions"><div class="r"><button type="button" class="btn primary" data-close="1">Done</button></div></div></div>`); const b=document.getElementById('copyBox'); b.focus(); b.select(); } }
   else if(a==='copyText'){ const v=t.dataset.text||''; try{ await navigator.clipboard.writeText(v); toast('Appointment details copied'); }catch(err){ openModal(`<h3 style="--c:var(--health)">Appointment details</h3><div class="form"><label class="field"><span>Select and copy</span><textarea id="copyBox" readonly>${esc(v)}</textarea></label><div class="actions"><div class="r"><button type="button" class="btn primary" data-close="1">Done</button></div></div></div>`); const b=document.getElementById('copyBox'); b.focus(); b.select(); } }
   else if(a==='backup') exportBackup();
