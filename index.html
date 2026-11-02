@@ -248,7 +248,12 @@ main{min-width:0;padding-block:24px 96px;padding-left:max(16px,env(safe-area-ins
 .q .ic svg{width:21px;height:21px}
 
 /* summary stats */
-.glance{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.vitals{display:flex;gap:0;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:6px 4px;font:inherit;color:inherit;text-align:left}
+.vitals .vt{display:flex;flex-direction:column;padding:0 10px;border-left:1px solid var(--line);min-width:0}
+.vitals .vt:first-child{border-left:0}
+.vitals small{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);font-weight:700}
+.vitals b{font-size:14px;font-weight:700;white-space:nowrap}
+.glance{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .gl{background:none;border:0;border-left:3px solid var(--c);text-align:left;font:inherit;color:inherit;padding:2px 0 2px 10px;display:flex;flex-direction:column;gap:1px;min-width:0}
 .gl[data-view]{cursor:pointer}
 .gl b{font-family:var(--display);font-size:20px;line-height:1.2}
@@ -1179,9 +1184,16 @@ function render(){
   syncWakeLock();
 }
 
-function header(title, sub){
+function header(title, sub, right){
   const p=state.profile||{};
-  return `<div class="head"><div><div class="sub">${esc(sub||fmtDate(Date.now()))}</div><h1>${esc(title)}</h1></div>${p.birth?`<span class="age">${esc(p.name)} · ${esc(ageText(p.birth))}</span>`:''}</div>`;
+  return `<div class="head"><div><div class="sub">${esc(sub||fmtDate(Date.now()))}</div><h1>${esc(title)}</h1></div>${right!=null?right:p.birth?`<span class="age">${esc(p.name)} · ${esc(ageText(p.birth))}</span>`:''}</div>`;
+}
+function vitals(){
+  const p=state.profile||{}; if(!p.birth) return '';
+  const now=Date.now(), g=state.entries.filter(e=>e.type==='growth' && e.start<=now).sort((a,b)=>b.start-a.start);
+  const w=g.find(e=>e.weight!=null), l=g.find(e=>e.length!=null);
+  const c=(k,v)=>`<span class="vt"><small>${k}</small><b class="num">${v}</b></span>`;
+  return `<button type="button" class="vitals" data-view="health" aria-label="Age, weight and height. Open growth">${c('Age',esc(ageText(p.birth)))}${c('Weight',w?esc(U.wt(w.weight)):'—')}${c('Height',l?esc(U.len(l.length)):'—')}</button>`;
 }
 
 function entryRow(e){
@@ -1236,16 +1248,13 @@ function glance(now){
   const shortD=ms=>new Date(ms).toLocaleDateString([], {month:'short',day:'numeric'});
   const cell=(c,label,big,meta,attrs='')=>{ const tg=attrs?'button type="button"':'div'; return `<${tg} class="gl" style="--c:${c}" ${attrs}><span class="label">${label}</span><b class="num">${big}</b><span class="sub">${meta}</span></${attrs?'button':'div'}>`; };
   const cells=[];
-  const w=lastOf('weight'), l=lastOf('length'), hd=lastOf('head');
-  if(w) cells.push(cell('var(--growth)','Weight',U.wt(w.e.weight), w.prev?`${wtDelta(w.e.weight-w.prev.weight)} since ${shortD(w.prev.start)}`:`On ${shortD(w.e.start)}`, `data-view="health"`));
-  if(l) cells.push(cell('var(--growth)','Length',U.len(l.e.length), `On ${shortD(l.e.start)}`, `data-view="health"`));
-  if(hd && cells.length<2) cells.push(cell('var(--growth)','Head',U.len(hd.e.head), `On ${shortD(hd.e.start)}`, `data-view="health"`));
+  const w=lastOf('weight');
   const r=rangeSummary(now-DAY, now);
-  cells.push(cell('var(--feed)','Feeds · 24 h', r.feeds, [r.bottleMl?U.vol(r.bottleMl)+' by bottle':'', r.breastMs?fmtDur(r.breastMs)+' nursing':''].filter(Boolean).join(' · ')||'No feeds logged'));
-  cells.push(cell('var(--diaper)','Diapers · 24 h', r.diapers, diaperBreak(r)||'No changes logged'));
-  cells.push(cell('var(--sleep)','Sleep · 24 h', r.sleepMs?fmtDur(r.sleepMs):'—', r.sleepMs?'Logged sleep':'No sleep logged'));
+  cells.push(cell('var(--feed)','Feeds', r.feeds, [r.bottleMl?U.vol(r.bottleMl)+' by bottle':'', r.breastMs?fmtDur(r.breastMs)+' nursing':''].filter(Boolean).join(' · ')||'No feeds logged'));
+  cells.push(cell('var(--diaper)','Diapers', r.diapers, diaperBreak(r)||'No changes logged'));
+  cells.push(cell('var(--sleep)','Sleep', r.sleepMs?fmtDur(r.sleepMs):'—', r.sleepMs?'Logged sleep':'No sleep logged'));
   const add = !w && state.canWrite ? `<p class="note" style="margin:10px 0 0">Add ${nm}'s weight to see growth here. <button class="linkb" data-new="growth">Add weight</button></p>` : '';
-  return `<div class="panel"><h2>${nm} at a glance</h2><div class="glance">${cells.join('')}</div>${add}</div>`;
+  return `<div class="panel"><h2>Last 24 hours</h2><div class="glance">${cells.join('')}</div>${add}</div>`;
 }
 function weekly(now){
   const p=state.profile||{}, born=p.birth?new Date(p.birth+'T00:00').getTime():0;
@@ -1282,7 +1291,7 @@ function typicalDay(){
 function vToday(){
   const now=Date.now();
   const p=state.profile||{};
-  let h=header(p.name?`${p.name}'s day`:'Today');
+  let h=header(p.name?`${p.name}'s day`:'Home', null, vitals());
   const qs=tileOrder().filter(t=>!isHidden(t));
   const running=t=>t==='tummy' ? state.entries.some(x=>x.type==='activity'&&x.kind==='Tummy time'&&x.end===null) : (t==='breast'||t==='sleep') && state.entries.some(x=>x.type===t && x.end===null);
   h+=`<div class="logrow" role="group" aria-label="Log an activity">${qs.map(t=>`<button class="lt ${running(t)?'running':''}" ${t==='tummy'?'data-new="activity" data-kind="Tummy time"':`data-new="${t}"`} style="--c:${color(t)}" ${state.canWrite?'':'disabled'}><span class="sq ${IC()}">${svg(T[t].icon)}</span><span>${T[t].label}</span></button>`).join('')}${(Array.isArray(prefs.customKinds)?prefs.customKinds:[]).map(k=>`<button class="lt" data-new="activity" data-kind="${esc(k)}" style="--c:var(--activity)" ${state.canWrite?'':'disabled'}><span class="sq ${IC()}">${svg('activity')}</span><span>${esc(k)}</span></button>`).join('')}<button class="lt arrange" data-act="arrange"><span class="sq">${svg('grip')}</span><span>Arrange</span></button></div>`;
