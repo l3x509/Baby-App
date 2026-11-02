@@ -254,6 +254,20 @@ main{min-width:0;padding-block:24px 96px;padding-left:max(16px,env(safe-area-ins
 .vitals small{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);font-weight:600}
 .vitals b{font-size:14px;font-weight:600;color:var(--ink-2);white-space:nowrap}
 .vitals:hover b{color:var(--ink)}
+.rnow h2{margin-bottom:4px}
+.rn{display:grid;grid-template-columns:62px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.rn:last-of-type{border-bottom:0}
+.rl{font-weight:700;font-size:14px;color:color-mix(in srgb,var(--c) 70%,var(--ink))}
+.rm{display:flex;flex-direction:column;gap:2px;min-width:0}
+.rt{font-weight:600;font-size:14.5px}
+.rs{font-size:12.5px;color:var(--ink-2)}
+.rv{text-align:right;display:flex;flex-direction:column}
+.rv b{font-family:var(--display);font-size:22px;line-height:1.1}
+.rb{height:6px;border-radius:3px;background:var(--surface-2);overflow:hidden;margin-top:5px;max-width:320px}
+.rb i{display:block;height:100%;border-radius:3px}
+:root{--fbar:#3f86d6}
+:root[data-theme="dark"]{--fbar:#7db4ee}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--fbar:#7db4ee}}
 .glance{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .gl{background:none;border:0;border-left:3px solid var(--c);text-align:left;font:inherit;color:inherit;padding:2px 0 2px 10px;display:flex;flex-direction:column;gap:1px;min-width:0}
 .gl[data-view]{cursor:pointer}
@@ -1101,8 +1115,6 @@ function nextTeeth(p, now){
 function comingUp(p, now){
   const items=[];
   const row=(c,icon,label,main,sub,extra='',attrs='')=>`<div class="cu" style="--c:${c}" ${attrs}><span class="ic ${IC()}">${svg(icon)}</span><div class="cx"><span class="label">${label}</span><b class="num">${main}</b>${sub?`<span class="sub">${sub}</span>`:''}${extra}</div></div>`;
-  const fe=feedEstimate(now);
-  if(fe) items.push(row('var(--feed)','bottle','Next feed',`Around ${fmtTime(fe.next)}`, (fe.next<=now?'Due now':`In ${fmtDur(fe.next-now)}`)+` · usually every ${fmtDur(fe.gap)} lately`));
   if((ageDays(p?.birth)??999)<183){ const t=tummyToday(now), g=tummyGoal(), run=state.entries.some(e=>e.type==='activity'&&e.kind==='Tummy time'&&e.end===null);
     items.push(row('var(--activity)','tummy','Tummy time today', g.by==='sessions'?`${t.n} of ${g.min}–${g.max} sessions${t.mins?' · '+t.mins+' min':''}`:`${t.mins} of ${g.min}–${g.max} min`, `Aim for ${g.text}, while she’s awake and you’re watching.`.replace('she’s', state.profile?.sex==='m'?'he’s':state.profile?.sex==='f'?'she’s':'baby’s'), tummyGoalLine(now).replace(/<span class="sub">.*<\/span>/,'')+(run||!state.canWrite?'':`<div><button class="btn ghost sm" data-act="startTummy">Start tummy time</button></div>`))); }
   const appts=state.entries.filter(e=>e.type==='doctor' && e.start>now).sort((a,b)=>a.start-b.start);
@@ -1122,7 +1134,7 @@ function comingUp(p, now){
   const tw=nextTeeth(p, now);
   const vd=vitdRow(now,row); if(vd) items.push(vd);
   if(tw) items.push(row('var(--health)','tooth','Teeth to watch for',tw.label,`Usually ${tw.range} months · record them in Health`));
-  return `<div class="panel up"><h2>Coming up</h2><div class="cus">${items.join('')}</div><p class="note">Feed timing uses your last 3 days. Checkups follow the AAP schedule. Tummy time goals follow NIH Safe to Sleep. Every baby is different, so follow your baby's cues and your pediatrician's advice.</p></div>`;
+  return `<div class="panel up"><h2>Coming up</h2><div class="cus">${items.join('')}</div><p class="note">Checkups follow the AAP schedule. Tummy time goals follow NIH Safe to Sleep. Every baby is different, so follow your baby's cues and your pediatrician's advice.</p></div>`;
 }
 
 /* ---------- derived ---------- */
@@ -1288,6 +1300,39 @@ function typicalDay(){
     <p class="note" style="margin:8px 0 0">Darker means it happens at that time on most days.</p></div>`;
 }
 
+
+/* ---------- right now card ---------- */
+function rightNow(now){
+  const p=state.profile||{}, age=ageDays(p.birth,now);
+  const ps=past(), lastOf=types=>ps.find(e=>types.includes(e.type));
+  const r=rangeSummary(now-DAY, now);
+  const ago=ms=>ms<MIN?'just now':fmtDur(ms)+' ago';
+  const bar=(v,max,c)=>max?`<div class="rb"><i style="width:${Math.min(100,Math.round(v/max*100))}%;background:${c}"></i></div>`:'';
+  const row=(lbl,c,main,sub,val,valsub,b)=>`<div class="rn" style="--c:${c}"><span class="rl">${lbl}</span><div class="rm"><span class="rt">${main}</span>${sub?`<span class="rs">${sub}</span>`:''}${b||''}</div><div class="rv"><b class="num">${val}</b>${valsub?`<span class="rs">${valsub}</span>`:''}</div></div>`;
+  const rows=[];
+  // feed
+  const lf=lastOf(['breast','bottle','solids']), fe=feedEstimate(now);
+  const feedSub=fe?(fe.next<=now?'Next feed due now':`Next around ${fmtTime(fe.next)}`):'';
+  rows.push(row('Feed','var(--fbar)', lf?`${ago(now-(lf.end||lf.start))} · ${esc(T[lf.type].label)}`:'No feeds yet', feedSub, r.feeds, r.feeds===1?'feed':'feeds', age!=null&&age<56?bar(r.feeds,8,'var(--fbar)'):''));
+  // milk
+  const bottleRecent=state.entries.some(e=>e.type==='bottle' && e.start>now-3*DAY && e.start<=now);
+  const g=state.entries.filter(e=>e.type==='growth' && e.weight!=null && e.start<=now).sort((a,b)=>b.start-a.start)[0];
+  const usual = g && age!=null && age<183 ? Math.min(32*29.5735, g.weight*2.20462*2.5*29.5735) : null;
+  const lb=ps.find(e=>e.type==='bottle' && e.amount);
+  const nurse=r.breastMs?fmtDur(r.breastMs)+' nursing':'';
+  if(bottleRecent || !r.breastMs){
+    const sub=[usual?`Usual about ${U.vol(usual).replace(/\.\d oz/,' oz')} a day`:'', nurse?'+ '+nurse:''].filter(Boolean).join(' · ');
+    rows.push(row('Milk','var(--fbar)', lb?`Last bottle ${U.vol(lb.amount)} · ${ago(now-lb.start)}`:'No bottles yet', sub||(g?'':'Add a weight in Growth to see the usual amount'), r.bottleMl?U.vol(r.bottleMl):'—', '24 h', usual?bar(r.bottleMl,usual,'var(--fbar)'):''));
+  } else {
+    rows.push(row('Milk','var(--fbar)', 'Nursing', 'Breast milk can’t be measured, so this shows time', fmtDur(r.breastMs), '24 h', ''));
+  }
+  // diaper
+  const ld=lastOf(['diaper','potty']), wet=r.wetOnly+r.mixed;
+  rows.push(row('Diaper','var(--diaper)', ld?`${ago(now-ld.start)} · ${esc(entrySummary(ld).split(' · ')[0])}`:'No changes yet', diaperBreak(r), r.diapers, r.diapers===1?'diaper':'diapers', age!=null&&age>=5&&age<183?bar(wet,6,'var(--diaper)'):''));
+  return `<div class="panel rnow"><h2><span>Right now</span><span class="rs" style="font-weight:500">last · 24 h</span></h2>${rows.join('')}
+    <p class="note" style="margin:8px 0 0">Bars show a usual day: 8+ feeds for newborns, 6+ wet diapers from day 5, about 2½ oz of formula per lb (AAP). Every baby is different, so feed on demand.</p></div>`;
+}
+
 /* --- Home --- */
 function vToday(){
   const now=Date.now();
@@ -1321,11 +1366,7 @@ function vToday(){
   const fut=state.entries.filter(e=>isFuture(e,now));
   if(fut.length) h+=`<div class="banner"><span>${fut.length===1?'One entry is':fut.length+' entries are'} set to a time that hasn’t happened yet: ${fut.slice(0,3).map(e=>`${esc(T[e.type]?.label||e.type)} at ${fmtTime(e.start)}${startOfDay(e.start)!==startOfDay(now)?' on '+fmtDate(e.start):''}`).join(', ')}. Was AM or PM mixed up?</span><button class="btn" data-edit="${esc(fut[0].id)}">Fix time</button></div>`;
   const tile=(c,label,big,meta)=>`<div class="tile" style="--c:${c}"><span class="label">${label}</span><span class="big">${big}</span><span class="meta">${meta}</span></div>`;
-  h+=`<div class="since">
-    ${tile('var(--feed)','Last feed', lf?fmtDur(now-(lf.end||lf.start))+' ago':'—', lf?`${T[lf.type].label} at ${fmtTime(lf.start)}`:'No feeds yet')}
-    ${asleep? tile('var(--sleep)','Asleep for', fmtDur(now-asleep.start), `Since ${fmtTime(asleep.start)}`) : (longAwake ? tile('var(--sleep)','Last sleep', `Ended ${fmtTime(lastSleep.end)}`, `${fmtDur(now-lastSleep.end)} ago${state.canWrite?` · <button class="linkb" data-new="sleep">Log a missed sleep?</button>`:''}`) : staleSleep ? tile('var(--sleep)','Awake for','—',`No sleep logged since ${fmtDate(lastSleep.end)}, ${fmtTime(lastSleep.end)}`) : tile('var(--sleep)','Awake for', lastSleep?fmtDur(now-lastSleep.end):'—', lastSleep?`Woke at ${fmtTime(lastSleep.end)}`:'No sleep yet'))}
-    ${tile('var(--diaper)','Last diaper', ld?fmtDur(now-ld.start)+' ago':'—', ld?`${esc(entrySummary(ld))} at ${fmtTime(ld.start)}`:'No changes yet')}
-  </div>`;
+  h+=rightNow(now);
 
   // prediction + quick log
   const nap=comingUp(p, now);
