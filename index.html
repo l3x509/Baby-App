@@ -76,7 +76,7 @@ h1,h2,h3{font-family:var(--display);font-weight:700;margin:0;text-wrap:balance;l
 .lt.running .sq{box-shadow:0 0 0 3px var(--surface),0 0 0 5px var(--c)}
 .lt:disabled{opacity:.5;cursor:default}
 @media (prefers-reduced-motion:reduce){.lt .sq{transition:none}}
-@media (max-width:820px){.lt{width:84px}.lt .sq{width:84px;height:84px;border-radius:18px}.lt .sq svg{width:40px;height:40px}}
+@media (max-width:820px){.logrow{gap:8px}.lt{width:calc((100% - 40px)/6);min-width:46px;font-size:11px;gap:5px}.lt>span:last-child{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.lt .sq{width:100%;height:auto;aspect-ratio:1;border-radius:15px}.lt .sq svg{width:52%;height:52%}}
 
 /* theme swatches */
 .swatches{display:flex;flex-wrap:wrap;gap:14px}
@@ -111,7 +111,7 @@ details.more summary{cursor:pointer;font-weight:600;color:var(--accent)}
 /* icon styles */
 .emo{display:inline-block;line-height:1;font-size:18px;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
 .lt .sq .emo{font-size:44px}
-@media (max-width:820px){.lt .sq .emo{font-size:38px}}
+@media (max-width:820px){.lt .sq .emo{font-size:28px}}
 .st-soft svg *:not([fill="currentColor"]){fill:currentColor;fill-opacity:.22}
 .st-chunky svg{stroke-width:3.1!important}
 .sq.st-chunky,.mini.st-chunky{border-radius:50%!important}
