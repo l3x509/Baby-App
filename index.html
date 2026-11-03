@@ -1474,6 +1474,7 @@ function awayItems(now){
   return state.entries.filter(e=>e.by && e.by!==uid() && e.start>seen && e.start<=now && !e._pending);
 }
 function awayCard(now){
+  if(prefs.away==='off') return '';
   const es=awayItems(now); if(!es.length) return '';
   let seen=0; try{ seen=+localStorage.getItem(awayKey())||0; }catch(e){}
   const n=t=>es.filter(e=>e.type===t).length, ml=es.filter(e=>e.type==='bottle').reduce((a,e)=>a+(e.amount||0),0);
@@ -1529,8 +1530,9 @@ function stashPanel(now){
   const tot=w=>good.filter(x=>!w||x.where===w).reduce((a,x)=>a+x.ml,0);
   const sum=good.length?`${good.length} bag${good.length===1?'':'s'}`:'Empty';
   const bt=state.entries.filter(e=>e.type==='bottle' && e.amount && e.start>now-3*DAY && e.start<=now), avg=bt.length?bt.reduce((a,e)=>a+e.amount,0)/bt.length:0;
-  const feeds=avg&&tot()?Math.floor(tot()/avg):0;
-  const totals=`<div class="stot"><div class="st0"><span class="label">Total</span><b class="num">${tot()?U.vol(tot()):'0'}</b>${feeds?`<span class="sub">about ${feeds} bottle${feeds===1?'':'s'} of ${volRound(avg)}</span>`:''}</div>
+  const avgD=U.imp()?Math.round(avg/29.5735*10)/10*29.5735:Math.round(avg/5)*5; // the size we show
+  const feeds=avgD&&tot()?Math.floor((tot()+0.5)/avgD):0;
+  const totals=`<div class="stot"><div class="st0"><span class="label">Total</span><b class="num">${tot()?U.vol(tot()):'0'}</b>${feeds?`<span class="sub">enough for about ${feeds} bottle${feeds===1?'':'s'} of ${U.vol(avgD)}</span>`:''}</div>
     ${[['fridge','Fridge'],['thawed','Thawed'],['freezer','Freezer']].map(([w,l])=>`<div><span class="label">${l}</span><b class="num">${tot(w)?U.vol(tot(w)):'—'}</b></div>`).join('')}</div>`;
   const lbl={fridge:'Fridge',thawed:'Thawed',freezer:'Freezer'};
   const rows=it.slice(0,8).map(x=>{ const left=x.useBy-now, past=left<=0, soon=!past && left<12*HR;
@@ -1849,6 +1851,7 @@ function vSettings(){
   <div class="panel"><h2>Display</h2><div class="form">
     ${F.seg('s_home','Home layout',[['now','Right now card'],['classic','Classic tiles']],prefs.homeLayout==='classic'?'classic':'now')}
     ${F.seg('s_stash','Milk stash on this phone',[['show','Show'],['hide','Hide']],prefs.stash==='hide'?'hide':'show')}<p class="note" style="margin-top:-8px">Hiding it only changes this phone. The bags stay shared, and new breast-milk bottles still offer "From the milk stash" when there’s milk in it.</p>
+    ${state.mode==='cloud'?F.seg('s_away','“While you were away” card',[['on','On'],['off','Off']],prefs.away==='off'?'off':'on'):''}
     ${F.seg('s_clock','Clock',[['12','12-hour'],['24','24-hour']],prefs.clock)}
     ${F.seg('s_awake','Keep screen on while a timer runs',[['on','On'],['off','Off']],prefs.keepAwake===false?'off':'on')}
     ${F.seg('s_vitd','Vitamin D reminder',[['auto','When breastfeeding'],['on','Always'],['off','Off']],prefs.vitd||'auto')}
@@ -2296,6 +2299,7 @@ document.addEventListener('change', async ev=>{
   if(t.name==='s_clock') prefs.clock=t.value;
   if(t.name==='s_home') prefs.homeLayout=t.value;
   if(t.name==='s_stash') prefs.stash=t.value;
+  if(t.name==='s_away') prefs.away=t.value;
   if(t.name==='r_on'){ if(t.value==='on'){ const ok=await askNotifyPermission(); if(!ok){ toast('Notifications are blocked. Turn them on in your phone or browser settings.'); render(); return; } prefs.remEnabled=true; if(!prefs.rem) prefs.rem={feed:180,vitd:'',med:true,appt:true}; } else prefs.remEnabled=false; }
   if(['r_feed','r_med','r_appt'].includes(t.name)){ const r=remPrefs(); if(t.name==='r_feed') r.feed=+t.value; else r[t.name.slice(2)]=t.value==='on'; prefs.rem=r; }
   if(t.name==='s_awake') prefs.keepAwake=t.value==='on';
