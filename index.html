@@ -377,6 +377,10 @@ tr:last-child td{border-bottom:0}
 .divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line)}
 .confirm{background:var(--warn-bg);color:var(--warn-ink);border-radius:10px;padding:10px 12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
 
+.stot{display:grid;grid-template-columns:1.4fr repeat(3,minmax(0,1fr));gap:8px;background:color-mix(in srgb,var(--feed) 9%,var(--surface));border-radius:12px;padding:10px 12px;margin-bottom:6px}
+.stot>div{display:flex;flex-direction:column;min-width:0}
+.stot b{font-family:var(--display);font-size:17px}
+.stot .st0 b{font-size:24px}
 .sx{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
 .sx:last-of-type{border-bottom:0}
 .sxm{display:flex;flex-direction:column;min-width:0}
@@ -1447,7 +1451,7 @@ function rightNow(now){
   if(bottleRecent || !r.breastMs){
     rows.push(row('Milk','var(--fbar)','drop', lb?`Last bottle ${U.vol(lb.amount)} · ${ago(now-lb.start)}`:'No bottles yet',
       [r.breastMs?'+ '+fmtDur(r.breastMs)+' nursing':'', !g?'Add a weight in Growth to see the usual amount':''].filter(Boolean).join(' · '),
-      r.bottleMl?U.vol(r.bottleMl):'—', (wk?'a day':'24 h')+(usual?` · usual ~${U.vol(usual).replace(/\.\d oz/,' oz')}`:''), lane(milkLane,'tall',`Bottles: ${bott.slice(0,12).map(([e])=>U.vol(e.amount)+' at '+fmtTime(e.start)).join(', ')}`)));
+      r.bottleMl?U.vol(r.bottleMl):'—', (wk?'a day':'24 h')+(usual?` · usual ~${volRound(usual)}`:''), lane(milkLane,'tall',`Bottles: ${bott.slice(0,12).map(([e])=>U.vol(e.amount)+' at '+fmtTime(e.start)).join(', ')}`)));
   } else {
     rows.push(row('Milk','var(--fbar)','breast','Nursing','Breast milk can’t be measured, so this shows time', fmtDur(r.breastMs), wk?'a day':'24 h', lane(milkLane,'tall')));
   }
@@ -1493,6 +1497,7 @@ document.addEventListener('visibilitychange',()=>{ if(document.hidden && awayKey
 
 
 /* ---------- pumped milk stash (storage times: CDC / AAP guidance) ---------- */
+const volRound = ml => U.imp() ? `${Math.round(ml/29.5735)} oz` : `${Math.round(ml/10)*10} ml`;
 const STASH_LIFE={fridge:4*DAY, thawed:DAY, freezer:183*DAY};
 function stashItems(now=Date.now()){
   return state.entries.filter(e=>e.type==='pump' && (e.store==='fridge'||e.store==='freezer') && !e.usedAt && !e.tossedAt && ((e.left||0)+(e.right||0))>0 && e.start<=now)
@@ -1500,14 +1505,20 @@ function stashItems(now=Date.now()){
     .sort((a,b)=>a.useBy-b.useBy);
 }
 function stashPanel(now){
-  const it=stashItems(now); if(!it.length) return '';
-  const tot=w=>it.filter(x=>x.where===w).reduce((a,x)=>a+x.ml,0);
-  const sum=[['fridge','fridge'],['thawed','thawed'],['freezer','freezer']].filter(([w])=>tot(w)).map(([w,l])=>`${U.vol(tot(w))} ${l}`).join(' · ');
+  const all=stashItems(now), used=state.entries.some(e=>e.type==='pump' && (e.store==='fridge'||e.store==='freezer'));
+  if(!all.length && !used) return '';
+  const it=all, good=all.filter(x=>x.useBy>now);
+  const tot=w=>good.filter(x=>!w||x.where===w).reduce((a,x)=>a+x.ml,0);
+  const sum=good.length?`${good.length} bag${good.length===1?'':'s'}`:'Empty';
+  const bt=state.entries.filter(e=>e.type==='bottle' && e.amount && e.start>now-3*DAY && e.start<=now), avg=bt.length?bt.reduce((a,e)=>a+e.amount,0)/bt.length:0;
+  const feeds=avg&&tot()?Math.floor(tot()/avg):0;
+  const totals=`<div class="stot"><div class="st0"><span class="label">Total</span><b class="num">${tot()?U.vol(tot()):'0'}</b>${feeds?`<span class="sub">about ${feeds} bottle${feeds===1?'':'s'} of ${volRound(avg)}</span>`:''}</div>
+    ${[['fridge','Fridge'],['thawed','Thawed'],['freezer','Freezer']].map(([w,l])=>`<div><span class="label">${l}</span><b class="num">${tot(w)?U.vol(tot(w)):'—'}</b></div>`).join('')}</div>`;
   const lbl={fridge:'Fridge',thawed:'Thawed',freezer:'Freezer'};
   const rows=it.slice(0,8).map(x=>{ const left=x.useBy-now, past=left<=0, soon=!past && left<12*HR;
     return `<div class="sx ${past?'past':soon?'soon':''}"><div class="sxm"><b class="num">${U.vol(x.ml)}</b> <span class="sub">${lbl[x.where]} · pumped ${fmtDate(x.e.start)} ${fmtTime(x.e.start)}</span><span class="sub">${past?'Past its storage time. Toss it.':`Use by ${fmtDate(x.useBy)}${x.where==='freezer'?'':' '+fmtTime(x.useBy)}${soon?' · use soon':''}`}</span></div>
     <div class="sxb">${state.canWrite?`${past?'':`<button class="btn ghost sm" data-act="stashUse" data-id="${esc(x.e.id)}">Used</button>`}${x.where==='freezer'?`<button class="btn ghost sm" data-act="stashThaw" data-id="${esc(x.e.id)}">Thaw</button>`:''}<button class="btn ghost sm" data-act="stashToss" data-id="${esc(x.e.id)}">Toss</button>`:''}</div></div>`; }).join('');
-  return `<div class="panel stash"><h2><span>Milk stash</span><span class="sub" style="font-weight:600">${sum}</span></h2>${rows}${it.length>8?`<p class="note">${it.length-8} more bags in the stash.</p>`:''}
+  return `<div class="panel stash"><h2><span>Milk stash <span class="sub" style="font-weight:500">· ${sum}</span></span>${state.canWrite?'<button class="btn ghost sm" data-act="stashAdd">+ Add milk</button>':''}</h2>${totals}${rows}${it.length>8?`<p class="note">${it.length-8} more bags in the stash.</p>`:''}
     <p class="note" style="margin:8px 0 0">Oldest first. Fresh milk keeps 4 days in the fridge and about 6 months in the freezer (up to 12 is acceptable). Thawed milk: use within 24 hours and don’t refreeze (CDC).</p></div>`;
 }
 
@@ -2213,6 +2224,7 @@ document.addEventListener('click', async ev=>{
   else if(a==='noDelete'){ document.getElementById('confirmSlot').innerHTML=''; }
   else if(a==='doDelete'){ const fid=document.getElementById('entryForm').dataset.id, copy=state.entries.find(x=>x.id===fid); closeModal(); let ok=false; await safe(async()=>{ await store.del(fid); ok=true; }); if(ok && copy){ const {id:_x,_pending,...rest}=copy; toastUndo('Entry deleted', ()=>safe(()=>store.add(rest),'Entry restored')); } }
   else if(a==='awaySeen'){ try{ localStorage.setItem(awayKey(), String(Date.now())); }catch(e){} render(); }
+  else if(a==='stashAdd'){ if(!['fridge','freezer'].includes(prefs.lastStore)){ prefs.lastStore='fridge'; savePrefs(); } openEntry('pump'); }
   else if(a==='stashUse'){ await safe(()=>store.update(t.dataset.id,{usedAt:Date.now()}),'Marked as used'); }
   else if(a==='stashThaw'){ await safe(()=>store.update(t.dataset.id,{thawedAt:Date.now()}),'Moved to thawed. Use within 24 hours'); }
   else if(a==='stashToss'){ await safe(()=>store.update(t.dataset.id,{tossedAt:Date.now()}),'Removed from the stash'); }
