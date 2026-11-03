@@ -29,6 +29,8 @@ In Android Studio:
 
 Let Play App Signing manage the app signing key (the default). Your keystore then serves as the upload key.
 
+After pulling new code that adds plugins (like this version), run `npm install` again before `npm run sync`.
+
 ## Every update
 
 1. Make the change in the web app (repo root) and push. The website updates by itself.
@@ -55,6 +57,8 @@ Inside the app:
 
 - the phone's Back button closes an open form, then goes back to Home, and closes the app from Home (`@capacitor/app`);
 - the status bar and navigation bar icons follow the app's light or dark theme;
+- reminders (feed check, vitamin D, medicine, appointments) are scheduled on the phone with `@capacitor/local-notifications`, so they arrive even when the app is closed. Android 13 and newer asks the parent for notification permission the first time reminders are turned on (Settings → Reminders);
+- backups, CSV exports and the doctor report (PDF) open the phone's share sheet (`@capacitor/filesystem` + `@capacitor/share`), so parents can save them to Files or Drive or send them;
 - the screen stays on while a feed, sleep or activity timer is running (`@capacitor-community/keep-awake`; parents can turn it off in Settings → Display);
 - the website's offline service worker and the "Add to home screen" section are not used, since the app is already installed.
 

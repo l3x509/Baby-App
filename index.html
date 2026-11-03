@@ -318,6 +318,10 @@ main{min-width:0;overflow-x:clip;padding-block:24px 96px;padding-left:max(16px,e
 .entry .ic svg{width:17px;height:17px}
 .entry .tx{min-width:0}
 .entry .tx b{font-weight:600}
+.away{border-left:4px solid var(--accent)}
+.awayl{margin:0;font-weight:600;font-size:15px}
+.pend{font-size:11.5px;font-weight:600;color:var(--warn-ink)}
+.offbar{background:var(--warn-bg);color:var(--warn-ink);border-radius:var(--r);padding:8px 14px;font-size:13.5px;font-weight:600}
 .entry .tx div{color:var(--ink-2);font-size:13px;overflow-wrap:anywhere}
 .entry .by{font-size:12px;color:var(--ink-3);text-align:right}
 .empty{color:var(--ink-3);padding:18px 4px;text-align:center}
@@ -373,6 +377,15 @@ tr:last-child td{border-bottom:0}
 .divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line)}
 .confirm{background:var(--warn-bg);color:var(--warn-ink);border-radius:10px;padding:10px 12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
 
+.sx{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
+.sx:last-of-type{border-bottom:0}
+.sxm{display:flex;flex-direction:column;min-width:0}
+.sxm b{font-family:var(--display);font-size:18px}
+.sxb{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.sx.soon .sxm .sub:last-child{color:var(--warn-ink);font-weight:600}
+.sx.past .sxm .sub:last-child{color:var(--danger);font-weight:600}
+.toast.undo{display:flex;align-items:center;gap:14px;padding:8px 8px 8px 18px}
+.toast.undo button{border:0;border-radius:99px;padding:6px 14px;font-weight:700;background:var(--accent);color:var(--accent-ink)}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:99px;font-weight:600;z-index:60;font-size:14px}
 .note{font-size:12.5px;color:var(--ink-3)}
 
@@ -513,6 +526,9 @@ const MIN=60000, HR=3600000, DAY=86400000;
 const pad = n => String(n).padStart(2,'0');
 const dayKey = ms => { const d=new Date(ms); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
 const startOfDay = ms => { const d=new Date(ms); d.setHours(0,0,0,0); return d.getTime(); };
+// Calendar-day math (days are 23 or 25 hours when daylight saving changes)
+const dayAdd = (ms,n) => { const d=new Date(ms); d.setDate(d.getDate()+n); return d.getTime(); };
+const clockFrac = ms => { const d=new Date(ms); return (d.getHours()*3600+d.getMinutes()*60+d.getSeconds())/86400; };
 const fmtTime = ms => new Date(ms).toLocaleTimeString([], {hour:'numeric', minute:'2-digit', hour12: prefs.clock!=='24'});
 const fmtDate = ms => new Date(ms).toLocaleDateString([], {weekday:'short', month:'short', day:'numeric'});
 const fmtDur = ms => { ms=Math.max(0,ms); const h=Math.floor(ms/HR), m=Math.floor(ms%HR/MIN); return h ? `${h}h ${pad(m)}m` : `${m}m`; };
@@ -547,7 +563,7 @@ const U = {
 function ageText(birth, at=Date.now()){
   if(!birth) return '';
   const b=new Date(birth+'T00:00'), n=new Date(at);
-  const days=Math.floor((startOfDay(at)-b.getTime())/DAY);
+  const days=Math.round((startOfDay(at)-b.getTime())/DAY);
   if(days<0) return 'Due soon';
   if(days<14) return `${days} day${days===1?'':'s'}`;
   if(days<91) return `${Math.floor(days/7)} wk ${days%7} d`;
@@ -570,7 +586,7 @@ function entrySummary(e){
     case 'breast': { const t=breastTotals(e); const parts=[]; if(t.L) parts.push(`L ${fmtDur(t.L)}`); if(t.R) parts.push(`R ${fmtDur(t.R)}`); return (e.end==null?'In progress · ':'')+(parts.join(' · ')||'—'); }
     case 'bottle': return [e.amount==null?'':U.vol(e.amount)+(e.volUnit && e.volUnit!==(U.imp()?'oz':'ml') ? ` (${U.volAs(e.amount,e.volUnit)})` : ''), e.contents==='formula'?'Formula':e.contents==='breastmilk'?'Breast milk':''].filter(Boolean).join(' · ');
     case 'solids': return [e.food, e.amountText, e.reaction && e.reaction!=='neutral' ? ({liked:'Liked it',disliked:'Disliked',reaction:'⚠ Reaction'}[e.reaction]) : ''].filter(Boolean).join(' · ');
-    case 'pump': { const vu=U.imp()?'oz':'ml'; return [e.left!=null?`L ${U.volAs(e.left,vu)}`:'', e.right!=null?`R ${U.volAs(e.right,vu)}`:'', (e.left||0)+(e.right||0)?`Total ${U.volAs((e.left||0)+(e.right||0),vu)}`:'', e.duration?`${e.duration} min`:''].filter(Boolean).join(' · '); }
+    case 'pump': { const vu=U.imp()?'oz':'ml'; return [e.left!=null?`L ${U.volAs(e.left,vu)}`:'', e.right!=null?`R ${U.volAs(e.right,vu)}`:'', (e.left||0)+(e.right||0)?`Total ${U.volAs((e.left||0)+(e.right||0),vu)}`:'', e.duration?`${e.duration} min`:'', {fed:'fed now',fridge:'fridge',freezer:'freezer'}[e.store]||'', e.usedAt?'used':e.tossedAt?'tossed':e.thawedAt?'thawed':''].filter(Boolean).join(' · '); }
     case 'sleep': return e.end==null ? `Asleep · ${fmtDur(Date.now()-e.start)}` : `${fmtDur(e.end-e.start)} · until ${fmtTime(e.end)}${e.kind==='night'?' · Night':''}`;
     case 'diaper': { const pc=POO_COLORS.find(c=>c[0]===e.pcolor), AP={small:'light',medium:'medium',large:'heavy'}, AD={small:'little',medium:'medium',large:'big'};
       const wetT='Wet'+(e.pee?` (${AP[e.pee]})`:''), dirT=(e.kind==='mixed'?'dirty':'Dirty')+(e.poo?` (${AD[e.poo]})`:'');
@@ -711,7 +727,7 @@ let sb=null, session=null, baby=null, members=[], myBabies=[], channel=null, loa
 if(cloudWanted && window.supabase?.createClient){ try{ sb=window.supabase.createClient(CFG.supabaseUrl.trim(), CFG.supabaseAnonKey.trim()); }catch(e){ sb=null; } }
 const uid = () => session?.user?.id || null;
 const must = ({data,error}) => { if(error) throw error; return data; };
-const toRow = e => { const {id,type,start,end,by,...rest}=e; return {baby_id:baby.id, id, type, start_ms:Math.round(start), end_ms:end==null?null:Math.round(end), data:clean(rest)}; };
+const toRow = e => { const {id,type,start,end,by,_pending,...rest}=e; return {baby_id:baby.id, id, type, start_ms:Math.round(start), end_ms:end==null?null:Math.round(end), data:clean(rest)}; };
 const fromRow = r => ({...(r.data||{}), id:r.id, type:r.type, start:Number(r.start_ms), end:r.end_ms==null?null:Number(r.end_ms), by:r.created_by||undefined});
 function softRender(){ if(!document.querySelector('.modal')) render(); else renderNav(); }
 function upsertLocal(e){ const i=state.entries.findIndex(x=>x.id===e.id); if(i>=0) state.entries[i]=e; else state.entries.push(e); state.entries.sort((a,b)=>b.start-a.start); softRender(); }
@@ -720,20 +736,26 @@ function applyBabyRow(b){ baby=b; state.profile={name:b.name,birth:b.birth,sex:b
 
 const cloud = {
   async add(e){
-    const id=newId(), ent={...e,id,by:uid()}; upsertLocal(ent);
-    try{ must(await sb.from('entries').insert(toRow(ent))); }catch(err){ removeLocal(id); throw err; }
+    const id=e.id||newId(), ent={...e,id,by:e.by||uid()}; delete ent._pending; upsertLocal(ent);
+    const queue=()=>{ outbox.push({op:'add',id,row:toRow(ent)}); upsertLocal({...ent,_pending:true}); queuedNow=true; };
+    if(!navigator.onLine || outbox.get().length){ queue(); flushOutbox(); return id; }
+    try{ must(await sb.from('entries').insert(toRow(ent))); }catch(err){ if(isNetErr(err)){ queue(); return id; } removeLocal(id); throw err; }
     return id;
   },
   async update(id, patch){
     const cur=state.entries.find(x=>x.id===id); if(!cur) return;
-    const next={...cur,...patch}; upsertLocal(next);
+    const next={...cur,...patch}; delete next._pending; upsertLocal(next);
     const r=toRow(next);
+    const queue=()=>{ outbox.push({op:'update',id,row:r}); upsertLocal({...next,_pending:true}); queuedNow=true; };
+    if(!navigator.onLine || outbox.get().length){ queue(); flushOutbox(); return; }
     try{ must(await sb.from('entries').update({type:r.type,start_ms:r.start_ms,end_ms:r.end_ms,data:r.data}).eq('baby_id',baby.id).eq('id',id)); }
-    catch(err){ upsertLocal(cur); throw err; }
+    catch(err){ if(isNetErr(err)){ queue(); return; } upsertLocal(cur); throw err; }
   },
   async del(id){
     const cur=state.entries.find(x=>x.id===id); removeLocal(id);
-    try{ must(await sb.from('entries').delete().eq('baby_id',baby.id).eq('id',id)); }catch(err){ if(cur) upsertLocal(cur); throw err; }
+    const queue=()=>{ outbox.push({op:'del',id}); queuedNow=true; };
+    if(!navigator.onLine || outbox.get().length){ queue(); flushOutbox(); return; }
+    try{ must(await sb.from('entries').delete().eq('baby_id',baby.id).eq('id',id)); }catch(err){ if(isNetErr(err)){ queue(); return; } if(cur) upsertLocal(cur); throw err; }
   },
   async setProfile(p){
     const prev=state.profile; state.profile=p; render();
@@ -770,9 +792,53 @@ const store = {
     state.teeth=t; if(state.mode==='local') local.write(); render();
   }
 };
+
+/* ---------- offline: keep changes on the phone and send them later ---------- */
+const OKEY=id=>'nestling.outbox.'+id, CKEY=id=>'nestling.cache.'+id;
+let queuedNow=false, flushing=false;
+const outbox={
+  get(){ if(!baby) return []; try{ return JSON.parse(localStorage.getItem(OKEY(baby.id))||'[]'); }catch(e){ return []; } },
+  set(q){ if(!baby) return; try{ if(q.length) localStorage.setItem(OKEY(baby.id),JSON.stringify(q)); else localStorage.removeItem(OKEY(baby.id)); }catch(e){} renderNav(); },
+  push(op){
+    let q=this.get();
+    if(op.op==='update'){ const a=q.find(x=>x.id===op.id && x.op==='add'); if(a){ a.row=op.row; this.set(q); return; } q=q.filter(x=>!(x.id===op.id && x.op==='update')); }
+    if(op.op==='del'){ const had=q.some(x=>x.id===op.id && x.op==='add'); q=q.filter(x=>x.id!==op.id); if(had){ this.set(q); return; } }
+    q.push(op); this.set(q);
+  }
+};
+const isNetErr = err => !navigator.onLine || err instanceof TypeError || /fetch|network|load failed|timeout|offline/i.test(String(err?.message||err||''));
+function withOutbox(list){
+  const q=outbox.get(); if(!q.length) return list;
+  let es=[...list];
+  q.forEach(o=>{ if(o.op==='del') es=es.filter(e=>e.id!==o.id); else { const e={...fromRow({...o.row,created_by:uid()}),_pending:true}; const i=es.findIndex(x=>x.id===o.id); if(i>=0) es[i]=e; else es.push(e); } });
+  return es.sort((a,b)=>b.start-a.start);
+}
+async function flushOutbox(){
+  if(flushing || !sb || !baby || !navigator.onLine) return;
+  let q=outbox.get(); if(!q.length) return;
+  flushing=true; let sent=0;
+  try{
+    while(q.length){
+      const o=q[0];
+      try{
+        if(o.op==='add'){ const {error}=await sb.from('entries').insert(o.row); if(error && error.code!=='23505') throw error; if(error) must(await sb.from('entries').update({type:o.row.type,start_ms:o.row.start_ms,end_ms:o.row.end_ms,data:o.row.data}).eq('baby_id',baby.id).eq('id',o.id)); }
+        else if(o.op==='update') must(await sb.from('entries').update({type:o.row.type,start_ms:o.row.start_ms,end_ms:o.row.end_ms,data:o.row.data}).eq('baby_id',baby.id).eq('id',o.id));
+        else must(await sb.from('entries').delete().eq('baby_id',baby.id).eq('id',o.id));
+      }catch(err){ if(isNetErr(err)) break; toast(isDenied(err)?'You have view-only access, so an offline change was dropped.':'One offline change couldn’t be synced and was dropped.'); }
+      q.shift(); outbox.set(q); sent++;
+      const e=state.entries.find(x=>x.id===o.id); if(e && e._pending && !q.some(x=>x.id===o.id)){ delete e._pending; }
+    }
+  } finally { flushing=false; }
+  if(sent){ softRender(); if(!q.length) toast('Offline changes synced'); }
+}
+function cacheBaby(b){ try{ localStorage.setItem(CKEY(b.id),JSON.stringify({b,members,entries:state.entries.filter(e=>!e._pending)})); }catch(e){} }
+window.addEventListener('online',()=>{ flushOutbox(); renderNav(); });
+window.addEventListener('offline',()=>renderNav());
+setInterval(()=>{ if(outbox.get().length) flushOutbox(); },30000);
 const isDenied = err => err && (err.code==='42501' || /row-level security|permission denied/i.test(err.message||''));
 async function safe(fn, okMsg){
-  try{ await fn(); if(okMsg) toast(okMsg); }
+  queuedNow=false;
+  try{ await fn(); if(queuedNow) toast('Saved on this phone. It will sync when you’re back online.'); else if(okMsg) toast(okMsg); }
   catch(err){
     if(isDenied(err)){ state.canWrite=false; toast('You have view-only access to this log.'); render(); }
     else toast('Could not save. Check your connection and try again.');
@@ -916,7 +982,7 @@ function aiSummary(now){
   const p=state.profile||{}, days=ageDays(p.birth,now), es=state.entries.filter(e=>!isFuture(e,now));
   const L=[`Baby: ${days!=null?Math.max(0,Math.floor(days))+' days old':'age unknown'}${p.sex==='f'?', girl':p.sex==='m'?', boy':''}. Units: ${U.imp()?'US (oz, lb, °F)':'metric (ml, kg, °C)'}. Now: ${new Date(now).toLocaleString()}.`];
   let any=false;
-  for(let i=0;i<7;i++){ const d=startOfDay(now)-i*DAY, de=es.filter(e=>e.start>=d&&e.start<d+DAY); if(!de.length) continue; any=true; const s=daySummary(d);
+  for(let i=0;i<7;i++){ const d=dayAdd(startOfDay(now),-i), de=es.filter(e=>e.start>=d&&e.start<dayAdd(d,1)); if(!de.length) continue; any=true; const s=daySummary(d);
     L.push(`${i===0?'Today so far':fmtDate(d)}: ${s.feeds} feeds (nursing ${fmtDur(s.breastMs)}, bottles ${s.bottleMl?U.vol(s.bottleMl):'none'}), ${s.wet} wet and ${s.dirty} dirty diapers, ${s.solids} solid meals, sleep logged ${fmtDur(s.sleepMs)}${s.pumpMl?', pumped '+U.vol(s.pumpMl):''}.`); }
   if(!any) L.push('No entries logged in the last 7 days.');
   const feeds=es.filter(e=>(e.type==='breast'||e.type==='bottle')&&e.start>now-36*HR).map(e=>e.start).sort((a,b)=>a-b);
@@ -1076,7 +1142,7 @@ function prepText(appt){
   const now=Date.now(), p=state.profile||{}, es=state.entries.filter(e=>!isFuture(e,now)), L=[];
   L.push(`${p.name||'Baby'} · ${ageText(p.birth)} old${appt?` · visit ${fmtDate(appt.start)} ${fmtTime(appt.start)}${appt.title?' ('+appt.title+')':''}`:''}`);
   L.push('','Last 7 days:');
-  for(let i=6;i>=0;i--){ const d=startOfDay(now)-i*DAY; if(!es.some(e=>e.start>=d&&e.start<d+DAY)) continue; const s=daySummary(d);
+  for(let i=6;i>=0;i--){ const d=dayAdd(startOfDay(now),-i); if(!es.some(e=>e.start>=d&&e.start<dayAdd(d,1))) continue; const s=daySummary(d);
     L.push(`${i===0?'Today':fmtDate(d)}: ${s.feeds} feeds${s.bottleMl?', '+U.vol(s.bottleMl)+' by bottle':''}${s.breastMs?', '+fmtDur(s.breastMs)+' nursing':''} · ${s.wet} wet, ${s.dirty} dirty${s.spit?' · '+s.spit+(s.spit===1?' spit-up':' spit-ups'):''}`); }
   const feeds=es.filter(e=>(e.type==='breast'||e.type==='bottle')&&e.start>now-36*HR).map(e=>e.start).sort((a,b)=>a-b);
   let gap=0; for(let i=1;i<feeds.length;i++) if(feeds[i]>now-DAY) gap=Math.max(gap,feeds[i]-feeds[i-1]);
@@ -1092,7 +1158,7 @@ function openPrep(appt){
   openModal(`<h3 style="--c:var(--health)"><span class="ic ${IC()}">${svg('doctor')}</span>Prepare for the visit</h3><div class="form">
     <p class="sub">A summary to share with your pediatrician. Add your questions at the bottom, then copy it.</p>
     <textarea id="prepBox" style="min-height:300px;font-size:13.5px;line-height:1.45;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 12px;width:100%">${esc(prepText(appt))}</textarea>
-    <div class="actions"><div class="r"><button type="button" class="btn ghost" data-close="1">Close</button><button type="button" class="btn primary" data-act="copyPrep">Copy summary</button></div></div></div>`);
+    <div class="actions"><div class="r"><button type="button" class="btn ghost" data-close="1">Close</button><button type="button" class="btn ghost" data-act="report">Save PDF report</button><button type="button" class="btn primary" data-act="copyPrep">Copy summary</button></div></div></div>`);
 }
 
 /* ---------- coming up ---------- */
@@ -1161,17 +1227,39 @@ function comingUp(p, now){
 }
 
 /* ---------- derived ---------- */
-function entriesOn(day){ const s=startOfDay(day), e=s+DAY; return state.entries.filter(x=>x.start>=s && x.start<e); }
+function entriesOn(day){ const s=startOfDay(day), e=dayAdd(s,1); return state.entries.filter(x=>x.start>=s && x.start<e); }
 function sleepMsInDay(day, kind){
-  const s=startOfDay(day), e=s+DAY, now=Date.now();
+  const s=startOfDay(day), e=dayAdd(s,1), now=Date.now(), L=e-s;
   return state.entries.filter(x=>x.type==='sleep' && (!kind || (x.kind||'nap')===kind)).reduce((acc,x)=>{
     const a=Math.max(s,x.start), b=Math.min(e, x.end??now); return acc + Math.max(0,b-a); },0);
+}
+function oddValue(type,d,id){
+  const big=ml=>ml!=null && ml>300;
+  if(type==='bottle' && big(d.amount)) return `${U.vol(d.amount)} is a lot for one bottle.`;
+  if(type==='pump' && (big(d.left)||big(d.right))) return `${U.vol(Math.max(d.left||0,d.right||0))} from one side is more than usual.`;
+  if(type==='temp' && d.value!=null && (d.value<34.5||d.value>42.5)) return `${U.tmp(d.value)} is outside the usual range for a body temperature.`;
+  if(type==='growth'){
+    const prev=state.entries.filter(e=>e.type==='growth' && e.id!==id && e.start<=d.start).sort((a,b)=>b.start-a.start);
+    const pw=prev.find(e=>e.weight!=null), pl=prev.find(e=>e.length!=null);
+    if(d.weight!=null && (d.weight<1||d.weight>25)) return `${U.wt(d.weight)} looks unusual for a baby’s weight.`;
+    if(d.weight!=null && pw && Math.abs(d.weight-pw.weight)/pw.weight>0.25) return `${U.wt(d.weight)} is a big change from ${U.wt(pw.weight)} on ${fmtDate(pw.start)}.`;
+    if(d.length!=null && (d.length<35||d.length>120)) return `${U.len(d.length)} looks unusual for a baby’s height.`;
+    if(d.length!=null && pl && (d.length<pl.length-3 || d.length>pl.length*1.25)) return `${U.len(d.length)} is a big change from ${U.len(pl.length)} on ${fmtDate(pl.start)}.`;
+    if(d.head!=null && (d.head<25||d.head>58)) return `${U.len(d.head)} looks unusual for head size.`;
+  }
+  return '';
+}
+function countFeeds(list){
+  const fs=list.filter(e=>e.type==='breast'||e.type==='bottle').sort((a,b)=>a.start-b.start);
+  let n=0, lastEnd=-Infinity;
+  fs.forEach(e=>{ if(e.start-lastEnd>30*MIN) n++; lastEnd=Math.max(lastEnd, e.end||e.start); });
+  return n;
 }
 function daySummary(day){
   const es=entriesOn(day);
   const feeds=es.filter(e=>['breast','bottle'].includes(e.type));
   return {
-    feeds:feeds.length,
+    feeds:countFeeds(es),
     breastMs:es.filter(e=>e.type==='breast').reduce((a,e)=>a+breastTotals(e).total,0),
     bottleMl:es.filter(e=>e.type==='bottle').reduce((a,e)=>a+(e.amount||0),0),
     solids:es.filter(e=>e.type==='solids').length,
@@ -1198,7 +1286,8 @@ function renderNav(){
   document.getElementById('nav').innerHTML=VIEWS.map(([k,l])=>b(k,l)).join('');
   document.getElementById('tabbar').innerHTML=VIEWS.map(([k,l])=>b(k,l)).join('');
   const sync=document.getElementById('sync');
-  const txt = state.mode==='cloud' ? `Synced · ${members.length} in family` : state.mode==='local' ? 'Saved on this device' : 'Sample mode';
+  const pend = state.mode==='cloud' ? outbox.get().length : 0;
+  const txt = state.mode==='cloud' ? (pend ? `${pend} change${pend===1?'':'s'} waiting to sync` : !navigator.onLine ? 'Offline' : `Synced · ${members.length} in family`) : state.mode==='local' ? 'Saved on this device' : 'Sample mode';
   sync.innerHTML=`<span class="dot ${state.mode==='cloud'?'on':''}"></span><span>${txt}</span>`;
 }
 
@@ -1219,6 +1308,7 @@ function render(){
   if(state.view==='ask'){ renderAsk(); const n=document.getElementById('askQ'); if(n){ n.value=aqv; if(aqf) n.focus(); } }
   resolveNames();
   syncWakeLock();
+  clearTimeout(render.rt); render.rt=setTimeout(syncReminders,800);
 }
 
 function header(title, sub, right){
@@ -1237,22 +1327,22 @@ function entryRow(e){
   return `<button class="entry" data-edit="${esc(e.id)}" style="--c:${color(e.type)}">
     <span class="tm">${fmtTime(e.start)}</span>
     <span class="ic ${IC()}">${svg(T[e.type]?.icon)}</span>
-    <span class="tx"><b>${esc(T[e.type]?.label||e.type)}</b><div>${[entrySummary(e),e.note].filter(Boolean).map(esc).join(' · ')}</div></span>
+    <span class="tx"><b>${esc(T[e.type]?.label||e.type)}</b>${e._pending?' <span class="pend" title="Saved on this phone, waiting to sync">· not synced yet</span>':''}<div>${[entrySummary(e),e.note].filter(Boolean).map(esc).join(' · ')}</div></span>
     <span class="by" data-by="${esc(e.by||'')}"></span></button>`;
 }
 
 function strip(day){
-  const s=startOfDay(day), e=s+DAY, now=Date.now();
+  const s=startOfDay(day), e=dayAdd(s,1), now=Date.now(), L=e-s;
   let h='';
   state.entries.forEach(x=>{
-    if(x.type==='sleep'){ const a=Math.max(s,x.start), b=Math.min(e,x.end??now); if(b>a) h+=`<span class="seg" style="left:${(a-s)/DAY*100}%;width:${Math.max(.4,(b-a)/DAY*100)}%;background:var(--sleep);opacity:${x.kind==='night'?1:.7}"></span>`; }
+    if(x.type==='sleep'){ const a=Math.max(s,x.start), b=Math.min(e,x.end??now); if(b>a) h+=`<span class="seg" style="left:${(a-s)/L*100}%;width:${Math.max(.4,(b-a)/L*100)}%;background:var(--sleep);opacity:${x.kind==='night'?1:.7}"></span>`; }
   });
   state.entries.forEach(x=>{
     if(x.type==='sleep' || x.start<s || x.start>=e) return;
-    if(x.type==='breast'){ const dur=x.end? x.end-x.start : breastTotals(x).total; h+=`<span class="seg" style="left:${(x.start-s)/DAY*100}%;width:${Math.max(.5,dur/DAY*100)}%;background:var(--feed);top:20%;bottom:20%"></span>`; return; }
-    h+=`<span class="tick" style="left:${(x.start-s)/DAY*100}%;background:${color(x.type)}"></span>`;
+    if(x.type==='breast'){ const dur=x.end? x.end-x.start : breastTotals(x).total; h+=`<span class="seg" style="left:${(x.start-s)/L*100}%;width:${Math.max(.5,dur/L*100)}%;background:var(--feed);top:20%;bottom:20%"></span>`; return; }
+    h+=`<span class="tick" style="left:${(x.start-s)/L*100}%;background:${color(x.type)}"></span>`;
   });
-  if(now>=s && now<e) h+=`<span class="tick" style="left:${(now-s)/DAY*100}%;background:var(--ink);width:2px;top:0;bottom:0"></span>`;
+  if(now>=s && now<e) h+=`<span class="tick" style="left:${(now-s)/L*100}%;background:var(--ink);width:2px;top:0;bottom:0"></span>`;
   return h;
 }
 const hoursRow = `<div class="hours"><span>12a</span><span>3a</span><span>6a</span><span>9a</span><span>12p</span><span>3p</span><span>6p</span><span>9p</span><span>12a</span></div>`;
@@ -1264,7 +1354,7 @@ function rangeSummary(a,b){
   const es=state.entries.filter(x=>x.start>=a && x.start<b && !isFuture(x,b)), now=Date.now();
   const d=k=>es.filter(e=>e.type==='diaper' && e.kind===k).length;
   return {
-    feeds:es.filter(e=>e.type==='breast'||e.type==='bottle').length,
+    feeds:countFeeds(es),
     bottleMl:es.filter(e=>e.type==='bottle').reduce((t,e)=>t+(e.amount||0),0),
     breastMs:es.filter(e=>e.type==='breast').reduce((t,e)=>t+breastTotals(e).total,0),
     diapers:es.filter(e=>e.type==='diaper').length, wetOnly:d('wet'), dirtyOnly:d('dirty'), mixed:d('mixed'), dry:d('dry'),
@@ -1278,29 +1368,15 @@ function wtDelta(kg){
   if(!U.imp()) return `${sign}${Math.round(a*1000)} g`;
   const oz=Math.round(a*35.274); return oz>=16 ? `${sign}${Math.floor(oz/16)} lb ${oz%16} oz` : `${sign}${oz} oz`;
 }
-function glance(now){
-  const p=state.profile||{}, nm=esc(p.name||'Baby');
-  const g=state.entries.filter(e=>e.type==='growth' && e.start<=now).sort((a,b)=>b.start-a.start);
-  const lastOf=k=>{ const i=g.findIndex(e=>e[k]!=null); return i<0?null:{e:g[i], prev:g.slice(i+1).find(e=>e[k]!=null)}; };
-  const shortD=ms=>new Date(ms).toLocaleDateString([], {month:'short',day:'numeric'});
-  const cell=(c,label,big,meta,attrs='')=>{ const tg=attrs?'button type="button"':'div'; return `<${tg} class="gl" style="--c:${c}" ${attrs}><span class="label">${label}</span><b class="num">${big}</b><span class="sub">${meta}</span></${attrs?'button':'div'}>`; };
-  const cells=[];
-  const w=lastOf('weight');
-  const r=rangeSummary(now-DAY, now);
-  cells.push(cell('var(--feed)','Feeds', r.feeds, [r.bottleMl?U.vol(r.bottleMl)+' by bottle':'', r.breastMs?fmtDur(r.breastMs)+' nursing':''].filter(Boolean).join(' · ')||'No feeds logged'));
-  cells.push(cell('var(--diaper)','Diapers', r.diapers, diaperBreak(r)||'No changes logged'));
-  cells.push(cell('var(--sleep)','Sleep', r.sleepMs?fmtDur(r.sleepMs):'—', r.sleepMs?'Logged sleep':'No sleep logged'));
-  const add = !w && state.canWrite ? `<p class="note" style="margin:10px 0 0">Add ${nm}'s weight to see growth here. <button class="linkb" data-new="growth">Add weight</button></p>` : '';
-  return `<div class="panel"><h2>Last 24 hours</h2><div class="glance">${cells.join('')}</div>${add}</div>`;
-}
 function weekly(now){
   const p=state.profile||{}, born=p.birth?new Date(p.birth+'T00:00').getTime():0;
-  const end=startOfDay(now), start=end-7*DAY; // full days only
-  const days=[]; for(let d=start; d<end; d+=DAY) if(d+DAY>born && state.entries.some(x=>x.start>=d && x.start<d+DAY)) days.push(d);
-  if(days.length<2) return '';
+  const end=startOfDay(now), start=dayAdd(end,-7); // full days only
+  const core=x=>['breast','bottle','diaper','sleep'].includes(x.type);
+  const days=[]; for(let d=start; d<end; d=dayAdd(d,1)) if(dayAdd(d,1)>born && state.entries.some(x=>core(x) && x.start>=d && x.start<dayAdd(d,1))) days.push(d);
+  if(days.length<3) return '';
   const S=days.map(d=>daySummary(d)), n=days.length, avg=k=>S.reduce((t,s)=>t+s[k],0)/n;
   // compare with the 7 days before
-  const prevDays=[]; for(let d=start-7*DAY; d<start; d+=DAY) if(d+DAY>born && state.entries.some(x=>x.start>=d && x.start<d+DAY)) prevDays.push(d);
+  const prevDays=[]; for(let d=dayAdd(start,-7); d<start; d=dayAdd(d,1)) if(dayAdd(d,1)>born && state.entries.some(x=>core(x) && x.start>=d && x.start<dayAdd(d,1))) prevDays.push(d);
   const P=prevDays.length>=5 ? prevDays.map(d=>daySummary(d)) : null, pavg=k=>P.reduce((t,s)=>t+s[k],0)/P.length;
   const ch=(k,fmt)=>{ if(!P) return ''; const dlt=avg(k)-pavg(k); if(Math.abs(dlt) < (k==='sleepMs'?15*MIN:k==='bottleMl'?15:0.5)) return '<span class="chg">about the same</span>'; return `<span class="chg">${dlt>0?'↑':'↓'} ${fmt(Math.abs(dlt))}</span>`; };
   const r1=v=>(Math.round(v*10)/10).toString();
@@ -1317,7 +1393,7 @@ function weekly(now){
 }
 function typicalDay(){
   const t=startOfDay(Date.now()), days=[];
-  for(let i=1;i<=7;i++){ const d=t-i*DAY; if(state.entries.some(x=>x.start>=d && x.start<d+DAY)) days.push(d); }
+  for(let i=1;i<=7;i++){ const d=dayAdd(t,-i); if(state.entries.some(x=>x.start>=d && x.start<dayAdd(d,1))) days.push(d); }
   if(days.length<3) return '';
   return `<div class="panel"><h2><span>Typical day <span class="sub" style="font-weight:500">· last ${days.length} full days layered</span></span></h2>
     <div class="strip typ">${days.map(d=>`<div class="lay" style="opacity:${(1/days.length*1.6).toFixed(2)}">${strip(d)}</div>`).join('')}</div>${hoursRow}
@@ -1331,15 +1407,15 @@ function rightNow(now){
   const ps=past(), lastOf=types=>ps.find(e=>types.includes(e.type));
   let r=rangeSummary(now-DAY, now);
   if(wk){
-    const born=p.birth?new Date(p.birth+'T00:00').getTime():0, first=Math.min(now,...state.entries.map(e=>e.start));
+    const born=p.birth?new Date(p.birth+'T00:00').getTime():0, first=state.entries.reduce((m,e)=>e.start<m?e.start:m,now);
     const span=Math.max(1,(now-Math.max(now-7*DAY,born,first))/DAY), raw=rangeSummary(now-7*DAY,now), r1=v=>Math.round(v/span*10)/10;
     r={...raw}; ['feeds','diapers','wetOnly','dirtyOnly','mixed','dry'].forEach(k=>r[k]=r1(raw[k])); ['bottleMl','breastMs','sleepMs'].forEach(k=>r[k]=raw[k]/span);
   }
   const ago=ms=>ms<MIN?'just now':fmtDur(ms)+' ago';
   // lanes: 24 h ends at now; 7 days layers each day by time of day
-  const days=wk?[0,1,2,3,4,5,6].map(i=>startOfDay(now)-i*DAY):[now-DAY];
-  const pos=(t,a)=>((t-a)/DAY*100);
-  const evs=types=>{ const out=[]; days.forEach((a,di)=>state.entries.forEach(e=>{ if(types.includes(e.type) && e.start>=a && e.start<a+DAY && e.start<=now) out.push([e,a,di]); })); return out; };
+  const days=wk?[0,1,2,3,4,5,6].map(i=>dayAdd(startOfDay(now),-i)):[now-DAY];
+  const pos=(t,a)=>wk?clockFrac(t)*100:((t-a)/DAY*100);
+  const evs=types=>{ const out=[]; days.forEach((a,di)=>{ const b=wk?dayAdd(a,1):a+DAY; state.entries.forEach(e=>{ if(types.includes(e.type) && e.start>=a && e.start<b && e.start<=now) out.push([e,a,di]); }); }); return out; };
   const op=di=>wk?(di===0?.95:.4):1;
   const tick=(e,a,di,c,extra='')=>`<i class="tk" style="left:${pos(e.start,a).toFixed(2)}%;background:${c};opacity:${op(di)};${extra}"></i>`;
   const feedLane=evs(['breast','bottle','solids']).map(([e,a,di])=> e.type==='breast'
@@ -1350,17 +1426,20 @@ function rightNow(now){
       + evs(['breast']).map(([e,a,di])=>`<i class="sg low" style="left:${pos(e.start,a).toFixed(2)}%;width:${Math.max(.9,((e.end||now)-e.start)/DAY*100).toFixed(2)}%;opacity:${op(di)}"></i>`).join('');
   const DC={wet:'var(--diaper)',dirty:'var(--poo)',mixed:'linear-gradient(var(--diaper) 50%,var(--poo) 50%)',dry:'var(--ink-3)'};
   const diaperLane=evs(['diaper','potty']).map(([e,a,di])=>tick(e,a,di,'var(--diaper)',`background:${DC[e.kind]||'var(--diaper)'}`)).join('');
-  const nowMark=wk?`<i class="nw" style="left:${pos(now,startOfDay(now)).toFixed(2)}%"></i>`:'<i class="nw" style="left:99.6%"></i>';
-  const wa=wk?startOfDay(now):now-DAY, nights=[];
-  for(let d=startOfDay(wa)-DAY; d<=wa+DAY; d+=DAY){ const a=Math.max(wa,d+19*HR), b=Math.min(wa+DAY,d+DAY+7*HR); if(b>a) nights.push(`<i class="nt" style="left:${pos(a,wa).toFixed(2)}%;width:${((b-a)/DAY*100).toFixed(2)}%"></i>`); }
-  const lane=(inner,cls='')=>`<div class="ln ${cls}">${nights.join('')}${inner}${nowMark}</div>`;
+  const nowMark=wk?`<i class="nw" style="left:${(clockFrac(now)*100).toFixed(2)}%"></i>`:'<i class="nw" style="left:99.6%"></i>';
+  const wa=now-DAY, nights=[], at=(d,h)=>{ const x=new Date(d); x.setHours(h,0,0,0); return x.getTime(); };
+  if(wk) nights.push('<i class="nt" style="left:0;width:29.17%"></i>','<i class="nt" style="left:79.17%;width:20.83%"></i>');
+  else for(let d=dayAdd(startOfDay(wa),-1); d<=now; d=dayAdd(d,1)){ const a=Math.max(wa,at(d,19)), b=Math.min(now,at(dayAdd(d,1),7)); if(b>a) nights.push(`<i class="nt" style="left:${pos(a,wa).toFixed(2)}%;width:${((b-a)/DAY*100).toFixed(2)}%"></i>`); }
+  const lane=(inner,cls='',lbl='')=>`<div class="ln ${cls}" role="img" aria-label="${esc(lbl)}">${nights.join('')}${inner}${nowMark}</div>`;
+  const when=list=>list.slice(0,12).map(([e])=>fmtTime(e.start)).join(', ');
   const hl=ms=>{ const d=new Date(ms), h=d.getHours(); return prefs.clock==='24'?String(h):((h%12)||12)+(h<12?'a':'p'); };
   const axis=wk?['12a','6a','12p','6p','12a'].map(x=>prefs.clock==='24'?{'12a':'0','6a':'6','12p':'12','6p':'18'}[x]||'24':x):[24,18,12,6].map(h=>hl(now-h*HR)).concat('now');
   const row=(lbl,c,icon,main,sub,val,valsub,ln)=>`<div class="rn" style="--c:${c}"><span class="ri">${svg(icon)}</span><div class="rm"><span class="rl">${lbl}</span><span class="rt">${main}</span>${sub?`<span class="rs">${sub}</span>`:''}</div><div class="rv"><b class="num">${val}</b>${valsub?`<span class="rs">${valsub}</span>`:''}</div>${ln}</div>`;
   const rows=[];
   const lf=lastOf(['breast','bottle','solids']), fe=feedEstimate(now);
-  rows.push(row('Feed','var(--fbar)','bottle', lf?`${ago(now-(lf.end||lf.start))} · ${esc(T[lf.type].label)}`:'No feeds yet', fe?(fe.next<=now?'Next feed due now':`Next around ${fmtTime(fe.next)}`):'',
-    r.feeds, (wk?'a day':r.feeds===1?'feed':'feeds')+(age!=null&&age<56?' · usual 8+':''), lane(feedLane)));
+  const nursing=state.entries.find(e=>e.type==='breast' && e.end==null);
+  rows.push(row('Feed','var(--fbar)','bottle', nursing?`Feeding now · ${fmtDur(now-nursing.start)}`:lf?`${ago(now-(lf.end||lf.start))} · ${esc(T[lf.type].label)}`:'No feeds yet', fe?(fe.next<=now?'Next feed due now':`Next around ${fmtTime(fe.next)}`):'',
+    r.feeds, (wk?'a day':r.feeds===1?'feed':'feeds')+(age!=null&&age<56?' · usual 8+':''), lane(feedLane,'',`Feeds ${wk?'over 7 days':'in the last 24 hours'}: ${when(evs(['breast','bottle','solids']))}`)));
   const bottleRecent=state.entries.some(e=>e.type==='bottle' && e.start>now-3*DAY && e.start<=now);
   const g=state.entries.filter(e=>e.type==='growth' && e.weight!=null && e.start<=now).sort((a,b)=>b.start-a.start)[0];
   const usual=g && age!=null && age<183 ? Math.min(32*29.5735, g.weight*2.20462*2.5*29.5735) : null;
@@ -1368,17 +1447,175 @@ function rightNow(now){
   if(bottleRecent || !r.breastMs){
     rows.push(row('Milk','var(--fbar)','drop', lb?`Last bottle ${U.vol(lb.amount)} · ${ago(now-lb.start)}`:'No bottles yet',
       [r.breastMs?'+ '+fmtDur(r.breastMs)+' nursing':'', !g?'Add a weight in Growth to see the usual amount':''].filter(Boolean).join(' · '),
-      r.bottleMl?U.vol(r.bottleMl):'—', (wk?'a day':'24 h')+(usual?` · usual ~${U.vol(usual).replace(/\.\d oz/,' oz')}`:''), lane(milkLane,'tall')));
+      r.bottleMl?U.vol(r.bottleMl):'—', (wk?'a day':'24 h')+(usual?` · usual ~${U.vol(usual).replace(/\.\d oz/,' oz')}`:''), lane(milkLane,'tall',`Bottles: ${bott.slice(0,12).map(([e])=>U.vol(e.amount)+' at '+fmtTime(e.start)).join(', ')}`)));
   } else {
     rows.push(row('Milk','var(--fbar)','breast','Nursing','Breast milk can’t be measured, so this shows time', fmtDur(r.breastMs), wk?'a day':'24 h', lane(milkLane,'tall')));
   }
   const ld=lastOf(['diaper','potty']), wet=Math.round((r.wetOnly+r.mixed)*10)/10;
   rows.push(row('Diaper','var(--diaper)','diaper', ld?`${ago(now-ld.start)} · ${esc(entrySummary(ld).split(' · ')[0])}`:'No changes yet', diaperBreak(r),
-    r.diapers, (wk?'a day':r.diapers===1?'diaper':'diapers')+(age!=null&&age>=5&&age<183?` · ${wet} wet, usual 6+`:''), lane(diaperLane)));
+    r.diapers, (wk?'a day':r.diapers===1?'diaper':'diapers')+(age!=null&&age>=5&&age<183?` · ${wet} wet, usual 6+`:''), lane(diaperLane,'',`Diapers: ${when(evs(['diaper','potty']))}`)));
   return `<div class="panel rnow"><h2><span>Right now</span><span class="chips" role="group" aria-label="Range"><button class="chip" data-act="rnRange" data-r="24h" aria-pressed="${!wk}">24 h</button><button class="chip" data-act="rnRange" data-r="7d" aria-pressed="${wk}">7 days</button></span></h2>${rows.join('')}
     <div class="rax"><span></span><div class="hours">${axis.map(x=>`<span>${x}</span>`).join('')}</div></div>
     <div class="legend rleg"><span><i style="background:var(--fbar)"></i>Bottle</span><span><i style="background:var(--fbar2)"></i>Nursing</span><span><i style="background:var(--solidc)"></i>Solids</span><span><i style="background:var(--diaper)"></i>Wet</span><span><i style="background:var(--poo)"></i>Dirty</span><span><i style="background:color-mix(in srgb,var(--sleep) 25%,var(--surface))"></i>Night 7p–7a</span></div>
     <p class="note" style="margin:8px 0 0">${wk?'7 days shows daily averages, and each lane layers the last 7 days by time of day. ':''}Usual amounts: 8+ feeds for newborns, 6+ wet diapers from day 5, about 2½ oz of formula per lb (AAP). Every baby is different, so feed on demand.</p></div>`;
+}
+
+
+/* ---------- while you were away (shared logs) ---------- */
+function awayKey(){ return baby?.id ? 'nestling.seen.'+baby.id : null; }
+function awayItems(now){
+  if(state.mode!=='cloud' || !awayKey()) return [];
+  let seen=0; try{ seen=+localStorage.getItem(awayKey())||0; }catch(e){}
+  if(!seen){ try{ localStorage.setItem(awayKey(), String(now)); }catch(e){} return []; }
+  return state.entries.filter(e=>e.by && e.by!==uid() && e.start>seen && e.start<=now && !e._pending);
+}
+function awayCard(now){
+  const es=awayItems(now); if(!es.length) return '';
+  let seen=0; try{ seen=+localStorage.getItem(awayKey())||0; }catch(e){}
+  const n=t=>es.filter(e=>e.type===t).length, ml=es.filter(e=>e.type==='bottle').reduce((a,e)=>a+(e.amount||0),0);
+  const feeds=countFeeds(es), dia=es.filter(e=>e.type==='diaper');
+  const dk=k=>dia.filter(e=>e.kind===k).length;
+  const sleepMs=es.filter(e=>e.type==='sleep'&&e.end).reduce((a,e)=>a+(e.end-e.start),0);
+  const parts=[
+    feeds?`${feeds} feed${feeds===1?'':'s'}${ml?` (${U.vol(ml)} by bottle)`:''}`:'',
+    dia.length?`${dia.length} diaper${dia.length===1?'':'s'}${dia.length>1?' · '+[[dk('wet'),'wet'],[dk('dirty'),'dirty'],[dk('mixed'),'both']].filter(x=>x[0]).map(x=>x[0]+' '+x[1]).join(', '):` · ${(entrySummary(dia[0]).split(' · ')[0]).toLowerCase()}`}`:'',
+    sleepMs?`${fmtDur(sleepMs)} sleep`:'',
+    n('med')?`${n('med')} medicine dose${n('med')===1?'':'s'}`:'', n('temp')?`${n('temp')} temperature check${n('temp')===1?'':'s'}`:'',
+    n('spit')?`${n('spit')} spit-up${n('spit')===1?'':'s'}`:''
+  ].filter(Boolean);
+  const other=es.length-es.filter(e=>['breast','bottle','diaper','med','temp','spit'].includes(e.type)||(e.type==='sleep'&&e.end)).length;
+  const who=[...new Set(es.map(e=>members.find(m=>m.user_id===e.by)?.display_name).filter(Boolean))];
+  return `<div class="panel away"><h2><span>While you were away</span><button class="btn ghost sm" data-act="awaySeen">Got it</button></h2>
+    <p class="awayl">${parts.length?parts.join(' · '):`${es.length} new entr${es.length===1?'y':'ies'}`}${other>0&&parts.length?` · ${other} more`:''}</p>
+    <p class="note" style="margin:4px 0 0">Since ${fmtTime(seen)}${startOfDay(seen)!==startOfDay(now)?' '+fmtDate(seen):''}${who.length?' · logged by '+esc(who.join(' and ')):''}</p></div>`;
+}
+document.addEventListener('visibilitychange',()=>{ if(document.hidden && awayKey() && !awayItems(Date.now()).length){ try{ localStorage.setItem(awayKey(), String(Date.now())); }catch(e){} } });
+
+
+/* ---------- pumped milk stash (storage times: CDC / AAP guidance) ---------- */
+const STASH_LIFE={fridge:4*DAY, thawed:DAY, freezer:183*DAY};
+function stashItems(now=Date.now()){
+  return state.entries.filter(e=>e.type==='pump' && (e.store==='fridge'||e.store==='freezer') && !e.usedAt && !e.tossedAt && ((e.left||0)+(e.right||0))>0 && e.start<=now)
+    .map(e=>{ const where=e.thawedAt?'thawed':e.store, from=e.thawedAt||e.start; return {e, ml:(e.left||0)+(e.right||0), where, useBy:from+STASH_LIFE[where]}; })
+    .sort((a,b)=>a.useBy-b.useBy);
+}
+function stashPanel(now){
+  const it=stashItems(now); if(!it.length) return '';
+  const tot=w=>it.filter(x=>x.where===w).reduce((a,x)=>a+x.ml,0);
+  const sum=[['fridge','fridge'],['thawed','thawed'],['freezer','freezer']].filter(([w])=>tot(w)).map(([w,l])=>`${U.vol(tot(w))} ${l}`).join(' · ');
+  const lbl={fridge:'Fridge',thawed:'Thawed',freezer:'Freezer'};
+  const rows=it.slice(0,8).map(x=>{ const left=x.useBy-now, past=left<=0, soon=!past && left<12*HR;
+    return `<div class="sx ${past?'past':soon?'soon':''}"><div class="sxm"><b class="num">${U.vol(x.ml)}</b> <span class="sub">${lbl[x.where]} · pumped ${fmtDate(x.e.start)} ${fmtTime(x.e.start)}</span><span class="sub">${past?'Past its storage time. Toss it.':`Use by ${fmtDate(x.useBy)}${x.where==='freezer'?'':' '+fmtTime(x.useBy)}${soon?' · use soon':''}`}</span></div>
+    <div class="sxb">${state.canWrite?`${past?'':`<button class="btn ghost sm" data-act="stashUse" data-id="${esc(x.e.id)}">Used</button>`}${x.where==='freezer'?`<button class="btn ghost sm" data-act="stashThaw" data-id="${esc(x.e.id)}">Thaw</button>`:''}<button class="btn ghost sm" data-act="stashToss" data-id="${esc(x.e.id)}">Toss</button>`:''}</div></div>`; }).join('');
+  return `<div class="panel stash"><h2><span>Milk stash</span><span class="sub" style="font-weight:600">${sum}</span></h2>${rows}${it.length>8?`<p class="note">${it.length-8} more bags in the stash.</p>`:''}
+    <p class="note" style="margin:8px 0 0">Oldest first. Fresh milk keeps 4 days in the fridge and about 6 months in the freezer (up to 12 is acceptable). Thawed milk: use within 24 hours and don’t refreeze (CDC).</p></div>`;
+}
+
+
+/* ---------- pediatrician report (PDF) ---------- */
+let jsPDFLib=null;
+function loadJsPDF(){
+  if(jsPDFLib) return Promise.resolve(jsPDFLib);
+  return new Promise((ok,bad)=>{ const sc=document.createElement('script'); sc.src='https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js'; sc.onload=()=>{ jsPDFLib=window.jspdf&&window.jspdf.jsPDF; jsPDFLib?ok(jsPDFLib):bad(new Error('jsPDF missing')); }; sc.onerror=()=>bad(new Error('offline')); document.head.appendChild(sc); });
+}
+const pdfTxt = s => String(s??'').replace(/[‘’]/g,"'").replace(/[“”]/g,'"').replace(/[–—]/g,'-').replace(/…/g,'...').replace(/[^\x20-\x7E -ÿ]/g,'');
+async function makeReport(){
+  const J=await loadJsPDF(); const doc=new J({unit:'pt',format:'letter'});
+  const p=state.profile||{}, now=Date.now(), W=612, M=48; let y=M;
+  const need=h=>{ if(y+h>792-M){ doc.addPage(); y=M; } };
+  const text=(t,x,size=10,style='normal',color=[30,30,30])=>{ doc.setFont('helvetica',style); doc.setFontSize(size); doc.setTextColor(...color); doc.text(pdfTxt(t),x,y); };
+  const para=(t,size=10,color=[60,60,60])=>{ doc.setFont('helvetica','normal'); doc.setFontSize(size); doc.setTextColor(...color); doc.splitTextToSize(pdfTxt(t),W-2*M).forEach(l=>{ need(size+4); doc.text(l,M,y); y+=size+4; }); };
+  const h2=t=>{ y+=10; need(28); text(t,M,13,'bold',[20,20,20]); y+=6; doc.setDrawColor(220); doc.line(M,y,W-M,y); y+=14; };
+  const table=(cols,rows)=>{ need(18); cols.forEach(([l,x])=>text(l,M+x,8.5,'bold',[110,110,110])); y+=13;
+    rows.forEach(r=>{ const lines=r.map((c,i)=>doc.setFontSize(9.5)&&doc.splitTextToSize(pdfTxt(c),(cols[i+1]?cols[i+1][1]:W-2*M)-cols[i][1]-6)); const hgt=Math.max(...lines.map(l=>l.length))*12; need(hgt+2);
+      lines.forEach((l,i)=>{ doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(30,30,30); doc.text(l,M+cols[i][1],y); }); y+=hgt; doc.setDrawColor(238); doc.line(M,y-8,W-M,y-8); y+=2; }); };
+  // header
+  text(`${p.name||'Baby'} - care summary`,M,20,'bold',[20,20,20]); y+=18;
+  para(`Born ${p.birth?new Date(p.birth+'T00:00').toLocaleDateString():'-'} · ${ageText(p.birth)} old · Report made ${new Date(now).toLocaleString([], {dateStyle:'medium',timeStyle:'short'})}`,10,[90,90,90]);
+  para('Logged at home by the family. General information only, not a medical record or medical advice.',8.5,[130,130,130]);
+  // growth
+  const g=state.entries.filter(e=>e.type==='growth' && e.start<=now).sort((a,b)=>b.start-a.start);
+  h2('Growth');
+  if(g.length) table([['Date',0],['Age',90],['Weight',190],['Height',300],['Head',400]], g.slice(0,10).map(e=>[new Date(e.start).toLocaleDateString(), ageText(p.birth,e.start), e.weight!=null?U.wt(e.weight):'-', e.length!=null?U.len(e.length):'-', e.head!=null?U.len(e.head):'-']));
+  else para('No measurements logged yet.');
+  // daily
+  h2('Last 14 days');
+  const days=[]; for(let i=0;i<14;i++){ const d=dayAdd(startOfDay(now),-i); if(entriesOn(d).length) days.push(d); }
+  if(days.length) table([['Date',0],['Feeds',80],['Bottle',125],['Nursing',185],['Wet',245],['Dirty',280],['Sleep',320],['Spit-ups',380],['Pumped',440]],
+    days.map(d=>{ const s=daySummary(d); return [new Date(d).toLocaleDateString([], {weekday:'short',month:'short',day:'numeric'})+(d===startOfDay(now)?' (so far)':''), s.feeds, s.bottleMl?U.vol(s.bottleMl):'-', s.breastMs?fmtDur(s.breastMs):'-', s.wet, s.dirty, s.sleepMs?fmtDur(s.sleepMs):'-', s.spit||'-', s.pumpMl?U.vol(s.pumpMl):'-']; }));
+  else para('Nothing logged in the last 14 days.');
+  // health
+  h2('Health notes, last 30 days');
+  const hs=state.entries.filter(e=>e.start>now-30*DAY && e.start<=now && (['temp','med','symptom','vaccine','doctor','spit'].includes(e.type) || (e.type==='diaper'&&(e.rash||['red','black','white'].includes(e.pcolor))))).sort((a,b)=>b.start-a.start);
+  if(hs.length) table([['When',0],['What',120],['Details',220]], hs.slice(0,40).map(e=>[`${new Date(e.start).toLocaleDateString([], {month:'short',day:'numeric'})} ${fmtTime(e.start)}`, T[e.type]?.label||e.type, [entrySummary(e), e.note].filter(Boolean).join(' · ')]));
+  else para('No temperatures, medicines, symptoms or visits logged.');
+  // milestones
+  const ms=state.entries.filter(e=>e.type==='note' && e.milestone).sort((a,b)=>b.start-a.start);
+  if(ms.length){ h2('Milestones'); table([['Date',0],['Milestone',120]], ms.slice(0,20).map(e=>[new Date(e.start).toLocaleDateString(), e.title||''])); }
+  // upcoming
+  const ap=state.entries.filter(e=>e.type==='doctor' && e.start>now).sort((a,b)=>a.start-b.start);
+  if(ap.length){ h2('Upcoming appointments'); table([['When',0],['Reason',140]], ap.slice(0,5).map(e=>[`${new Date(e.start).toLocaleDateString()} ${fmtTime(e.start)}`, e.title||'Doctor visit'])); }
+  h2('Questions for the doctor'); for(let i=0;i<5;i++){ need(26); y+=18; doc.setDrawColor(200); doc.line(M,y,W-M,y); }
+  const n=doc.getNumberOfPages(); for(let i=1;i<=n;i++){ doc.setPage(i); doc.setFontSize(8); doc.setTextColor(150); doc.text(pdfTxt(`${p.name||'Baby'} · page ${i} of ${n} · made with ${APP_NAME}`),M,792-24); }
+  return doc.output('arraybuffer');
+}
+async function exportReport(btn){
+  if(btn){ btn.disabled=true; btn.dataset.l=btn.textContent; btn.textContent='Making PDF…'; }
+  try{ const buf=await makeReport(); reportSave(await saveFile(`${slugName()}-report-${dayKey(Date.now())}.pdf`, new Uint8Array(buf), 'application/pdf'),'Report saved'); }
+  catch(err){ toast(String(err?.message)==='offline'?'Making the PDF needs an internet connection the first time.':'Couldn’t make the PDF. Try again.'); }
+  finally{ if(btn){ btn.disabled=false; btn.textContent=btn.dataset.l; } }
+}
+
+
+/* ---------- reminders (each phone chooses its own) ---------- */
+const REM_DEF={feed:0, vitd:'', med:true, appt:true};
+const remPrefs = () => Object.assign({}, REM_DEF, prefs.rem||{});
+const LN = () => (typeof NATIVE!=='undefined' && NATIVE && typeof capPlugin==='function') ? capPlugin('LocalNotifications') : null;
+const remOn = r => !!(r.feed || r.vitd || r.med || r.appt);
+function remindersPlan(now=Date.now()){
+  const r=remPrefs(), p=state.profile||{}, nm=p.name||'Your baby', out=[];
+  if(state.mode==='demo' || !remOn(r) || !prefs.remEnabled) return out;
+  if(r.feed){ const lf=past().find(e=>e.type==='breast'||e.type==='bottle'); if(lf){ const at=lf.start+r.feed*MIN; if(at>now) out.push({id:101,at,title:'Feed check',body:`${nm}’s last feed was at ${fmtTime(lf.start)}.`}); } }
+  if(r.vitd && /^\d\d:\d\d$/.test(r.vitd)){ const [hh,mm]=r.vitd.split(':').map(Number); for(let i=0;i<2;i++){ const d=new Date(dayAdd(startOfDay(now),i)); d.setHours(hh,mm,0,0); const at=d.getTime(); if(at<=now) continue;
+      const given=state.entries.some(e=>e.type==='vitd' && e.start>=startOfDay(at) && e.start<dayAdd(startOfDay(at),1)); if(!given){ out.push({id:102+i,at,title:'Vitamin D',body:`Time for ${nm}’s vitamin D drops.`}); break; } } }
+  if(r.med){ const seen=new Set(); state.entries.filter(e=>e.type==='med' && e.remindH && e.start<=now && e.start>now-2*DAY).forEach(e=>{ const k=(e.name||'').toLowerCase(); if(seen.has(k)) return; seen.add(k); const at=e.start+e.remindH*HR; if(at>now) out.push({id:200+out.length,at,title:'Medicine',body:`${nm}’s last ${e.name||'medicine'} was at ${fmtTime(e.start)}. Check the label or your doctor’s directions before the next dose.`}); }); }
+  if(r.appt){ state.entries.filter(e=>e.type==='doctor' && e.start>now && e.start<now+31*DAY).sort((a,b)=>a.start-b.start).slice(0,4).forEach((e,i)=>{
+      const eve=new Date(dayAdd(startOfDay(e.start),-1)); eve.setHours(19,0,0,0);
+      if(eve.getTime()>now) out.push({id:300+i*2,at:eve.getTime(),title:'Appointment tomorrow',body:`${e.title||'Doctor visit'} for ${nm} at ${fmtTime(e.start)}.`});
+      if(e.start-HR>now) out.push({id:301+i*2,at:e.start-HR,title:'Appointment in 1 hour',body:`${e.title||'Doctor visit'} for ${nm} at ${fmtTime(e.start)}.`}); }); }
+  return out;
+}
+let remSig='', remTimers=[];
+async function syncReminders(){
+  const plan=remindersPlan(), sig=JSON.stringify(plan.map(x=>[x.id,x.at,x.body]));
+  if(sig===remSig) return; remSig=sig;
+  const ln=LN();
+  if(ln){ try{ const pend=await ln.getPending(); if(pend?.notifications?.length) await ln.cancel({notifications:pend.notifications.map(n=>({id:n.id}))}); if(plan.length) await ln.schedule({notifications:plan.map(x=>({id:x.id,title:x.title,body:x.body,schedule:{at:new Date(x.at),allowWhileIdle:true}}))}); }catch(e){} return; }
+  remTimers.forEach(clearTimeout); remTimers=[];
+  if(!('Notification' in window) || Notification.permission!=='granted') return;
+  plan.filter(x=>x.at-Date.now()<24*HR).forEach(x=>remTimers.push(setTimeout(async()=>{ try{ const reg=await navigator.serviceWorker?.getRegistration?.(); if(reg) reg.showNotification(x.title,{body:x.body,icon:'icons/icon-192.png',tag:'r'+x.id}); else new Notification(x.title,{body:x.body,tag:'r'+x.id}); }catch(e){} }, x.at-Date.now())));
+}
+async function askNotifyPermission(){
+  const ln=LN();
+  try{
+    if(ln){ let st=await ln.checkPermissions(); if(st.display!=='granted') st=await ln.requestPermissions(); return st.display==='granted'; }
+    if(!('Notification' in window)) return false;
+    if(Notification.permission==='granted') return true;
+    return (await Notification.requestPermission())==='granted';
+  }catch(e){ return false; }
+}
+function remindersPanel(){
+  const r=remPrefs(), on=!!prefs.remEnabled, ln=!!LN(), webOk='Notification' in window && !window.claude;
+  const note = ln ? 'Reminders come from this phone, even when the app is closed. Each phone picks its own.'
+    : webOk ? 'On the website, reminders only show while the app is open in a tab. For reminders when it’s closed, use the Android app.'
+    : 'Reminders need the Android app or the website in a regular browser.';
+  return `<div class="panel" id="remPanel"><h2>Reminders</h2><div class="form">
+    ${F.seg('r_on','Reminders on this phone',[['on','On'],['off','Off']],on?'on':'off')}
+    ${on?`${F.seg('r_feed','Feed check after the last feed',[['0','Off'],['150','2½ h'],['180','3 h'],['210','3½ h'],['240','4 h']],String(r.feed||0))}
+    <label class="field"><span>Vitamin D drops (daily time, empty for off)</span><input type="time" id="r_vitd" value="${esc(r.vitd||'')}"></label>
+    ${F.seg('r_med','Medicine: remind when the time you set is up',[['on','On'],['off','Off']],r.med?'on':'off')}
+    ${F.seg('r_appt','Appointments: the evening before and 1 hour before',[['on','On'],['off','Off']],r.appt?'on':'off')}`:''}
+    <p class="note" style="margin:0">${note}</p></div></div>`;
 }
 
 /* --- Home --- */
@@ -1414,6 +1651,7 @@ function vToday(){
   const fut=state.entries.filter(e=>isFuture(e,now));
   if(fut.length) h+=`<div class="banner"><span>${fut.length===1?'One entry is':fut.length+' entries are'} set to a time that hasn’t happened yet: ${fut.slice(0,3).map(e=>`${esc(T[e.type]?.label||e.type)} at ${fmtTime(e.start)}${startOfDay(e.start)!==startOfDay(now)?' on '+fmtDate(e.start):''}`).join(', ')}. Was AM or PM mixed up?</span><button class="btn" data-edit="${esc(fut[0].id)}">Fix time</button></div>`;
   const tile=(c,label,big,meta)=>`<div class="tile" style="--c:${c}"><span class="label">${label}</span><span class="big">${big}</span><span class="meta">${meta}</span></div>`;
+  h+=awayCard(now);
   const classic=prefs.homeLayout==='classic';
   if(classic) h+=`<div class="since">
     ${tile('var(--feed)','Last feed', lf?fmtDur(now-(lf.end||lf.start))+' ago':'—', lf?`${T[lf.type].label} at ${fmtTime(lf.start)}`:'No feeds yet')}
@@ -1429,7 +1667,7 @@ function vToday(){
   // summary
   const s=daySummary(now);
   const cat=sumCatalog(now), picks=chosenSums().map(id=>cat.find(c=>c[0]===id)).filter(Boolean);
-  if(!classic) h+=nap; else h+=`<div class="grid2">${nap}<div class="panel"><h2>Today so far <button class="btn ghost sm" data-act="editSums">Edit</button></h2><div class="sums">
+  if(!classic) h+=nap+stashPanel(now); else h+=`<div class="grid2">${nap}${stashPanel(now)}<div class="panel"><h2>Today so far <button class="btn ghost sm" data-act="editSums">Edit</button></h2><div class="sums">
     ${picks.map(([,,f])=>{ const [v,l]=f(); return `<div class="sum"><b>${esc(v)}</b><span>${esc(l)}</span></div>`; }).join('')||'<p class="note">Tap Edit to choose what to show.</p>'}
   </div><div style="margin-top:16px"><div class="strip">${strip(now)}</div>${hoursRow}</div></div></div>`;
 
@@ -1443,7 +1681,7 @@ function vTimeline(noHead){
   const sel=state.selDay;
   let h=noHead?'':header('Timeline', 'Tap a day to see its entries');
   h+=typicalDay();
-  const rows=[]; for(let i=0;i<7;i++){ const d=startOfDay(Date.now())-i*DAY; rows.push(d); }
+  const rows=[]; for(let i=0;i<7;i++){ rows.push(dayAdd(startOfDay(Date.now()),-i)); }
   h+=`<div class="panel"><h2>Last 7 days</h2><div class="days">${rows.map(d=>`<div class="dayrow ${d===sel?'sel':''}"><span class="dl">${i18nDay(d)}</span><button class="strip" data-day="${d}" aria-label="Show ${fmtDate(d)}">${strip(d)}</button></div>`).join('')}
     <div class="dayrow"><span></span>${hoursRow}</div></div><div style="margin-top:12px">${legend}</div></div>`;
   const filters=[['all','All'],['feed','Feeding'],['sleep','Sleep'],['diaper','Diapers'],['health','Health'],['activity','Activities'],['memory','Moments']];
@@ -1453,7 +1691,7 @@ function vTimeline(noHead){
     <div class="list">${es.length?es.map(entryRow).join(''):'<div class="empty">No entries for this day.</div>'}</div></div>`;
   return h;
 }
-function i18nDay(d){ const t=startOfDay(Date.now()); if(d===t) return 'Today'; if(d===t-DAY) return 'Yesterday'; return new Date(d).toLocaleDateString([], {weekday:'short', day:'numeric'}); }
+function i18nDay(d){ const t=startOfDay(Date.now()); if(d===t) return 'Today'; if(d===dayAdd(t,-1)) return 'Yesterday'; return new Date(d).toLocaleDateString([], {weekday:'short', day:'numeric'}); }
 
 /* --- Stats --- */
 function barChart(days, series, fmt, title){
@@ -1474,9 +1712,10 @@ function barChart(days, series, fmt, title){
 }
 function niceMax(v){ const p=Math.pow(10,Math.floor(Math.log10(v))); const n=v/p; return (n<=1?1:n<=2?2:n<=2.5?2.5:n<=5?5:10)*p; }
 function vStats(noHead){
-  const n=state.statRange; const days=[]; for(let i=n-1;i>=0;i--) days.push(startOfDay(Date.now())-i*DAY);
+  const n=state.statRange; const days=[]; for(let i=n-1;i>=0;i--) days.push(dayAdd(startOfDay(Date.now()),-i));
   const S=days.map(daySummary);
   let h=noHead?'':header('Stats', `Daily patterns over the last ${n} days`);
+  h+=weekly(Date.now());
   h+=`<div class="chips">${[7,14,30].map(k=>`<button class="chip" data-range="${k}" aria-pressed="${n===k}">${k} days</button>`).join('')}</div>`;
   const hrs=(v,axis)=> axis? `${Math.round(v/HR)}h` : fmtDur(v);
   h+=`<div class="grid2">`;
@@ -1518,8 +1757,8 @@ function vGrowth(){
   let h='';
   const gs=state.entries.filter(e=>e.type==='growth');
   h+=`<div class="head" style="align-items:center"><h2 style="font-size:21px">Growth</h2><button class="btn primary" data-new="growth" ${state.canWrite?'':'disabled'}>${svg('plus','width="16" height="16"')} Add measurement</button></div>`;
-  h+=`<div class="grid2">${growthChart('w','Weight',U.imp()?v=>v*2.20462:v=>v,U.wtU())}${growthChart('l','Length',U.imp()?v=>v/2.54:v=>v,U.lenU())}</div>`;
-  h+=`<div class="panel"><h2>Measurements</h2><div class="tablewrap"><table><thead><tr><th>Date</th><th>Age</th><th>Weight</th><th>Length</th><th>Head</th></tr></thead><tbody>${gs.map(e=>`<tr data-edit="${e.id}" style="cursor:pointer"><td>${new Date(e.start).toLocaleDateString()}</td><td>${esc(ageText(state.profile.birth,e.start))}</td><td>${U.wt(e.weight)||'—'}</td><td>${U.len(e.length)||'—'}</td><td>${U.len(e.head)||'—'}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">No measurements yet.</td></tr>'}</tbody></table></div>
+  h+=`<div class="grid2">${growthChart('w','Weight',U.imp()?v=>v*2.20462:v=>v,U.wtU())}${growthChart('l','Height',U.imp()?v=>v/2.54:v=>v,U.lenU())}</div>`;
+  h+=`<div class="panel"><h2>Measurements</h2><div class="tablewrap"><table><thead><tr><th>Date</th><th>Age</th><th>Weight</th><th>Height</th><th>Head</th></tr></thead><tbody>${gs.map(e=>`<tr data-edit="${e.id}" style="cursor:pointer"><td>${new Date(e.start).toLocaleDateString()}</td><td>${esc(ageText(state.profile.birth,e.start))}</td><td>${U.wt(e.weight)||'—'}</td><td>${U.len(e.length)||'—'}</td><td>${U.len(e.head)||'—'}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">No measurements yet.</td></tr>'}</tbody></table></div>
   <p class="note">The dashed line is the WHO growth-standard median${state.profile?.sex==='m'?' for boys':state.profile?.sex==='f'?' for girls':' (average of boys and girls)'}. It's a reference point, not a target. Ask your pediatrician about your baby's percentile.</p></div>`;
   return h;
 }
@@ -1577,6 +1816,7 @@ function vSettings(){
       <div class="field"><span>Background</span><div class="swatches" role="radiogroup" aria-label="Background">${Object.entries(BGS).map(([k,[n,l,d]])=>`<label class="sw"><input type="radio" name="s_bg" value="${k}" ${prefs.theme==='custom'&&prefs.bg===k?'checked':''}><span style="--sw:${l[0]};--swd:${d[0]}"></span>${n}</label>`).join('')}</div></div>
       <p class="note">Picking a color here switches to your own mix. Tap a theme above to go back.</p></div></details>
     <p class="note">Saved on this device, so each parent can pick their own.</p></div></div>
+  ${remindersPanel()}
   <div class="panel"><h2>Display</h2><div class="form">
     ${F.seg('s_home','Home layout',[['now','Right now card'],['classic','Classic tiles']],prefs.homeLayout==='classic'?'classic':'now')}
     ${F.seg('s_clock','Clock',[['12','12-hour'],['24','24-hour']],prefs.clock)}
@@ -1597,7 +1837,7 @@ function vSettings(){
       : state.mode==='local'?'Entries are saved in this browser. They stay when the file is updated at the same web address, but not if you open the file from a different address or browser.'
       : 'Nothing is saved yet. Add your baby to start saving, or import a backup.'}</p>
     <p>Save a backup file to keep a safe copy or to move your log to another copy of Nestling. Importing adds new entries and skips ones you already have, so it's safe to import the same file twice.</p>
-    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" data-act="backup" ${state.mode==='demo'?'disabled':''}>${svg('download','width="16" height="16"')} Save backup</button><label class="btn ghost" for="importFile">Import backup</label><input type="file" id="importFile" class="vh" accept=".json,application/json"><button class="btn ghost" data-act="export">Export CSV</button></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" data-act="backup" ${state.mode==='demo'?'disabled':''}>${svg('download','width="16" height="16"')} Save backup</button><label class="btn ghost" for="importFile">Import backup</label><input type="file" id="importFile" class="vh" accept=".json,application/json"><button class="btn ghost" data-act="export">Export CSV</button><button class="btn ghost" data-act="report" ${state.mode==='demo'?'disabled':''}>Doctor report (PDF)</button></div>
     <p class="note">${prefs.lastBackup?`Last backup from this device: ${new Date(prefs.lastBackup).toLocaleDateString()}.`:'No backup saved from this device yet.'} CSV is for spreadsheets and your pediatrician; only a backup file can be imported.</p><p class="note" id="exportNote"></p></div>
   <div class="panel"><h2>About Nestling <span class="note" style="font-weight:500">Version ${APP_VERSION}</span></h2><p style="display:flex;gap:14px;flex-wrap:wrap;margin-top:0"><a href="privacy.html" target="_blank" rel="noopener">Privacy policy</a><a href="terms.html" target="_blank" rel="noopener">Terms of use</a><a href="delete-account.html" target="_blank" rel="noopener">Delete account</a></p><p class="note">Nap windows use typical awake times by age from Cleveland Clinic and The Sleep Lady. Growth reference lines use the WHO Child Growth Standards medians (0–24 months). Teeth timing follows the American Dental Association chart. Checkups follow the AAP Bright Futures schedule. Tummy time goals follow NIH Safe to Sleep. A fever is 100.4 °F (38 °C) or higher. Nestling is a log, not medical advice. Call your pediatrician with any health concerns.</p></div></div>`;
   return h;
@@ -1684,7 +1924,8 @@ function accountPanel(){
 /* ---------- modal + forms ---------- */
 function openModal(html){ document.getElementById('modalRoot').innerHTML=`<div class="scrim" data-close="1"><div class="modal" role="dialog" aria-modal="true">${html}</div></div>`; const f=document.querySelector('.modal input:not([type=radio]),.modal select,.modal button'); f&&f.focus(); }
 function closeModal(){ document.getElementById('modalRoot').innerHTML=''; }
-function toast(msg){ const r=document.getElementById('toastRoot'); r.innerHTML=`<div class="toast" role="status">${esc(msg)}</div>`; clearTimeout(toast.t); toast.t=setTimeout(()=>r.innerHTML='',2400); }
+function toast(msg){ const r=document.getElementById('toastRoot'); r.innerHTML=`<div class="toast" role="status">${esc(msg)}</div>`; clearTimeout(toast.t); toast.undo=null; toast.t=setTimeout(()=>r.innerHTML='',2400); }
+function toastUndo(msg, fn){ const r=document.getElementById('toastRoot'); r.innerHTML=`<div class="toast undo" role="status"><span>${esc(msg)}</span><button type="button" data-act="undo">Undo</button></div>`; clearTimeout(toast.t); toast.undo=fn; toast.t=setTimeout(()=>{ r.innerHTML=''; toast.undo=null; },6000); }
 
 const F = {
   time:(id,label,v)=>`<label class="field"><span>${label}</span><input type="datetime-local" id="${id}" value="${v?toInput(v):''}"></label>`,
@@ -1703,9 +1944,9 @@ function fieldsFor(type, e){
   const now=Date.now();
   switch(type){
     case 'breast': return F.time('f_start','Started',e.start||now-15*MIN)+`<div class="row2">${F.num('f_l','Left',e.left!=null?Math.round(e.left/MIN):'', 'min','1')}${F.num('f_r','Right',e.right!=null?Math.round(e.right/MIN):'','min','1')}</div>`+F.text('f_note','Note',e.note);
-    case 'bottle': { const vu=volUnitFor(e); return F.time('f_start','Time',e.start||now)+`<div class="row2" style="align-items:end">${F.num('f_amt','Amount',U.volTo(e.amount,vu),'')}${F.seg('vunit','Unit',[['oz','oz'],['ml','ml']],vu)+`<input type="hidden" id="f_vprev" value="${vu}">`}</div>`+F.seg('contents','Contents',[['breastmilk','Breast milk'],['formula','Formula'],['other','Other']],e.contents||'breastmilk')+F.text('f_note','Note',e.note)+`<p class="note">Tip: burp every 2–3 oz (60–90 ml), then keep ${pron()==='my baby'?'your baby':pron()==='she'?'her':'him'} upright 10–15 minutes after the feed.</p>`; }
+    case 'bottle': { const vu=volUnitFor(e); return F.time('f_start','Time',e.start||now)+`<div class="row2" style="align-items:end">${F.num('f_amt','Amount',U.volTo(e.amount,vu),'')}${F.seg('vunit','Unit',[['oz','oz'],['ml','ml']],vu)+`<input type="hidden" id="f_vprev" value="${vu}">`}</div>`+F.seg('contents','Contents',[['breastmilk','Breast milk'],['formula','Formula'],['other','Other']],e.contents||'breastmilk')+(!e.id&&stashItems().some(x=>x.where!=='freezer'&&x.useBy>now)?`<label class="chk" style="margin-top:-4px"><input type="checkbox" id="f_stash" checked> Mark the oldest stash bag as used (${esc(U.vol(stashItems().find(x=>x.where!=='freezer'&&x.useBy>now).ml))})</label>`:'')+F.text('f_note','Note',e.note)+`<p class="note">Tip: burp every 2–3 oz (60–90 ml), then keep ${pron()==='my baby'?'your baby':pron()==='she'?'her':'him'} upright 10–15 minutes after the feed.</p>`; }
     case 'solids': return F.time('f_start','Time',e.start||now)+F.text('f_food','Food',e.food,'e.g. mashed banana')+F.text('f_amtt','Amount',e.amountText,'e.g. 2 tbsp')+F.seg('reaction','How it went',[['liked','Liked'],['neutral','Okay'],['disliked','Disliked'],['reaction','Reaction']],e.reaction||'liked')+F.text('f_note','Note',e.note);
-    case 'pump': { const vu=volUnitFor(e); return F.time('f_start','Time',e.start||now)+F.seg('vunit','Unit',[['oz','oz'],['ml','ml']],vu)+`<input type="hidden" id="f_vprev" value="${vu}">`+`<div class="row2">${F.num('f_l','Left',U.volTo(e.left,vu),'')}${F.num('f_r','Right',U.volTo(e.right,vu),'')}</div>`+F.num('f_dur','Duration',e.duration,'min','1')+F.text('f_note','Note',e.note); }
+    case 'pump': { const vu=volUnitFor(e); return F.time('f_start','Time',e.start||now)+F.seg('vunit','Unit',[['oz','oz'],['ml','ml']],vu)+`<input type="hidden" id="f_vprev" value="${vu}">`+`<div class="row2">${F.num('f_l','Left',U.volTo(e.left,vu),'')}${F.num('f_r','Right',U.volTo(e.right,vu),'')}</div>`+F.num('f_dur','Duration',e.duration,'min','1')+F.seg('store','Where the milk goes',[['','Not tracked'],['fed','Fed now'],['fridge','Fridge'],['freezer','Freezer']],e.id?(e.store||''):(prefs.lastStore||''))+F.text('f_note','Note',e.note)+`<p class="note">Pick Fridge or Freezer to add it to the milk stash on Home.</p>`; }
     case 'sleep': return F.seg('kind','Type',[['nap','Nap'],['night','Night sleep']],e.kind||(new Date().getHours()>=19||new Date().getHours()<6?'night':'nap'))+F.time('f_start','Fell asleep',e.start||now-60*MIN)+F.time('f_end','Woke up (leave empty if still asleep)',e.id?e.end:now)+F.text('f_note','Note',e.note);
     case 'diaper': { const k=e.kind||'wet', wet=k!=='dirty'&&k!=='dry', poo=k==='dirty'||k==='mixed';
       return F.time('f_start','Time',e.start||now)+F.seg('kind','Diaper',[['wet','Wet'],['dirty','Dirty'],['mixed','Both'],['dry','Dry']],k)
@@ -1716,10 +1957,10 @@ function fieldsFor(type, e){
         ${F.seg('cons','Texture',[['seedy','Seedy'],['soft','Soft'],['runny','Runny'],['firm','Firm'],['mucus','Mucus']],e.cons||'')}</div>`
       +F.check('f_rash','Diaper rash',e.rash)+F.text('f_note','Note',e.note||(e.color&&!e.pcolor?e.color:'')); }
     case 'potty': return F.time('f_start','Time',e.start||now)+F.seg('result','Result',[['pee','Pee'],['poo','Poo'],['both','Both'],['none','Nothing']],e.result||'pee')+F.text('f_note','Note',e.note);
-    case 'growth': return F.time('f_start','Measured',e.start||now)+F.num('f_w','Weight',U.wtOut(e.weight),U.wtU())+`<div class="row2">${F.num('f_len','Length',U.lenOut(e.length),U.lenU())}${F.num('f_head','Head',U.lenOut(e.head),U.lenU())}</div>`+F.text('f_note','Note',e.note);
+    case 'growth': return F.time('f_start','Measured',e.start||now)+F.num('f_w','Weight',U.wtOut(e.weight),U.wtU())+`<div class="row2">${F.num('f_len','Height (lying down)',U.lenOut(e.length),U.lenU())}${F.num('f_head','Head',U.lenOut(e.head),U.lenU())}</div>`+F.text('f_note','Note',e.note);
     case 'temp': return F.time('f_start','Time',e.start||now)+F.num('f_val','Temperature',U.tmpOut(e.value),U.tmpU())+F.seg('method','Method',[['rectal','Rectal'],['armpit','Armpit'],['ear','Ear'],['forehead','Forehead']],e.method||'rectal')+F.text('f_note','Note',e.note)
       +`<p class="note">A temperature of 100.4 °F (38 °C) or higher is a fever. ${(ageDays(state.profile?.birth)??999)<91?'<b>Your baby is under 3 months: call your pediatrician right away for a fever.</b> ':''}Rectal is the most accurate method for babies. When you call, say which method you used.</p>`;
-    case 'med': return F.time('f_start','Time given',e.start||now)+F.text('f_name','Medicine',e.name)+F.text('f_dose','Dose',e.dose,'as on the label or prescription')+F.text('f_note','Note',e.note);
+    case 'med': return F.time('f_start','Time given',e.start||now)+F.text('f_name','Medicine',e.name)+F.text('f_dose','Dose',e.dose,'as on the label or prescription')+F.seg('remindH','Remind me when it’s been',[['','Off'],['4','4 h'],['6','6 h'],['8','8 h'],['12','12 h'],['24','24 h']],e.remindH?String(e.remindH):'')+F.text('f_note','Note',e.note)+`<p class="note">Use the timing on the label or from your doctor. The reminder goes to phones that have medicine reminders on.</p>`;
     case 'symptom': return F.time('f_start','Time',e.start||now)+F.area('f_note','What did you notice?',e.note);
     case 'doctor': return F.time('f_start','Date and time',e.start||now)+F.text('f_title','Reason',e.title,'e.g. 4-month checkup, ear check')+F.area('f_note','Notes',e.note)+`<p class="note">Pick a future date to add an upcoming appointment. It shows under Coming up on Home.</p>`;
     case 'vaccine': return F.time('f_start','Date',e.start||now)+F.text('f_name','Vaccine(s)',e.name,'e.g. 2-month vaccines')+F.text('f_note','Note',e.note);
@@ -1736,16 +1977,16 @@ function readFields(type){
   const start=fromInput(val('f_start'))||Date.now(); const note=val('f_note')?.trim()||undefined;
   switch(type){
     case 'breast': { const l=numv('f_l'), r=numv('f_r'); const L=(l||0)*MIN, R=(r||0)*MIN; return {start,end:start+L+R,left:L,right:R,active:null,activeSince:null,note}; }
-    case 'bottle': return {start,amount:U.volFrom(val('f_amt'),radio('vunit')),volUnit:radio('vunit'),contents:radio('contents'),note};
+    case 'bottle': return {start,amount:U.volFrom(val('f_amt'),radio('vunit')),volUnit:radio('vunit'),contents:radio('contents'),fromStash:document.getElementById('f_stash')?.checked||undefined,note};
     case 'solids': return {start,food:val('f_food').trim(),amountText:val('f_amtt').trim(),reaction:radio('reaction'),note};
-    case 'pump': return {start,left:U.volFrom(val('f_l'),radio('vunit')),right:U.volFrom(val('f_r'),radio('vunit')),volUnit:radio('vunit'),duration:numv('f_dur'),note};
+    case 'pump': return {start,left:U.volFrom(val('f_l'),radio('vunit')),right:U.volFrom(val('f_r'),radio('vunit')),volUnit:radio('vunit'),duration:numv('f_dur'),store:(prefs.lastStore=radio('store')||'',savePrefs(),prefs.lastStore)||undefined,note};
     case 'sleep': { const end=fromInput(val('f_end')); return {start,end: end && end>start ? end : null,kind:radio('kind'),note}; }
     case 'diaper': { const k=radio('kind'), wet=k==='wet'||k==='mixed', poo=k==='dirty'||k==='mixed';
       return {start,kind:k,pee:wet?radio('pee')||undefined:undefined,poo:poo?radio('poo')||undefined:undefined,pcolor:poo?radio('pcolor')||undefined:undefined,cons:poo?radio('cons')||undefined:undefined,rash:document.getElementById('f_rash').checked||undefined,color:undefined,note}; }
     case 'potty': return {start,result:radio('result'),note};
     case 'growth': return {start,weight:U.wtIn(val('f_w')),length:U.lenIn(val('f_len')),head:U.lenIn(val('f_head')),note};
     case 'temp': return {start,value:U.tmpIn(val('f_val')),method:radio('method'),note};
-    case 'med': return {start,name:val('f_name').trim(),dose:val('f_dose').trim(),note};
+    case 'med': return {start,name:val('f_name').trim(),dose:val('f_dose').trim(),remindH:+radio('remindH')||undefined,note};
     case 'symptom': return {start,note};
     case 'doctor': return {start,title:val('f_title').trim()||undefined,note};
     case 'vaccine': return {start,name:val('f_name').trim(),note};
@@ -1797,6 +2038,9 @@ async function exportCsv(){
   reportSave(await saveFile(name,csv,'text/csv'),'Export ready');
 }
 async function saveFile(name, data, mime){
+  if(typeof NATIVE!=='undefined' && NATIVE){ const fsx=capPlugin('Filesystem'), sh=capPlugin('Share');
+    if(fsx && sh){ try{ const bytes = typeof data==='string' ? new TextEncoder().encode(data) : new Uint8Array(data.buffer||data); let bin=''; for(let i=0;i<bytes.length;i+=0x8000) bin+=String.fromCharCode.apply(null, bytes.subarray(i,i+0x8000));
+      const r=await fsx.writeFile({path:name,data:btoa(bin),directory:'CACHE'}); await sh.share({title:name,files:[r.uri]}); return 'saved'; }catch(err){ return /cancel/i.test(String(err?.message||''))?'declined':'error'; } } }
   if(!downloads && window.claude?.use){ try{ downloads=await window.claude.use('downloads'); }catch(e){} }
   if(downloads){ try{ await downloads.save({filename:name,data}); return 'saved'; }catch(err){ return err?.code==='declined'?'declined':'error'; } }
   if(!window.claude){ // self-hosted copy: a normal browser download works here
@@ -1933,6 +2177,7 @@ document.addEventListener('click', async ev=>{
   else if(a==='askReport'){ const m=state.ask[+t.dataset.i]; if(m){ m.reporting=!m.reporting; renderAsk(); } }
   else if(a==='askReportSend') askReport(+t.dataset.i, t.dataset.reason);
   else if(a==='fixAmPm'){ ['f_start','f_end'].forEach(fid=>{ const el=document.getElementById(fid); const v=el&&fromInput(el.value); if(v && v>Date.now()+2*MIN) el.value=toInput(v-12*HR); }); const f=document.getElementById('entryForm'); f.requestSubmit(); }
+  else if(a==='saveOdd'){ const f=document.getElementById('entryForm'); f.dataset.allowOdd='1'; f.requestSubmit(); }
   else if(a==='saveFuture'){ const f=document.getElementById('entryForm'); f.dataset.allowFuture='1'; f.requestSubmit(); }
   else if(a==='deleteAccount'){ const st=document.getElementById('delStatus');
     if((val('delConfirm')||'').trim().toUpperCase()!=='DELETE'){ st.textContent='Type DELETE in the box to confirm.'; document.getElementById('delConfirm').focus(); return; }
@@ -1966,7 +2211,13 @@ document.addEventListener('click', async ev=>{
   else if(a==='finish' && e){ const tot=breastTotals(e,now); await safe(()=>store.update(id,{left:tot.L,right:tot.R,active:null,activeSince:null,end:now}),'Feed logged'); }
   else if(a==='askDelete'){ document.getElementById('confirmSlot').innerHTML=`<div class="confirm"><span>Delete this entry for everyone?</span><span style="display:flex;gap:6px"><button type="button" class="btn sm ghost" data-act="noDelete">Keep</button><button type="button" class="btn sm" style="background:var(--danger);color:#fff" data-act="doDelete">Delete</button></span></div>`; }
   else if(a==='noDelete'){ document.getElementById('confirmSlot').innerHTML=''; }
-  else if(a==='doDelete'){ const fid=document.getElementById('entryForm').dataset.id; closeModal(); await safe(()=>store.del(fid),'Entry deleted'); }
+  else if(a==='doDelete'){ const fid=document.getElementById('entryForm').dataset.id, copy=state.entries.find(x=>x.id===fid); closeModal(); let ok=false; await safe(async()=>{ await store.del(fid); ok=true; }); if(ok && copy){ const {id:_x,_pending,...rest}=copy; toastUndo('Entry deleted', ()=>safe(()=>store.add(rest),'Entry restored')); } }
+  else if(a==='awaySeen'){ try{ localStorage.setItem(awayKey(), String(Date.now())); }catch(e){} render(); }
+  else if(a==='stashUse'){ await safe(()=>store.update(t.dataset.id,{usedAt:Date.now()}),'Marked as used'); }
+  else if(a==='stashThaw'){ await safe(()=>store.update(t.dataset.id,{thawedAt:Date.now()}),'Moved to thawed. Use within 24 hours'); }
+  else if(a==='stashToss'){ await safe(()=>store.update(t.dataset.id,{tossedAt:Date.now()}),'Removed from the stash'); }
+  else if(a==='report'){ exportReport(t); }
+  else if(a==='undo'){ const fn=toast.undo; toast.undo=null; document.getElementById('toastRoot').innerHTML=''; if(fn) await fn(); }
   else if(a==='clearTooth'){ const k=t.dataset.key; const nt={...state.teeth}; delete nt[k]; closeModal(); await safe(()=>store.setTeeth(nt),'Tooth cleared'); }
 });
 let dragT=null;
@@ -1974,7 +2225,7 @@ document.addEventListener('dragstart', ev=>{ const r=ev.target.closest?.('.arr')
 document.addEventListener('dragover', ev=>{ const r=ev.target.closest?.('.arr'); if(!r||!dragT) return; ev.preventDefault(); document.querySelectorAll('.arr.over').forEach(x=>x.classList.remove('over')); if(r.dataset.tile!==dragT) r.classList.add('over'); });
 document.addEventListener('drop', ev=>{ const r=ev.target.closest?.('.arr'); if(!r||!dragT) return; ev.preventDefault(); const o=tileOrder().filter(t=>t!==dragT); o.splice(o.indexOf(r.dataset.tile),0,dragT); prefs.tiles=o; dragT=null; savePrefs(); render(); });
 document.addEventListener('dragend', ()=>{ dragT=null; document.querySelectorAll('.arr.over,.arr.dragging').forEach(x=>x.classList.remove('over','dragging')); });
-document.addEventListener('change', ev=>{
+document.addEventListener('change', async ev=>{
   const t=ev.target;
   if(t.id==='importFile'){
     const file=t.files && t.files[0]; t.value=''; if(!file) return;
@@ -1997,7 +2248,8 @@ document.addEventListener('change', ev=>{
     ['f_amt','f_l','f_r'].forEach(id=>{ const el=document.getElementById(id); if(el && el.value!==''){ el.value=U.volTo(U.volFrom(el.value,prev),next); } });
     document.getElementById('f_vprev').value=next; prefs.volUnit=next; savePrefs(); return;
   }
-  if(!t.name || !t.name.startsWith('s_')) return;
+  if(t.id==='r_vitd'){ const r=remPrefs(); r.vitd=t.value; prefs.rem=r; savePrefs(); remSig=''; syncReminders(); toast(t.value?'Vitamin D reminder set':'Vitamin D reminder off'); return; }
+  if(!t.name || !(t.name.startsWith('s_')||t.name.startsWith('r_'))) return;
   if(t.name==='s_units'){ if(state.canWrite && state.profile) safe(()=>store.setProfile({...state.profile,units:t.value}),'Units updated'); return; }
   if(t.name==='s_theme') prefs.theme=t.value;
   if(t.name==='s_icons') prefs.icons=t.value;
@@ -2007,6 +2259,8 @@ document.addEventListener('change', ev=>{
   if(t.name==='s_mode') prefs.appearance=t.value;
   if(t.name==='s_clock') prefs.clock=t.value;
   if(t.name==='s_home') prefs.homeLayout=t.value;
+  if(t.name==='r_on'){ if(t.value==='on'){ const ok=await askNotifyPermission(); if(!ok){ toast('Notifications are blocked. Turn them on in your phone or browser settings.'); render(); return; } prefs.remEnabled=true; if(!prefs.rem) prefs.rem={feed:180,vitd:'',med:true,appt:true}; } else prefs.remEnabled=false; }
+  if(['r_feed','r_med','r_appt'].includes(t.name)){ const r=remPrefs(); if(t.name==='r_feed') r.feed=+t.value; else r[t.name.slice(2)]=t.value==='on'; prefs.rem=r; }
   if(t.name==='s_awake') prefs.keepAwake=t.value==='on';
   if(t.name==='s_vitd') prefs.vitd=t.value;
   savePrefs(); applyPrefs(); render();
@@ -2027,9 +2281,11 @@ document.addEventListener('submit', async ev=>{
       document.getElementById('confirmSlot').innerHTML=`<div class="confirm"><span>${fmtTime(t)}${startOfDay(t)!==startOfDay(nowS)?' on '+fmtDate(t):''} hasn’t happened yet. ${other<=nowS && new Date(t).getHours()>=12?`Did you mean ${fmtTime(other)}?`:'Check the time.'}</span><span style="display:flex;gap:6px;flex-wrap:wrap">${other<=nowS && new Date(t).getHours()>=12?`<button type="button" class="btn sm" data-act="fixAmPm">Use ${fmtTime(other)}</button>`:''}<button type="button" class="btn sm ghost" data-act="saveFuture">Save anyway</button></span></div>`;
       return;
     }
+    const odd=!f.dataset.allowOdd && oddValue(type,data,id);
+    if(odd){ document.getElementById('confirmSlot').innerHTML=`<div class="confirm"><span>${odd} Check the number before saving.</span><span style="display:flex;gap:6px"><button type="button" class="btn sm ghost" data-act="saveOdd">Save anyway</button></span></div>`; document.getElementById('confirmSlot').scrollIntoView({block:'nearest'}); return; }
     closeModal();
     if(id){ const cur=state.entries.find(x=>x.id===id); if(type==='breast' && cur && cur.end==null){ data.end=null; data.active=cur.active; data.activeSince=cur.activeSince; data.left=cur.left; data.right=cur.right; data.start=fromInput(val('f_start'))||cur.start; } await safe(()=>store.update(id,data),'Saved'); }
-    else await safe(()=>store.add(data),`${T[type].label} logged`);
+    else { const fromStash=data.fromStash && data.contents==='breastmilk'; delete data.fromStash; await safe(()=>store.add(data),`${T[type].label} logged`); if(fromStash){ const b=stashItems().find(x=>x.where!=='freezer'&&x.useBy>Date.now()); if(b) await safe(()=>store.update(b.e.id,{usedAt:Date.now()})); } }
   }
   if(f.id==='setupForm'){
     const birth=val('p_birth'); if(!birth){ document.getElementById('p_birth').focus(); return; }
@@ -2157,13 +2413,18 @@ async function openBaby(id, quiet){
     if(!(await loadMembers(id))) return;
     const es=await fetchEntries(id);
     if(loadingFor!==id) return;
-    state.entries=es; state.mode='cloud'; state.me=uid();
-    prefs.activeBaby=id; savePrefs();
-    subscribeBaby(id);
+    state.entries=withOutbox(es); state.mode='cloud'; state.me=uid(); state.offline=false;
+    prefs.activeBaby=id; savePrefs(); cacheBaby(b);
+    subscribeBaby(id); flushOutbox();
     offerChecked=true; state.localOffer=null; checkLocalOffer();
     render();
-  }catch(err){ if(!quiet) toast('Couldn’t load the log. Check your connection and refresh.'); else throw err; }
+  }catch(err){
+    let c=null; try{ c=JSON.parse(localStorage.getItem(CKEY(id))||'null'); }catch(e){}
+    if(c && isNetErr(err)){ applyBabyRow(c.b); baby=c.b; members=c.members||[]; const me=members.find(m=>m.user_id===uid()); state.canWrite=!me||me.role!=='viewer'; state.entries=withOutbox((c.entries||[])); state.mode='cloud'; state.me=uid(); state.offline=true; render(); toast('You’re offline. Showing what was saved on this phone.'); return; }
+    if(!quiet) toast('Couldn’t load the log. Check your connection and refresh.'); else throw err;
+  }
 }
+window.addEventListener('online',()=>{ if(state.offline && baby) openBaby(baby.id,true).catch(()=>{}); });
 function subscribeBaby(id){
   if(channel){ sb.removeChannel(channel); channel=null; }
   channel=sb.channel('nestling-'+id)
@@ -2205,7 +2466,7 @@ function startAuth(){
 }
 async function afterSignIn(){
   if(document.getElementById('signinForm')) closeModal();
-  try{ await refreshMyBabies(); }catch(e){ toast('Couldn’t load your logs. Check your connection and refresh.'); return; }
+  try{ await refreshMyBabies(); }catch(e){ if(isNetErr(e) && prefs.activeBaby && localStorage.getItem(CKEY(prefs.activeBaby))){ await openBaby(prefs.activeBaby,true).catch(()=>{}); return; } toast('Couldn’t load your logs. Check your connection and refresh.'); return; }
   const code=pendingJoin(); clearJoin();
   if(myBabies.length){ const pick=myBabies.find(m=>m.baby_id===prefs.activeBaby)||myBabies[0]; await openBaby(pick.baby_id); }
   else render();
@@ -2218,7 +2479,7 @@ function signedOut(){
 let hiddenAt=0;
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden){ hiddenAt=Date.now(); return; }
-  if(state.mode==='cloud' && baby && Date.now()-hiddenAt>20000){ const id=baby.id; fetchEntries(id).then(es=>{ if(baby?.id===id){ state.entries=es; softRender(); } }).catch(()=>{}); }
+  if(state.mode==='cloud' && baby && Date.now()-hiddenAt>20000){ const id=baby.id; flushOutbox().finally(()=>fetchEntries(id).then(es=>{ if(baby?.id===id){ state.entries=withOutbox(es); cacheBaby(baby); softRender(); } }).catch(()=>{})); }
 });
 
 /* ---------- boot ---------- */
