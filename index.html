@@ -1500,9 +1500,26 @@ document.addEventListener('visibilitychange',()=>{ if(document.hidden && awayKey
 const volRound = ml => U.imp() ? `${Math.round(ml/29.5735)} oz` : `${Math.round(ml/10)*10} ml`;
 const STASH_LIFE={fridge:4*DAY, thawed:DAY, freezer:183*DAY};
 function stashItems(now=Date.now()){
-  return state.entries.filter(e=>e.type==='pump' && (e.store==='fridge'||e.store==='freezer') && !e.usedAt && !e.tossedAt && ((e.left||0)+(e.right||0))>0 && e.start<=now)
-    .map(e=>{ const where=e.thawedAt?'thawed':e.store, from=e.thawedAt||e.start; return {e, ml:(e.left||0)+(e.right||0), where, useBy:from+STASH_LIFE[where]}; })
+  return state.entries.filter(e=>e.type==='pump' && (e.store==='fridge'||e.store==='freezer') && !e.usedAt && !e.tossedAt && e.start<=now)
+    .map(e=>{ const where=e.thawedAt?'thawed':e.store, from=e.thawedAt||e.start; return {e, ml:e.stashMl!=null?e.stashMl:(e.left||0)+(e.right||0), where, useBy:from+STASH_LIFE[where]}; }).filter(x=>x.ml>0)
     .sort((a,b)=>a.useBy-b.useBy);
+}
+async function takeFromStash(ml){
+  let need=ml||0; const bags=stashItems().filter(x=>x.where!=='freezer' && x.useBy>Date.now());
+  if(!bags.length) return;
+  if(!need){ await safe(()=>store.update(bags[0].e.id,{usedAt:Date.now()})); return; }
+  for(const b of bags){ if(need<=0) break;
+    if(need>=b.ml-1){ need-=b.ml; await safe(()=>store.update(b.e.id,{usedAt:Date.now()})); }
+    else { const left=b.ml-need; need=0; await safe(()=>store.update(b.e.id,{stashMl:left})); } }
+}
+function openStashEdit(id){
+  const x=stashItems().find(i=>i.e.id===id); if(!x) return;
+  const vu=U.imp()?'oz':'ml';
+  openModal(`<h3 style="--c:var(--feed)"><span class="ic ${IC()}">${svg('pump')}</span>Edit stash bag</h3><div class="form" id="stashForm" data-id="${esc(id)}">
+    <p class="sub" style="margin:0">Pumped ${fmtDate(x.e.start)} at ${fmtTime(x.e.start)}${(x.e.left||0)+(x.e.right||0)?` · ${U.vol((x.e.left||0)+(x.e.right||0))} at the time`:''}</p>
+    ${F.num('sb_amt','Amount left in the bag',U.volTo(x.ml,vu),vu)}
+    ${x.where==='thawed'?'<p class="note">Thawed milk stays thawed. Use it within 24 hours.</p>':F.seg('sb_where','Where it is',[['fridge','Fridge'],['freezer','Freezer']],x.where)}
+    <div class="actions"><button type="button" class="btn danger" data-act="stashToss" data-id="${esc(id)}">Toss bag</button><div class="r"><button type="button" class="btn ghost" data-close="1">Cancel</button><button type="button" class="btn primary" data-act="stashSave">Save</button></div></div></div>`);
 }
 function stashPanel(now){
   if(prefs.stash==='hide') return '';
@@ -1518,7 +1535,7 @@ function stashPanel(now){
   const lbl={fridge:'Fridge',thawed:'Thawed',freezer:'Freezer'};
   const rows=it.slice(0,8).map(x=>{ const left=x.useBy-now, past=left<=0, soon=!past && left<12*HR;
     return `<div class="sx ${past?'past':soon?'soon':''}"><div class="sxm"><b class="num">${U.vol(x.ml)}</b> <span class="sub">${lbl[x.where]} · pumped ${fmtDate(x.e.start)} ${fmtTime(x.e.start)}</span><span class="sub">${past?'Past its storage time. Toss it.':`Use by ${fmtDate(x.useBy)}${x.where==='freezer'?'':' '+fmtTime(x.useBy)}${soon?' · use soon':''}`}</span></div>
-    <div class="sxb">${state.canWrite?`${past?'':`<button class="btn ghost sm" data-act="stashUse" data-id="${esc(x.e.id)}">Used</button>`}${x.where==='freezer'?`<button class="btn ghost sm" data-act="stashThaw" data-id="${esc(x.e.id)}">Thaw</button>`:''}<button class="btn ghost sm" data-act="stashToss" data-id="${esc(x.e.id)}">Toss</button>`:''}</div></div>`; }).join('');
+    <div class="sxb">${state.canWrite?`<button class="btn ghost sm" data-act="stashEdit" data-id="${esc(x.e.id)}">Edit</button>${past?'':`<button class="btn ghost sm" data-act="stashUse" data-id="${esc(x.e.id)}">Used</button>`}${x.where==='freezer'?`<button class="btn ghost sm" data-act="stashThaw" data-id="${esc(x.e.id)}">Thaw</button>`:''}<button class="btn ghost sm" data-act="stashToss" data-id="${esc(x.e.id)}">Toss</button>`:''}</div></div>`; }).join('');
   return `<div class="panel stash"><h2><span>Milk stash <span class="sub" style="font-weight:500">· ${sum}</span></span>${state.canWrite?'<button class="btn ghost sm" data-act="stashAdd">+ Add milk</button>':''}</h2>${totals}${rows}${it.length>8?`<p class="note">${it.length-8} more bags in the stash.</p>`:''}
     <p class="note" style="margin:8px 0 0">Oldest first. Fresh milk keeps 4 days in the fridge and about 6 months in the freezer (up to 12 is acceptable). Thawed milk: use within 24 hours and don’t refreeze (CDC).</p></div>`;
 }
@@ -1957,7 +1974,7 @@ function fieldsFor(type, e){
   const now=Date.now();
   switch(type){
     case 'breast': return F.time('f_start','Started',e.start||now-15*MIN)+`<div class="row2">${F.num('f_l','Left',e.left!=null?Math.round(e.left/MIN):'', 'min','1')}${F.num('f_r','Right',e.right!=null?Math.round(e.right/MIN):'','min','1')}</div>`+F.text('f_note','Note',e.note);
-    case 'bottle': { const vu=volUnitFor(e); return F.time('f_start','Time',e.start||now)+`<div class="row2" style="align-items:end">${F.num('f_amt','Amount',U.volTo(e.amount,vu),'')}${F.seg('vunit','Unit',[['oz','oz'],['ml','ml']],vu)+`<input type="hidden" id="f_vprev" value="${vu}">`}</div>`+F.seg('contents','Contents',[['breastmilk','Breast milk'],['formula','Formula'],['other','Other']],e.contents||'breastmilk')+(!e.id&&stashItems().some(x=>x.where!=='freezer'&&x.useBy>now)?`<label class="chk" id="stashBox" style="margin-top:-4px" ${(e.contents||'breastmilk')==='breastmilk'?'':'hidden'}><input type="checkbox" id="f_stash" checked> From the milk stash (uses the oldest bag: ${esc(U.vol(stashItems().find(x=>x.where!=='freezer'&&x.useBy>now).ml))} ${stashItems().find(x=>x.where!=='freezer'&&x.useBy>now).where==='thawed'?'thawed':'from the fridge'})</label>`:'')+F.text('f_note','Note',e.note)+`<p class="note">Tip: burp every 2–3 oz (60–90 ml), then keep ${pron()==='my baby'?'your baby':pron()==='she'?'her':'him'} upright 10–15 minutes after the feed.</p>`; }
+    case 'bottle': { const vu=volUnitFor(e); return F.time('f_start','Time',e.start||now)+`<div class="row2" style="align-items:end">${F.num('f_amt','Amount',U.volTo(e.amount,vu),'')}${F.seg('vunit','Unit',[['oz','oz'],['ml','ml']],vu)+`<input type="hidden" id="f_vprev" value="${vu}">`}</div>`+F.seg('contents','Contents',[['breastmilk','Breast milk'],['formula','Formula'],['other','Other']],e.contents||'breastmilk')+(!e.id&&stashItems().some(x=>x.where!=='freezer'&&x.useBy>now)?`<label class="chk" id="stashBox" style="margin-top:-4px" ${(e.contents||'breastmilk')==='breastmilk'?'':'hidden'}><input type="checkbox" id="f_stash" checked> From the milk stash (takes the amount from the oldest bag first)</label>`:'')+F.text('f_note','Note',e.note)+`<p class="note">Tip: burp every 2–3 oz (60–90 ml), then keep ${pron()==='my baby'?'your baby':pron()==='she'?'her':'him'} upright 10–15 minutes after the feed.</p>`; }
     case 'solids': return F.time('f_start','Time',e.start||now)+F.text('f_food','Food',e.food,'e.g. mashed banana')+F.text('f_amtt','Amount',e.amountText,'e.g. 2 tbsp')+F.seg('reaction','How it went',[['liked','Liked'],['neutral','Okay'],['disliked','Disliked'],['reaction','Reaction']],e.reaction||'liked')+F.text('f_note','Note',e.note);
     case 'pump': { const vu=volUnitFor(e); return F.time('f_start','Time',e.start||now)+F.seg('vunit','Unit',[['oz','oz'],['ml','ml']],vu)+`<input type="hidden" id="f_vprev" value="${vu}">`+`<div class="row2">${F.num('f_l','Left',U.volTo(e.left,vu),'')}${F.num('f_r','Right',U.volTo(e.right,vu),'')}</div>`+F.num('f_dur','Duration',e.duration,'min','1')+(prefs.stash==='hide'?'':F.seg('store','Where the milk goes',[['','Not tracked'],['fed','Fed now'],['fridge','Fridge'],['freezer','Freezer']],e.id?(e.store||''):(prefs.lastStore||'')))+F.text('f_note','Note',e.note)+(prefs.stash==='hide'?'':`<p class="note">Pick Fridge or Freezer to add it to the milk stash on Home.</p>`); }
     case 'sleep': return F.seg('kind','Type',[['nap','Nap'],['night','Night sleep']],e.kind||(new Date().getHours()>=19||new Date().getHours()<6?'night':'nap'))+F.time('f_start','Fell asleep',e.start||now-60*MIN)+F.time('f_end','Woke up (leave empty if still asleep)',e.id?e.end:now)+F.text('f_note','Note',e.note);
@@ -2227,9 +2244,13 @@ document.addEventListener('click', async ev=>{
   else if(a==='doDelete'){ const fid=document.getElementById('entryForm').dataset.id, copy=state.entries.find(x=>x.id===fid); closeModal(); let ok=false; await safe(async()=>{ await store.del(fid); ok=true; }); if(ok && copy){ const {id:_x,_pending,...rest}=copy; toastUndo('Entry deleted', ()=>safe(()=>store.add(rest),'Entry restored')); } }
   else if(a==='awaySeen'){ try{ localStorage.setItem(awayKey(), String(Date.now())); }catch(e){} render(); }
   else if(a==='stashAdd'){ if(!['fridge','freezer'].includes(prefs.lastStore)){ prefs.lastStore='fridge'; savePrefs(); } openEntry('pump'); }
+  else if(a==='stashEdit'){ openStashEdit(t.dataset.id); }
+  else if(a==='stashSave'){ const fm=document.getElementById('stashForm'), id=fm.dataset.id, v=val('sb_amt'), w=radio('sb_where');
+    const ml=U.volFrom(v, U.imp()?'oz':'ml'); if(ml==null||ml<0){ document.getElementById('sb_amt').focus(); return; }
+    const patch=ml<=0?{usedAt:Date.now(),stashMl:0}:{stashMl:ml}; if(w) patch.store=w; closeModal(); await safe(()=>store.update(id,patch), ml<=0?'Bag marked as used':'Stash updated'); }
   else if(a==='stashUse'){ await safe(()=>store.update(t.dataset.id,{usedAt:Date.now()}),'Marked as used'); }
   else if(a==='stashThaw'){ await safe(()=>store.update(t.dataset.id,{thawedAt:Date.now()}),'Moved to thawed. Use within 24 hours'); }
-  else if(a==='stashToss'){ await safe(()=>store.update(t.dataset.id,{tossedAt:Date.now()}),'Removed from the stash'); }
+  else if(a==='stashToss'){ closeModal(); await safe(()=>store.update(t.dataset.id,{tossedAt:Date.now()}),'Removed from the stash'); }
   else if(a==='report'){ exportReport(t); }
   else if(a==='undo'){ const fn=toast.undo; toast.undo=null; document.getElementById('toastRoot').innerHTML=''; if(fn) await fn(); }
   else if(a==='clearTooth'){ const k=t.dataset.key; const nt={...state.teeth}; delete nt[k]; closeModal(); await safe(()=>store.setTeeth(nt),'Tooth cleared'); }
@@ -2301,7 +2322,7 @@ document.addEventListener('submit', async ev=>{
     if(odd){ document.getElementById('confirmSlot').innerHTML=`<div class="confirm"><span>${odd} Check the number before saving.</span><span style="display:flex;gap:6px"><button type="button" class="btn sm ghost" data-act="saveOdd">Save anyway</button></span></div>`; document.getElementById('confirmSlot').scrollIntoView({block:'nearest'}); return; }
     closeModal();
     if(id){ const cur=state.entries.find(x=>x.id===id); if(type==='breast' && cur && cur.end==null){ data.end=null; data.active=cur.active; data.activeSince=cur.activeSince; data.left=cur.left; data.right=cur.right; data.start=fromInput(val('f_start'))||cur.start; } await safe(()=>store.update(id,data),'Saved'); }
-    else { const fromStash=data.fromStash && data.contents==='breastmilk'; delete data.fromStash; await safe(()=>store.add(data),`${T[type].label} logged`); if(fromStash){ const b=stashItems().find(x=>x.where!=='freezer'&&x.useBy>Date.now()); if(b) await safe(()=>store.update(b.e.id,{usedAt:Date.now()})); } }
+    else { const fromStash=data.fromStash && data.contents==='breastmilk'; delete data.fromStash; await safe(()=>store.add(data),`${T[type].label} logged`); if(fromStash) await takeFromStash(data.amount); }
   }
   if(f.id==='setupForm'){
     const birth=val('p_birth'); if(!birth){ document.getElementById('p_birth').focus(); return; }
