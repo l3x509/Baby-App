@@ -1505,6 +1505,7 @@ function stashItems(now=Date.now()){
     .sort((a,b)=>a.useBy-b.useBy);
 }
 function stashPanel(now){
+  if(prefs.stash==='hide') return '';
   const all=stashItems(now), used=state.entries.some(e=>e.type==='pump' && (e.store==='fridge'||e.store==='freezer'));
   if(!all.length && !used) return '';
   const it=all, good=all.filter(x=>x.useBy>now);
@@ -1830,6 +1831,7 @@ function vSettings(){
   ${remindersPanel()}
   <div class="panel"><h2>Display</h2><div class="form">
     ${F.seg('s_home','Home layout',[['now','Right now card'],['classic','Classic tiles']],prefs.homeLayout==='classic'?'classic':'now')}
+    ${F.seg('s_stash','Milk stash on this phone',[['show','Show'],['hide','Hide']],prefs.stash==='hide'?'hide':'show')}<p class="note" style="margin-top:-8px">Hiding it only changes this phone. The bags stay shared, and new breast-milk bottles still offer "From the milk stash" when there’s milk in it.</p>
     ${F.seg('s_clock','Clock',[['12','12-hour'],['24','24-hour']],prefs.clock)}
     ${F.seg('s_awake','Keep screen on while a timer runs',[['on','On'],['off','Off']],prefs.keepAwake===false?'off':'on')}
     ${F.seg('s_vitd','Vitamin D reminder',[['auto','When breastfeeding'],['on','Always'],['off','Off']],prefs.vitd||'auto')}
@@ -1955,9 +1957,9 @@ function fieldsFor(type, e){
   const now=Date.now();
   switch(type){
     case 'breast': return F.time('f_start','Started',e.start||now-15*MIN)+`<div class="row2">${F.num('f_l','Left',e.left!=null?Math.round(e.left/MIN):'', 'min','1')}${F.num('f_r','Right',e.right!=null?Math.round(e.right/MIN):'','min','1')}</div>`+F.text('f_note','Note',e.note);
-    case 'bottle': { const vu=volUnitFor(e); return F.time('f_start','Time',e.start||now)+`<div class="row2" style="align-items:end">${F.num('f_amt','Amount',U.volTo(e.amount,vu),'')}${F.seg('vunit','Unit',[['oz','oz'],['ml','ml']],vu)+`<input type="hidden" id="f_vprev" value="${vu}">`}</div>`+F.seg('contents','Contents',[['breastmilk','Breast milk'],['formula','Formula'],['other','Other']],e.contents||'breastmilk')+(!e.id&&stashItems().some(x=>x.where!=='freezer'&&x.useBy>now)?`<label class="chk" style="margin-top:-4px"><input type="checkbox" id="f_stash" checked> Mark the oldest stash bag as used (${esc(U.vol(stashItems().find(x=>x.where!=='freezer'&&x.useBy>now).ml))})</label>`:'')+F.text('f_note','Note',e.note)+`<p class="note">Tip: burp every 2–3 oz (60–90 ml), then keep ${pron()==='my baby'?'your baby':pron()==='she'?'her':'him'} upright 10–15 minutes after the feed.</p>`; }
+    case 'bottle': { const vu=volUnitFor(e); return F.time('f_start','Time',e.start||now)+`<div class="row2" style="align-items:end">${F.num('f_amt','Amount',U.volTo(e.amount,vu),'')}${F.seg('vunit','Unit',[['oz','oz'],['ml','ml']],vu)+`<input type="hidden" id="f_vprev" value="${vu}">`}</div>`+F.seg('contents','Contents',[['breastmilk','Breast milk'],['formula','Formula'],['other','Other']],e.contents||'breastmilk')+(!e.id&&stashItems().some(x=>x.where!=='freezer'&&x.useBy>now)?`<label class="chk" id="stashBox" style="margin-top:-4px" ${(e.contents||'breastmilk')==='breastmilk'?'':'hidden'}><input type="checkbox" id="f_stash" checked> From the milk stash (uses the oldest bag: ${esc(U.vol(stashItems().find(x=>x.where!=='freezer'&&x.useBy>now).ml))} ${stashItems().find(x=>x.where!=='freezer'&&x.useBy>now).where==='thawed'?'thawed':'from the fridge'})</label>`:'')+F.text('f_note','Note',e.note)+`<p class="note">Tip: burp every 2–3 oz (60–90 ml), then keep ${pron()==='my baby'?'your baby':pron()==='she'?'her':'him'} upright 10–15 minutes after the feed.</p>`; }
     case 'solids': return F.time('f_start','Time',e.start||now)+F.text('f_food','Food',e.food,'e.g. mashed banana')+F.text('f_amtt','Amount',e.amountText,'e.g. 2 tbsp')+F.seg('reaction','How it went',[['liked','Liked'],['neutral','Okay'],['disliked','Disliked'],['reaction','Reaction']],e.reaction||'liked')+F.text('f_note','Note',e.note);
-    case 'pump': { const vu=volUnitFor(e); return F.time('f_start','Time',e.start||now)+F.seg('vunit','Unit',[['oz','oz'],['ml','ml']],vu)+`<input type="hidden" id="f_vprev" value="${vu}">`+`<div class="row2">${F.num('f_l','Left',U.volTo(e.left,vu),'')}${F.num('f_r','Right',U.volTo(e.right,vu),'')}</div>`+F.num('f_dur','Duration',e.duration,'min','1')+F.seg('store','Where the milk goes',[['','Not tracked'],['fed','Fed now'],['fridge','Fridge'],['freezer','Freezer']],e.id?(e.store||''):(prefs.lastStore||''))+F.text('f_note','Note',e.note)+`<p class="note">Pick Fridge or Freezer to add it to the milk stash on Home.</p>`; }
+    case 'pump': { const vu=volUnitFor(e); return F.time('f_start','Time',e.start||now)+F.seg('vunit','Unit',[['oz','oz'],['ml','ml']],vu)+`<input type="hidden" id="f_vprev" value="${vu}">`+`<div class="row2">${F.num('f_l','Left',U.volTo(e.left,vu),'')}${F.num('f_r','Right',U.volTo(e.right,vu),'')}</div>`+F.num('f_dur','Duration',e.duration,'min','1')+(prefs.stash==='hide'?'':F.seg('store','Where the milk goes',[['','Not tracked'],['fed','Fed now'],['fridge','Fridge'],['freezer','Freezer']],e.id?(e.store||''):(prefs.lastStore||'')))+F.text('f_note','Note',e.note)+(prefs.stash==='hide'?'':`<p class="note">Pick Fridge or Freezer to add it to the milk stash on Home.</p>`); }
     case 'sleep': return F.seg('kind','Type',[['nap','Nap'],['night','Night sleep']],e.kind||(new Date().getHours()>=19||new Date().getHours()<6?'night':'nap'))+F.time('f_start','Fell asleep',e.start||now-60*MIN)+F.time('f_end','Woke up (leave empty if still asleep)',e.id?e.end:now)+F.text('f_note','Note',e.note);
     case 'diaper': { const k=e.kind||'wet', wet=k!=='dirty'&&k!=='dry', poo=k==='dirty'||k==='mixed';
       return F.time('f_start','Time',e.start||now)+F.seg('kind','Diaper',[['wet','Wet'],['dirty','Dirty'],['mixed','Both'],['dry','Dry']],k)
@@ -1990,7 +1992,7 @@ function readFields(type){
     case 'breast': { const l=numv('f_l'), r=numv('f_r'); const L=(l||0)*MIN, R=(r||0)*MIN; return {start,end:start+L+R,left:L,right:R,active:null,activeSince:null,note}; }
     case 'bottle': return {start,amount:U.volFrom(val('f_amt'),radio('vunit')),volUnit:radio('vunit'),contents:radio('contents'),fromStash:document.getElementById('f_stash')?.checked||undefined,note};
     case 'solids': return {start,food:val('f_food').trim(),amountText:val('f_amtt').trim(),reaction:radio('reaction'),note};
-    case 'pump': return {start,left:U.volFrom(val('f_l'),radio('vunit')),right:U.volFrom(val('f_r'),radio('vunit')),volUnit:radio('vunit'),duration:numv('f_dur'),store:(prefs.lastStore=radio('store')||'',savePrefs(),prefs.lastStore)||undefined,note};
+    case 'pump': return {start,left:U.volFrom(val('f_l'),radio('vunit')),right:U.volFrom(val('f_r'),radio('vunit')),volUnit:radio('vunit'),duration:numv('f_dur'),...(document.querySelector('input[name="store"]')?{store:(prefs.lastStore=radio('store')||'',savePrefs(),prefs.lastStore)||null}:{}),note};
     case 'sleep': { const end=fromInput(val('f_end')); return {start,end: end && end>start ? end : null,kind:radio('kind'),note}; }
     case 'diaper': { const k=radio('kind'), wet=k==='wet'||k==='mixed', poo=k==='dirty'||k==='mixed';
       return {start,kind:k,pee:wet?radio('pee')||undefined:undefined,poo:poo?radio('poo')||undefined:undefined,pcolor:poo?radio('pcolor')||undefined:undefined,cons:poo?radio('cons')||undefined:undefined,rash:document.getElementById('f_rash').checked||undefined,color:undefined,note}; }
@@ -2251,6 +2253,7 @@ document.addEventListener('change', async ev=>{
     else if(!t.checked && ex) safe(()=>store.del(ex.id),'Milestone unchecked');
     return; }
   if(['scolor','f_force'].includes(t.name||t.id) && document.getElementById('spitNote')){ const w=spitWarn({scolor:radio('scolor'),forceful:document.getElementById('f_force').checked}); const n=document.getElementById('spitNote'); n.textContent=w; n.hidden=!w; return; }
+  if(t.name==='contents' && document.getElementById('stashBox')){ document.getElementById('stashBox').hidden=t.value!=='breastmilk'; return; }
   if(t.name==='kind' && document.getElementById('peeBox')){ const k=t.value; document.getElementById('peeBox').hidden=!(k==='wet'||k==='mixed'); document.getElementById('pooBox').hidden=!(k==='dirty'||k==='mixed'); return; }
   if(t.name==='pcolor'){ const n=document.getElementById('pcolorNote'), v=t.value, days=ageDays(state.profile?.birth)??99;
     const msg = v==='white' ? 'White or pale poop needs a prompt call to your pediatrician.' : v==='red' ? 'Red can mean blood. Call your pediatrician to have it checked.' : v==='black' ? (days<4 ? 'Black, sticky poop is normal in the first few days.' : 'Black poop after the first few days can mean blood. Call your pediatrician.') : '';
@@ -2271,6 +2274,7 @@ document.addEventListener('change', async ev=>{
   if(t.name==='s_mode') prefs.appearance=t.value;
   if(t.name==='s_clock') prefs.clock=t.value;
   if(t.name==='s_home') prefs.homeLayout=t.value;
+  if(t.name==='s_stash') prefs.stash=t.value;
   if(t.name==='r_on'){ if(t.value==='on'){ const ok=await askNotifyPermission(); if(!ok){ toast('Notifications are blocked. Turn them on in your phone or browser settings.'); render(); return; } prefs.remEnabled=true; if(!prefs.rem) prefs.rem={feed:180,vitd:'',med:true,appt:true}; } else prefs.remEnabled=false; }
   if(['r_feed','r_med','r_appt'].includes(t.name)){ const r=remPrefs(); if(t.name==='r_feed') r.feed=+t.value; else r[t.name.slice(2)]=t.value==='on'; prefs.rem=r; }
   if(t.name==='s_awake') prefs.keepAwake=t.value==='on';
