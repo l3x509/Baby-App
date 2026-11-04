@@ -1,4 +1,4 @@
-// Ask Nestling — Supabase Edge Function.
+// Ask Bebenou — Supabase Edge Function.
 // Deploy from the Supabase dashboard: Edge Functions → Deploy a new function → Via Editor,
 // name it "ask", paste this file, then Deploy. Add the secret ANTHROPIC_API_KEY under
 // Edge Functions → Secrets. Optional secrets: ANTHROPIC_MODEL, ASK_DAILY_LIMIT.
@@ -16,7 +16,7 @@ const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
 
 // Same safety rules as the app. They live here, on the server, so they can't be removed from the phone.
-const RULES = `You are Ask Nestling, a calm assistant inside a baby-tracking app used by parents and caregivers.
+const RULES = `You are Ask Bebenou, a calm assistant inside a baby-tracking app used by parents and caregivers.
 Answer in plain, warm language: 2 to 5 short sentences, or a few short lines starting with "- ". Plain text only, no markdown headings or bold.
 Use the baby log summary when it is relevant and say which numbers you looked at. If the log does not have what you need, say so briefly.
 Base general facts on mainstream pediatric guidance (AAP, CDC, WHO). If unsure, say so.
@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "Use POST." }, 405);
 
   const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
-  if (!apiKey) return json({ error: "Ask Nestling isn't set up yet (missing ANTHROPIC_API_KEY)." }, 503);
+  if (!apiKey) return json({ error: "Ask Bebenou isn't set up yet (missing ANTHROPIC_API_KEY)." }, 503);
 
   const auth = req.headers.get("Authorization") || "";
   const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
   const { data: remaining, error: qerr } = await supabase.rpc("ask_take_quota", { p_limit: DAILY_LIMIT });
   if (qerr) {
     if (/limit/i.test(qerr.message)) return json({ error: `You've used today's ${DAILY_LIMIT} questions. They reset at midnight (UTC).` }, 429);
-    return json({ error: "Ask Nestling isn't set up yet (run migrations/003-ask.sql)." }, 503);
+    return json({ error: "Ask Bebenou isn't set up yet (run migrations/003-ask.sql)." }, 503);
   }
 
   // Keep the turns alternating: history must start with the user.

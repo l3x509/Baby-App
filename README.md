@@ -1,4 +1,4 @@
-# Nestling Baby Log
+# Bebenou
 
 A baby tracker for feeds, sleep, diapers, growth, teeth and health, shared live between parents and caregivers. It's one HTML page backed by Supabase.
 
@@ -7,10 +7,10 @@ A baby tracker for feeds, sleep, diapers, growth, teeth and health, shared live 
 | `index.html` | The whole app |
 | `config.js` | Your Supabase keys (the only file you edit) |
 | `schema.sql` | Run once in Supabase to create the tables and access rules |
-| `manifest.webmanifest`, `sw.js`, `icons/` | Let you add Nestling to your home screen as an app |
+| `manifest.webmanifest`, `sw.js`, `icons/` | Let you add Bebenou to your home screen as an app |
 | `privacy.html`, `terms.html`, `delete-account.html` | Privacy policy, terms of use, and the web page for deleting an account (required by Google Play) |
 | `migrations/` | Database changes to run in Supabase after the first setup |
-| `supabase/functions/ask/` | The server code for Ask Nestling's personal answers |
+| `supabase/functions/ask/` | The server code for Ask Bebenou's personal answers |
 | `android-app/` | The Google Play app: the same web app packaged with Capacitor. Build steps in `android-app/README.md` |
 | `README.md` | This setup guide |
 
@@ -45,7 +45,7 @@ Access rules are built in. People only see babies they belong to, and view-only 
 
 ## 3. Turn off email confirmation
 
-Nestling uses email and password, so no email service is needed. Each parent creates their own account.
+Bebenou uses email and password, so no email service is needed. Each parent creates their own account.
 
 1. In Supabase, go to **Authentication → Sign In / Providers → Email**.
 2. Turn **Confirm email** off and click **Save**.
@@ -88,7 +88,7 @@ To remove someone, use **Remove** next to their name in Family.
 
 ## Add it to your home screen
 
-Nestling installs like an app, opening full screen with its own icon.
+Bebenou installs like an app, opening full screen with its own icon.
 
 - **iPhone (Safari):** tap **⋯** next to the address bar, then **Share**, then **Add to Home Screen**. Keep **Open as Web App** on and tap **Add**. On older iPhones, the Share button is at the bottom of the screen.
 - **Android (Chrome):** tap **⋮**, then **Add to Home screen** or **Install app**.
@@ -103,7 +103,7 @@ Entries always come live from Supabase. If you're offline, the app still opens, 
 
 Import skips anything you already have, so running it twice is safe.
 
-## Ask Nestling (AI answers)
+## Ask Bebenou (AI answers)
 
 Common questions are answered from guides built into the app, with no setup. Personal answers that look at your baby's log use Claude through a Supabase Edge Function, so your Anthropic key never reaches the app or this repo.
 
@@ -116,7 +116,7 @@ Reported answers appear in Table Editor → `ask_reports`. Review them now and t
 
 ## Database updates
 
-If you set up Supabase before November 1, 2026, run the migrations you haven't run yet in the SQL Editor, in order: `migrations/002-account-deletion.sql` (account deletion), then `migrations/003-ask.sql` (Ask Nestling). A new setup gets both from `schema.sql` automatically.
+If you set up Supabase before November 1, 2026, run the migrations you haven't run yet in the SQL Editor, in order: `migrations/002-account-deletion.sql` (account deletion), then `migrations/003-ask.sql` (Ask Bebenou). A new setup gets both from `schema.sql` automatically.
 
 ## Android app
 

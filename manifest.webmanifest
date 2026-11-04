@@ -1,7 +1,7 @@
 {
   "id": "./",
-  "name": "Nestling Baby Log",
-  "short_name": "Nestling",
+  "name": "Bebenou",
+  "short_name": "Bebenou",
   "description": "Track feeds, sleep, diapers, growth and health, shared live between parents.",
   "start_url": "./",
   "scope": "./",

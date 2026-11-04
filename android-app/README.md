@@ -1,6 +1,6 @@
-# Nestling Android app
+# Bebenou Android app
 
-The Android app is the same web app from the repo root, packaged with [Capacitor](https://capacitorjs.com) 8. Package name: `app.lexcellent.nestling`.
+The Android app is the same web app from the repo root, packaged with [Capacitor](https://capacitorjs.com) 8. Package name: `app.lexcellent.bebenou`.
 
 Store listing text, graphics and Play Console answers are in `store-assets/LISTING.md`.
 
@@ -23,7 +23,7 @@ In Android Studio:
 
 1. Wait for Gradle to finish syncing.
 2. **Build → Generate Signed App Bundle or APK → Android App Bundle**.
-3. First time: **Create new…** keystore. Save it as `~/nestling-release.keystore`, write down both passwords, and keep a backup copy somewhere safe (e.g. Documents and a USB drive). You need this same key for every future update.
+3. First time: **Create new…** keystore. Save it as `~/bebenou-release.keystore`, write down both passwords, and keep a backup copy somewhere safe (e.g. Documents and a USB drive). You need this same key for every future update.
 4. Choose **release**, then **Create**. The file is `android/app/release/app-release.aab`.
 5. In Play Console, create the app, then upload the .aab to **Testing → Internal testing** first.
 
@@ -40,7 +40,7 @@ After pulling new code that adds plugins (like this version), run `npm install` 
 
 ## Icons and splash screen
 
-The source images are in `assets/` (peach tile with the Nestling mark; light and dark splash). After changing them:
+The source images are in `assets/` (peach tile with the Bebenou mark; light and dark splash). After changing them:
 
 ```
 npm run icons        # rebuilds the Android icon and splash files
@@ -69,5 +69,5 @@ Your Supabase keys come from `config.js` in the repo root, so the app and the we
 - **Run `migrations/002-account-deletion.sql` in Supabase** (SQL Editor → New query → Run). Google Play requires account deletion in the app and on the web; the app's **Settings → Account → Delete my account** and `delete-account.html` both use it.
 - **Premium is switched off** for now (`CONFIG={payments:false}` near the top of the script in `index.html`). Google Play requires Google Play Billing for selling digital features in an app, so turn it on only after billing is built.
 - **Create the privacy@lexcellentsolutions.com mailbox.** It is the contact on the privacy, terms and deletion pages and in the listing.
-- **Check the app name.** Other baby trackers already use "Nestling"; pick a distinct store name before the first upload (see LISTING.md). The package name `app.lexcellent.nestling` can't be changed after the first upload.
+- **Name: Bebenou** (package `app.lexcellent.bebenou`). Do the trademark knockout search before the first upload; the package name can't change afterwards.
 - **Test on a real phone** (sign in, invite, Back button, dark mode, delete account with a test account) with an internal-testing build before production.

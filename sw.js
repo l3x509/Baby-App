@@ -1,4 +1,4 @@
-/* Nestling service worker: lets the app open from the home screen and load
+/* Bebenou service worker: lets the app open from the home screen and load
    even with a weak connection. Baby data always comes live from Supabase and
    is never cached here. Bump VERSION when the list of app files changes. */
 const VERSION = 'nestling-v1';

@@ -1,4 +1,4 @@
-package app.lexcellent.nestling;
+package app.lexcellent.bebenou;
 
 import com.getcapacitor.BridgeActivity;
 

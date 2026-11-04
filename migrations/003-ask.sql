@@ -1,5 +1,5 @@
 -- =====================================================================
--- Nestling: Ask Nestling (AI answers) — daily limits and answer reports
+-- Bebenou: Ask Bebenou (AI answers) — daily limits and answer reports
 -- Run once in Supabase: SQL Editor → New query → paste → Run. Safe to run again.
 -- Also included at the end of schema.sql.
 -- =====================================================================

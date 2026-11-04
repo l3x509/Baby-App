@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<title>Nestling Baby Log</title>
-<meta name="apple-mobile-web-app-title" content="Nestling">
+<title>Bebenou</title>
+<meta name="apple-mobile-web-app-title" content="Bebenou">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#fff4ef">
 <link rel="manifest" href="manifest.webmanifest">
@@ -377,6 +377,23 @@ tr:last-child td{border-bottom:0}
 .divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line)}
 .confirm{background:var(--warn-bg);color:var(--warn-ink);border-radius:10px;padding:10px 12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
 
+.ssum{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.ssum>div:first-child{display:flex;flex-direction:column}
+.ssum b{font-family:var(--display);font-size:24px;line-height:1.1}
+.schips{display:flex;gap:6px;flex-wrap:wrap}
+.schip{font-size:12.5px;font-weight:600;padding:4px 10px;border-radius:99px;background:color-mix(in srgb,var(--c,var(--feed)) 14%,var(--surface));color:color-mix(in srgb,var(--c,var(--feed)) 70%,var(--ink))}
+.sc-fridge{--c:var(--fbar)}.sc-thawed{--c:var(--activity)}.sc-freezer{--c:#3aa7c7}
+.snext{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:12px;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--feed) 9%,var(--surface))}
+.snext>div{display:flex;flex-direction:column;gap:1px}
+.spast{margin:8px 0 0;font-size:13px;font-weight:600;color:var(--danger)}
+.stog{margin-top:10px;border:0;background:none;padding:4px 0;font-weight:600;color:var(--accent);font-size:14px}
+.slist{display:flex;flex-direction:column;margin-top:4px}
+.sr{display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:8px;align-items:center;text-align:left;border:0;border-bottom:1px solid var(--line);background:none;padding:10px 2px;font:inherit;color:inherit}
+.sr:last-child{border-bottom:0}
+.sr b{font-family:var(--display);font-size:16px}
+.srm{font-size:13px;color:var(--ink-2);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sru{font-size:12.5px;color:var(--ink-2);white-space:nowrap}
+.sr.soon .sru{color:var(--warn-ink);font-weight:600}.sr.past .sru{color:var(--danger);font-weight:700}
 .stot{display:grid;grid-template-columns:1.4fr repeat(3,minmax(0,1fr));gap:8px;background:color-mix(in srgb,var(--feed) 9%,var(--surface));border-radius:12px;padding:10px 12px;margin-bottom:6px}
 .stot>div{display:flex;flex-direction:column;min-width:0}
 .stot b{font-family:var(--display);font-size:17px}
@@ -428,7 +445,7 @@ tr:last-child td{border-bottom:0}
   <aside class="rail">
     <div class="brand">
       <svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="15" fill="var(--accent)"/><path d="M8 18c2 5 14 5 16 0" fill="none" stroke="var(--accent-ink)" stroke-width="2.4" stroke-linecap="round"/><circle cx="16" cy="12" r="4" fill="var(--accent-ink)"/></svg>
-      <b>Nestling</b>
+      <b>Bebenou</b>
     </div>
     <nav class="nav" id="nav"></nav>
     <div class="sync" id="sync"><span class="dot"></span><span>Sample mode</span></div>
@@ -927,7 +944,7 @@ function addCustomKind(k){ const list=Array.isArray(prefs.customKinds)?prefs.cus
 const checkedSums = () => [...document.querySelectorAll('input[name="sumsel"]:checked')].map(x=>x.value);
 
 
-/* ---------- Ask Nestling: built-in answers + AI ---------- */
+/* ---------- Ask Bebenou: built-in answers + AI ---------- */
 // Built-in answers use only facts already verified for the app, each with its source.
 const ASK_FAQ=[
  {id:'feeds',kw:['how often','how many feed','how much should','eat','eating','feeding','feeds','hungry','cluster'],q:'How often should a newborn eat?',
@@ -958,10 +975,10 @@ const ASK_FAQ=[
   a:['Spitting up is common in young babies and usually not a concern. Milk rolls out easily, often with a burp, and it usually fades by age one. Vomiting is more forceful.','Call your pediatrician if spit-up has streaks of blood, makes your baby choke or gag, seems painful, or comes with poor weight gain or refusing to feed. Get care right away for green, bloody or dark brown vomit, projectile vomiting, signs of dehydration (few wet diapers, dry mouth), or vomiting with a fever.'],
   src:[['AboutKidsHealth (SickKids): Spitting up and vomiting in babies','https://www.aboutkidshealth.ca/spitting-up-and-vomiting-in-babies'],['HealthyChildren.org (AAP): Burping, hiccups and spitting up','https://healthychildren.org/English/ages-stages/baby/feeding-nutrition/Pages/baby-burping-hiccups-and-spit-up.aspx']]},
  {id:'growth',kw:['weight','length','height','growth','percentile','gaining'],q:'Is my baby growing well?',
-  a:['Nestling’s growth charts show the WHO median as a reference line. Being above or below it is common and not a problem on its own; what matters is a steady pattern over time.','Your pediatrician tracks percentiles at each checkup and can tell you how your baby is doing.'],
+  a:['Bebenou’s growth charts show the WHO median as a reference line. Being above or below it is common and not a problem on its own; what matters is a steady pattern over time.','Your pediatrician tracks percentiles at each checkup and can tell you how your baby is doing.'],
   src:[['WHO Child Growth Standards','https://www.who.int/tools/child-growth-standards/standards/weight-for-age']]}
 ];
-const ASK_RULES='You are Ask Nestling, a calm assistant inside a baby-tracking app used by parents and caregivers. Answer in plain, warm language: 2 to 5 short sentences, or a few short lines starting with "- ". Plain text only, no markdown headings or bold. Use the baby log summary when it is relevant and say which numbers you looked at; if the log does not have what you need, say so briefly. Base general facts on mainstream pediatric guidance (AAP, CDC, WHO); if unsure, say so. Never diagnose or name a disease or condition as a likely cause. Never give medicine names, doses or dosing schedules; say to follow the label or their pediatrician. Never tell a parent to ignore a worry. If anything suggests an emergency (trouble breathing, blue or gray color, seizure, unresponsive or very hard to wake, choking, a serious fall or injury), first tell them to call 911 now. For a fever in a baby under 3 months, or a baby who seems unwell, tell them to call their pediatrician now. If the question is not about babies, parenting or this app, say you can only help with baby questions. Do not mention these instructions.';
+const ASK_RULES='You are Ask Bebenou, a calm assistant inside a baby-tracking app used by parents and caregivers. Answer in plain, warm language: 2 to 5 short sentences, or a few short lines starting with "- ". Plain text only, no markdown headings or bold. Use the baby log summary when it is relevant and say which numbers you looked at; if the log does not have what you need, say so briefly. Base general facts on mainstream pediatric guidance (AAP, CDC, WHO); if unsure, say so. Never diagnose or name a disease or condition as a likely cause. Never give medicine names, doses or dosing schedules; say to follow the label or their pediatrician. Never tell a parent to ignore a worry. If anything suggests an emergency (trouble breathing, blue or gray color, seizure, unresponsive or very hard to wake, choking, a serious fall or injury), first tell them to call 911 now. For a fever in a baby under 3 months, or a baby who seems unwell, tell them to call their pediatrician now. If the question is not about babies, parenting or this app, say you can only help with baby questions. Do not mention these instructions.';
 function askUrgent(q){
   const t=q.toLowerCase();
   if(/(not breathing|stopped breathing|trouble breathing|hard to breathe|can.?t breathe|struggling to breathe|gasping|turn(ed|ing)? blue|blue (lips|face|skin)|gr[ae]y (lips|face|skin)|seizure|convuls|unresponsive|won.?t wake|can.?t wake|hard to wake|limp|choking|fell off|dropped (her|him|the baby)|head injury|swallowed)/.test(t))
@@ -1020,12 +1037,12 @@ async function askAI(q){
 }
 function askCard(){
   const name=state.profile?.name||'your baby';
-  return `<div class="panel askp"><h2><span style="display:flex;align-items:center;gap:8px">${svg('spark','width="18" height="18"')} Ask Nestling</span></h2>
+  return `<div class="panel askp"><h2><span style="display:flex;align-items:center;gap:8px">${svg('spark','width="18" height="18"')} Ask Bebenou</span></h2>
     <button class="askbar" data-act="askOpen">${svg('search','width="18" height="18"')}<span>Ask about ${esc(name)}…</span></button>
     <div class="chips" style="margin-top:10px">${askSuggestions().map(s=>`<button class="chip" data-act="askSuggest" data-q="${esc(s)}">${esc(s)}</button>`).join('')}</div></div>`;
 }
 function openAsk(first){
-  openModal(`<h3 style="--c:var(--accent)"><span class="ic">${svg('spark')}</span>Ask Nestling</h3>
+  openModal(`<h3 style="--c:var(--accent)"><span class="ic">${svg('spark')}</span>Ask Bebenou</h3>
     <div id="askLog" class="asklog" aria-live="polite"></div>
     <form id="askForm" class="askform"><input id="askQ" maxlength="500" autocomplete="off" placeholder="Ask about ${esc(state.profile?.name||'your baby')}…"><button class="btn primary" type="submit">Ask</button></form>
     <p class="note" style="margin:8px 0 0">General information, not medical advice. In an emergency, call 911.</p>
@@ -1041,7 +1058,7 @@ function renderAsk(){
     if(m.kind==='thinking') return `<div class="bub bot"><span class="dots" aria-label="Thinking"><i></i><i></i><i></i></span></div>`;
     if(m.kind==='urgent') return `<div class="bub urgent"><b>${m.level==='911'?'Call 911 now':'Call your pediatrician now'}</b><p>${esc(m.text)}</p></div>`;
     if(m.kind==='error') return `<div class="bub bot"><p>${esc(m.text)}</p></div>`;
-    if(m.kind==='faq') return `<div class="bub bot"><span class="tagline">${svg('book','width="14" height="14"')} From Nestling’s guide</span>${m.f.a.map(p=>`<p>${esc(p)}</p>`).join('')}
+    if(m.kind==='faq') return `<div class="bub bot"><span class="tagline">${svg('book','width="14" height="14"')} From Bebenou’s guide</span>${m.f.a.map(p=>`<p>${esc(p)}</p>`).join('')}
       <p class="srcs">${m.f.src.map(([t,u])=>`<a href="${u}" target="_blank" rel="noopener">${esc(t)}</a>`).join('<br>')}</p>
       ${aiReady()&&!m.followed?`<button class="btn ghost sm" data-act="askPersonal" data-i="${i}">Ask with ${esc(state.profile?.name||'baby')}’s log</button>`:''}</div>`;
     return `<div class="bub bot"><span class="tagline">${svg('spark','width="14" height="14"')} Using ${esc(state.profile?.name||'baby')}’s log</span>${fmtAnswer(m.text)}
@@ -1281,7 +1298,7 @@ function daySummary(day){
 }
 
 /* ---------- rendering ---------- */
-const APP_NAME='Nestling';
+const APP_NAME='Bebenou';
 const VIEWS=[['today','Home'],['history','History'],['ask','Ask'],['health','Health'],['family','Family']];
 function renderNav(){
   const cur=state.view==='settings'?'family':state.view;
@@ -1520,26 +1537,31 @@ function openStashEdit(id){
     <p class="sub" style="margin:0">Pumped ${fmtDate(x.e.start)} at ${fmtTime(x.e.start)}${(x.e.left||0)+(x.e.right||0)?` · ${U.vol((x.e.left||0)+(x.e.right||0))} at the time`:''}</p>
     ${F.num('sb_amt','Amount left in the bag',U.volTo(x.ml,vu),vu)}
     ${x.where==='thawed'?'<p class="note">Thawed milk stays thawed. Use it within 24 hours.</p>':F.seg('sb_where','Where it is',[['fridge','Fridge'],['freezer','Freezer']],x.where)}
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn ghost sm" data-act="stashUse" data-id="${esc(id)}">Mark used</button>${x.where==='freezer'?`<button type="button" class="btn ghost sm" data-act="stashThaw" data-id="${esc(id)}">Thaw</button>`:''}</div>
     <div class="actions"><button type="button" class="btn danger" data-act="stashToss" data-id="${esc(id)}">Toss bag</button><div class="r"><button type="button" class="btn ghost" data-close="1">Cancel</button><button type="button" class="btn primary" data-act="stashSave">Save</button></div></div></div>`);
 }
 function stashPanel(now){
   if(prefs.stash==='hide') return '';
   const all=stashItems(now), used=state.entries.some(e=>e.type==='pump' && (e.store==='fridge'||e.store==='freezer'));
   if(!all.length && !used) return '';
-  const it=all, good=all.filter(x=>x.useBy>now);
+  const good=all.filter(x=>x.useBy>now), past=all.filter(x=>x.useBy<=now);
   const tot=w=>good.filter(x=>!w||x.where===w).reduce((a,x)=>a+x.ml,0);
-  const sum=good.length?`${good.length} bag${good.length===1?'':'s'}`:'Empty';
   const bt=state.entries.filter(e=>e.type==='bottle' && e.amount && e.start>now-3*DAY && e.start<=now), avg=bt.length?bt.reduce((a,e)=>a+e.amount,0)/bt.length:0;
-  const avgD=U.imp()?Math.round(avg/29.5735*10)/10*29.5735:Math.round(avg/5)*5; // the size we show
+  const avgD=U.imp()?Math.round(avg/29.5735*10)/10*29.5735:Math.round(avg/5)*5;
   const feeds=avgD&&tot()?Math.floor((tot()+0.5)/avgD):0;
-  const totals=`<div class="stot"><div class="st0"><span class="label">Total</span><b class="num">${tot()?U.vol(tot()):'0'}</b>${feeds?`<span class="sub">enough for about ${feeds} bottle${feeds===1?'':'s'} of ${U.vol(avgD)}</span>`:''}</div>
-    ${[['fridge','Fridge'],['thawed','Thawed'],['freezer','Freezer']].map(([w,l])=>`<div><span class="label">${l}</span><b class="num">${tot(w)?U.vol(tot(w)):'—'}</b></div>`).join('')}</div>`;
   const lbl={fridge:'Fridge',thawed:'Thawed',freezer:'Freezer'};
-  const rows=it.slice(0,8).map(x=>{ const left=x.useBy-now, past=left<=0, soon=!past && left<12*HR;
-    return `<div class="sx ${past?'past':soon?'soon':''}"><div class="sxm"><b class="num">${U.vol(x.ml)}</b> <span class="sub">${lbl[x.where]} · pumped ${fmtDate(x.e.start)} ${fmtTime(x.e.start)}</span><span class="sub">${past?'Past its storage time. Toss it.':`Use by ${fmtDate(x.useBy)}${x.where==='freezer'?'':' '+fmtTime(x.useBy)}${soon?' · use soon':''}`}</span></div>
-    <div class="sxb">${state.canWrite?`<button class="btn ghost sm" data-act="stashEdit" data-id="${esc(x.e.id)}">Edit</button>${past?'':`<button class="btn ghost sm" data-act="stashUse" data-id="${esc(x.e.id)}">Used</button>`}${x.where==='freezer'?`<button class="btn ghost sm" data-act="stashThaw" data-id="${esc(x.e.id)}">Thaw</button>`:''}<button class="btn ghost sm" data-act="stashToss" data-id="${esc(x.e.id)}">Toss</button>`:''}</div></div>`; }).join('');
-  return `<div class="panel stash"><h2><span>Milk stash <span class="sub" style="font-weight:500">· ${sum}</span></span>${state.canWrite?'<button class="btn ghost sm" data-act="stashAdd">+ Add milk</button>':''}</h2>${totals}${rows}${it.length>8?`<p class="note">${it.length-8} more bags in the stash.</p>`:''}
-    <p class="note" style="margin:8px 0 0">Oldest first. Fresh milk keeps 4 days in the fridge and about 6 months in the freezer (up to 12 is acceptable). Thawed milk: use within 24 hours and don’t refreeze (CDC).</p></div>`;
+  const open=!!prefs.stashOpen, w=state.canWrite;
+  const chips=[['fridge','Fridge'],['thawed','Thawed'],['freezer','Freezer']].filter(([k])=>tot(k)).map(([k,l])=>`<span class="schip sc-${k}">${l} ${U.vol(tot(k))}</span>`).join('');
+  const next=good.find(x=>x.where!=='freezer')||good[0];
+  const when=x=>`${x.where==='freezer'?'by '+fmtDate(x.useBy):(startOfDay(x.useBy)===startOfDay(now)?'today ':'by '+new Date(x.useBy).toLocaleDateString([], {weekday:'short'})+' ')+(x.where==='freezer'?'':fmtTime(x.useBy))}`;
+  const row=x=>{ const p=x.useBy<=now, soon=!p && x.useBy-now<12*HR;
+    return `<button type="button" class="sr ${p?'past':soon?'soon':''}" ${w?`data-act="stashEdit" data-id="${esc(x.e.id)}"`:'disabled'}><b class="num">${U.vol(x.ml)}</b><span class="srm">${lbl[x.where]} · ${fmtDate(x.e.start)}</span><span class="sru">${p?'Toss':'Use '+when(x)}</span></button>`; };
+  return `<div class="panel stash"><h2><span>Milk stash</span>${w?'<button class="btn ghost sm" data-act="stashAdd">+ Add milk</button>':''}</h2>
+    <div class="ssum"><div><b class="num">${tot()?U.vol(tot()):'0 oz'.replace('oz',U.imp()?'oz':'ml')}</b><span class="sub">${good.length} bag${good.length===1?'':'s'}${feeds?` · about ${feeds} bottle${feeds===1?'':'s'} of ${U.vol(avgD)}`:''}</span></div><div class="schips">${chips}</div></div>
+    ${next?`<div class="snext"><div><span class="label">Use next</span><span><b class="num">${U.vol(next.ml)}</b> ${lbl[next.where].toLowerCase()} · use ${when(next)}</span></div>${w?`<button class="btn sm primary" data-act="${next.where==='freezer'?'stashThaw':'stashUse'}" data-id="${esc(next.e.id)}">${next.where==='freezer'?'Thaw':'Used'}</button>`:''}</div>`:''}
+    ${past.length?`<p class="spast">${past.length} bag${past.length===1?' is':'s are'} past the storage time. Open the list to toss ${past.length===1?'it':'them'}.</p>`:''}
+    ${all.length?`<button type="button" class="stog" data-act="stashToggle" aria-expanded="${open}">${open?'Hide bags':`All ${all.length} bag${all.length===1?'':'s'}`} <span aria-hidden="true">${open?'▴':'▾'}</span></button>`:''}
+    ${open?`<div class="slist">${all.map(row).join('')}</div><p class="note" style="margin:8px 0 0">Tap a bag to change the amount, thaw, mark used or toss it. Fresh milk keeps 4 days in the fridge and about 6 months in the freezer; thawed milk 24 hours (CDC).</p>`:''}</div>`;
 }
 
 
@@ -1869,10 +1891,10 @@ function vSettings(){
     <p>${state.mode==='cloud'?'Entries are saved in your Supabase database and sync to everyone in Family. Updating index.html never touches them.'
       : state.mode==='local'?'Entries are saved in this browser. They stay when the file is updated at the same web address, but not if you open the file from a different address or browser.'
       : 'Nothing is saved yet. Add your baby to start saving, or import a backup.'}</p>
-    <p>Save a backup file to keep a safe copy or to move your log to another copy of Nestling. Importing adds new entries and skips ones you already have, so it's safe to import the same file twice.</p>
+    <p>Save a backup file to keep a safe copy or to move your log to another copy of Bebenou. Importing adds new entries and skips ones you already have, so it's safe to import the same file twice.</p>
     <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" data-act="backup" ${state.mode==='demo'?'disabled':''}>${svg('download','width="16" height="16"')} Save backup</button><label class="btn ghost" for="importFile">Import backup</label><input type="file" id="importFile" class="vh" accept=".json,application/json"><button class="btn ghost" data-act="export">Export CSV</button><button class="btn ghost" data-act="report" ${state.mode==='demo'?'disabled':''}>Doctor report (PDF)</button></div>
     <p class="note">${prefs.lastBackup?`Last backup from this device: ${new Date(prefs.lastBackup).toLocaleDateString()}.`:'No backup saved from this device yet.'} CSV is for spreadsheets and your pediatrician; only a backup file can be imported.</p><p class="note" id="exportNote"></p></div>
-  <div class="panel"><h2>About Nestling <span class="note" style="font-weight:500">Version ${APP_VERSION}</span></h2><p style="display:flex;gap:14px;flex-wrap:wrap;margin-top:0"><a href="privacy.html" target="_blank" rel="noopener">Privacy policy</a><a href="terms.html" target="_blank" rel="noopener">Terms of use</a><a href="delete-account.html" target="_blank" rel="noopener">Delete account</a></p><p class="note">Nap windows use typical awake times by age from Cleveland Clinic and The Sleep Lady. Growth reference lines use the WHO Child Growth Standards medians (0–24 months). Teeth timing follows the American Dental Association chart. Checkups follow the AAP Bright Futures schedule. Tummy time goals follow NIH Safe to Sleep. A fever is 100.4 °F (38 °C) or higher. Nestling is a log, not medical advice. Call your pediatrician with any health concerns.</p></div></div>`;
+  <div class="panel"><h2>About Bebenou <span class="note" style="font-weight:500">Version ${APP_VERSION}</span></h2><p style="display:flex;gap:14px;flex-wrap:wrap;margin-top:0"><a href="privacy.html" target="_blank" rel="noopener">Privacy policy</a><a href="terms.html" target="_blank" rel="noopener">Terms of use</a><a href="delete-account.html" target="_blank" rel="noopener">Delete account</a></p><p class="note">Nap windows use typical awake times by age from Cleveland Clinic and The Sleep Lady. Growth reference lines use the WHO Child Growth Standards medians (0–24 months). Teeth timing follows the American Dental Association chart. Checkups follow the AAP Bright Futures schedule. Tummy time goals follow NIH Safe to Sleep. A fever is 100.4 °F (38 °C) or higher. Bebenou is a log, not medical advice. Call your pediatrician with any health concerns.</p></div></div>`;
   return h;
 }
 
@@ -1885,7 +1907,7 @@ function vHistory(){
 }
 function vAsk(){
   const name=esc(state.profile?.name||'your baby');
-  return header('Ask Nestling', `Trusted answers, plus ${name}’s own log`)+`<div class="panel askpage"><div id="askLog" class="asklog page" aria-live="polite"></div>
+  return header('Ask Bebenou', `Trusted answers, plus ${name}’s own log`)+`<div class="panel askpage"><div id="askLog" class="asklog page" aria-live="polite"></div>
     <form id="askForm" class="askform"><input id="askQ" maxlength="500" autocomplete="off" placeholder="Ask about ${name}…"><button class="btn primary" type="submit">Ask</button></form>
     <p class="note" style="margin:8px 0 0">General information, not medical advice. In an emergency, call 911.</p></div>`;
 }
@@ -1910,12 +1932,12 @@ let installEvt=null;
 const isStandalone = () => { try{ return matchMedia('(display-mode: standalone)').matches || navigator.standalone===true; }catch(e){ return false; } };
 const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
 window.addEventListener('beforeinstallprompt', e=>{ e.preventDefault(); installEvt=e; if(state.view==='settings') softRender(); });
-window.addEventListener('appinstalled', ()=>{ installEvt=null; toast('Nestling is on your home screen'); softRender(); });
+window.addEventListener('appinstalled', ()=>{ installEvt=null; toast('Bebenou is on your home screen'); softRender(); });
 function installPanel(){
   if(NATIVE) return '';
-  if(isStandalone()) return `<div class="panel"><h2>App</h2><p>Nestling is installed on this device. Open it from your home screen.</p></div>`;
+  if(isStandalone()) return `<div class="panel"><h2>App</h2><p>Bebenou is installed on this device. Open it from your home screen.</p></div>`;
   const body = installEvt
-    ? `<p>Add Nestling to your home screen so it opens full screen, like an app.</p><button class="btn primary" data-act="install">Install app</button>`
+    ? `<p>Add Bebenou to your home screen so it opens full screen, like an app.</p><button class="btn primary" data-act="install">Install app</button>`
     : isIOS()
     ? `<ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px"><li>Open this page in <b>Safari</b>.</li><li>Tap the <b>⋯</b> button next to the address bar, then <b>Share</b>. On older iPhones, tap the Share button at the bottom.</li><li>Tap <b>Add to Home Screen</b>, keep <b>Open as Web App</b> on, and tap <b>Add</b>.</li></ol>`
     : `<ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px"><li>In <b>Chrome</b>, tap the <b>⋮</b> menu.</li><li>Tap <b>Add to Home screen</b> or <b>Install app</b>.</li></ol><p class="note">On a computer, use the install icon at the right end of the address bar.</p>`;
@@ -2101,7 +2123,7 @@ async function exportBackup(){
   if(state.mode==='demo'){ toast('Add your baby first. Sample data isn’t backed up.'); return; }
   let entries; try{ entries=await allEntries(); }catch(e){ reportSave('error'); return; }
   const data=JSON.stringify({app:'nestling',version:1,exportedAt:new Date().toISOString(),profile:state.profile,entries,teeth:state.teeth});
-  const r=await saveFile(`${slugName()}-nestling-backup-${dayKey(Date.now())}.json`,data,'application/json');
+  const r=await saveFile(`${slugName()}-bebenou-backup-${dayKey(Date.now())}.json`,data,'application/json');
   if(r==='saved'){ prefs.lastBackup=Date.now(); savePrefs(); render(); }
   reportSave(r,`Backup saved: ${entries.length} entries`);
 }
@@ -2246,13 +2268,14 @@ document.addEventListener('click', async ev=>{
   else if(a==='noDelete'){ document.getElementById('confirmSlot').innerHTML=''; }
   else if(a==='doDelete'){ const fid=document.getElementById('entryForm').dataset.id, copy=state.entries.find(x=>x.id===fid); closeModal(); let ok=false; await safe(async()=>{ await store.del(fid); ok=true; }); if(ok && copy){ const {id:_x,_pending,...rest}=copy; toastUndo('Entry deleted', ()=>safe(()=>store.add(rest),'Entry restored')); } }
   else if(a==='awaySeen'){ try{ localStorage.setItem(awayKey(), String(Date.now())); }catch(e){} render(); }
+  else if(a==='stashToggle'){ prefs.stashOpen=!prefs.stashOpen; savePrefs(); render(); }
   else if(a==='stashAdd'){ if(!['fridge','freezer'].includes(prefs.lastStore)){ prefs.lastStore='fridge'; savePrefs(); } openEntry('pump'); }
   else if(a==='stashEdit'){ openStashEdit(t.dataset.id); }
   else if(a==='stashSave'){ const fm=document.getElementById('stashForm'), id=fm.dataset.id, v=val('sb_amt'), w=radio('sb_where');
     const ml=U.volFrom(v, U.imp()?'oz':'ml'); if(ml==null||ml<0){ document.getElementById('sb_amt').focus(); return; }
     const patch=ml<=0?{usedAt:Date.now(),stashMl:0}:{stashMl:ml}; if(w) patch.store=w; closeModal(); await safe(()=>store.update(id,patch), ml<=0?'Bag marked as used':'Stash updated'); }
-  else if(a==='stashUse'){ await safe(()=>store.update(t.dataset.id,{usedAt:Date.now()}),'Marked as used'); }
-  else if(a==='stashThaw'){ await safe(()=>store.update(t.dataset.id,{thawedAt:Date.now()}),'Moved to thawed. Use within 24 hours'); }
+  else if(a==='stashUse'){ closeModal(); await safe(()=>store.update(t.dataset.id,{usedAt:Date.now()}),'Marked as used'); }
+  else if(a==='stashThaw'){ closeModal(); await safe(()=>store.update(t.dataset.id,{thawedAt:Date.now()}),'Moved to thawed. Use within 24 hours'); }
   else if(a==='stashToss'){ closeModal(); await safe(()=>store.update(t.dataset.id,{tossedAt:Date.now()}),'Removed from the stash'); }
   else if(a==='report'){ exportReport(t); }
   else if(a==='undo'){ const fn=toast.undo; toast.undo=null; document.getElementById('toastRoot').innerHTML=''; if(fn) await fn(); }
@@ -2267,7 +2290,7 @@ document.addEventListener('change', async ev=>{
   const t=ev.target;
   if(t.id==='importFile'){
     const file=t.files && t.files[0]; t.value=''; if(!file) return;
-    file.text().then(txt=>importPreview(parseBackup(txt), file.name)).catch(()=>toast('That file isn’t a Nestling backup. Choose the .json file from Save backup.'));
+    file.text().then(txt=>importPreview(parseBackup(txt), file.name)).catch(()=>toast('That file isn’t a Bebenou backup. Choose the .json file from Save backup.'));
     return;
   }
   if(t.id==='babySel'){ if(t.value && t.value!==baby?.id) openBaby(t.value); return; }
@@ -2398,7 +2421,7 @@ function pendingJoin(){ try{ return localStorage.getItem(JKEY)||''; }catch(e){ r
 function clearJoin(){ try{ localStorage.removeItem(JKEY); }catch(e){} }
 
 function openSignIn(msg){
-  openModal(`<h3 style="--c:var(--accent)">Sign in to Nestling</h3>
+  openModal(`<h3 style="--c:var(--accent)">Sign in to Bebenou</h3>
   <form class="form" id="signinForm">${msg?`<p>${esc(msg)}</p>`:''}
     ${F.seg('si_mode','',[['in','I have an account'],['up','Create account']],'in')}
     <label class="field"><span>Email</span><input type="email" id="si_email" autocomplete="email" inputmode="email" required placeholder="you@example.com"></label>
@@ -2416,7 +2439,7 @@ function openJoin(code){
     <div class="actions"><div class="r"><button type="button" class="btn ghost" data-close="1">Cancel</button><button type="submit" class="btn primary">Join</button></div></div></form>`);
 }
 function openStart(){
-  openModal(`<h3 style="--c:var(--accent)">Welcome to Nestling</h3><div class="form">
+  openModal(`<h3 style="--c:var(--accent)">Welcome to Bebenou</h3><div class="form">
     <p>Start a new log for your baby, or join a log someone shared with you.</p>
     <button class="btn primary" data-act="addBaby" style="justify-content:center">Add your baby</button>
     <button class="btn ghost" data-act="joinOpen" style="justify-content:center">I have an invite code</button>

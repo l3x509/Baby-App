@@ -1,8 +1,8 @@
-# Google Play listing for Nestling
+# Google Play listing for Bebenou
 
-> **Name check first.** Other baby trackers already use "Nestling" ("Nestling: Baby Tracker & Log" on the App Store, and "Nestling - Intelligent Baby Tracker", launched 2026 with a Play Store link). Choose a distinct name before the first upload, then update this file, `capacitor.config.json` (`appName`), the feature graphic and the app's title.
+> **Name: Bebenou.** Before the first upload, have a trademark attorney run a knockout search (US and EU; mention the existing "Bebou: Baby Tracker" app) and register the domain.
 
-Package name: `app.lexcellent.nestling` (permanent, can't be changed after the first upload)
+Package name: `app.lexcellent.bebenou` (permanent, can't be changed after the first upload)
 Category: Parenting · Contains ads: No · In-app purchases: No (Premium is switched off in this version; see "Before you submit" in ../README.md)
 Privacy policy URL: https://l3x509.github.io/Baby-App/privacy.html
 Account deletion URL: https://l3x509.github.io/Baby-App/delete-account.html
@@ -22,14 +22,14 @@ Graphics in this folder:
 ## English (en-US), default
 
 **App name (30):**
-Nestling: Baby Log for Parents
+Bebenou: Baby Tracker & Log
 
 **Short description (80):**
-Track feeds, sleep and diapers together. Your coparent sees every entry live.
+Track feeds, diapers, milk and growth. Share live with anyone who helps.
 
 **Full description:**
 
-Nestling is a baby log built for two parents. Log a feed, a nap or a diaper on your phone, and your coparent sees it on theirs right away, so you both always know when the baby last ate, slept or was changed.
+Bebenou ("our baby") is a baby log for everyone who cares for your little one: a single parent, two parents, grandparents or a sitter. Log a feed, a bottle or a diaper in one tap, see the whole day at a glance, and share it live with anyone you invite.
 
 LOG IN ONE TAP
 • Breastfeeding with a left and right timer, bottles in oz or ml, solids and pumping.
@@ -41,7 +41,7 @@ LOG IN ONE TAP
 • A milestones checklist for 2, 4, 6, 9 and 12 months.
 • Tummy time, bath, walks, and your own trackers, like vitamin D drops.
 
-SHARED WITH YOUR COPARENT
+SHARED WITH ANYONE WHO HELPS (OPTIONAL)
 • Invite your coparent, a grandparent or a caregiver with a one-time code.
 • Every entry shows who logged it.
 • Give someone view-only access when they only need to look.
@@ -59,6 +59,12 @@ UNDERSTAND THE PATTERNS
 • Growth charts with the WHO median as a reference line.
 • A teeth chart based on the American Dental Association's timeline.
 
+MILK STASH, REMINDERS AND REPORTS
+• Track pumped milk in the fridge and freezer, oldest first, with use-by dates.
+• Reminders for the next feed, vitamin D, medicine and appointments.
+• A doctor report (PDF) with growth, the last 14 days and health notes.
+• Works offline and syncs when you're back online.
+
 MAKE IT YOURS
 • Eight warm themes, each with a light and dark version for night feeds.
 • Five icon styles, including emoji.
@@ -69,12 +75,12 @@ YOUR DATA, YOUR CALL
 • Save a backup or export a spreadsheet for your pediatrician.
 • Delete your account any time, in the app or on the web.
 
-ASK NESTLING
+ASK BEBENOU
 • Ask questions like "Is she getting enough milk?" and get answers from trusted pediatric sources.
 • Personal answers look at your baby's recent feeds and diapers.
 • Urgent symptoms always point you to 911 or your pediatrician first.
 
-Nestling is a log, not medical advice. Nap windows, growth reference lines and fever notes are general information from public sources (Cleveland Clinic, the World Health Organization, the American Academy of Pediatrics, the American Dental Association). Always follow your pediatrician's guidance.
+Bebenou is a log, not medical advice. Nap windows, growth reference lines and fever notes are general information from public sources (Cleveland Clinic, the World Health Organization, the American Academy of Pediatrics, the American Dental Association). Always follow your pediatrician's guidance.
 
 ---
 
@@ -91,13 +97,13 @@ Nestling is a log, not medical advice. Nap windows, growth reference lines and f
 **Data safety:**
 - Data collected: Personal info → Email address, Name (the family display name) · Health and fitness → Health info (the baby's logs). Optional: none of it is used for ads or analytics.
 - Purpose: App functionality and Account management.
-- Shared with third parties: No (Supabase and Anthropic are service providers processing data on our behalf, which Play doesn't count as sharing). Ask Nestling sends the question and a log summary (no names or email) to Anthropic only when a parent asks for a personal answer.
+- Shared with third parties: No (Supabase and Anthropic are service providers processing data on our behalf, which Play doesn't count as sharing). Ask Bebenou sends the question and a log summary (no names or email) to Anthropic only when a parent asks for a personal answer.
 - Encrypted in transit: Yes.
 - Users can request deletion: Yes, in the app and at the account deletion URL above.
 
-**Health apps declaration** (App content → Health apps): Nestling has health features, including a spit-up log, vitamin D check-off and a developmental milestones checklist. Closest categories: Nutrition and Weight Management (feeding), Sleep Management (sleep), Activity and Fitness (growth measurements), Medication and Treatment Management (medicine log), and health status monitoring (temperature). It doesn't connect to medical devices and isn't a regulated medical device.
+**Health apps declaration** (App content → Health apps): Bebenou has health features, including a spit-up log, vitamin D check-off and a developmental milestones checklist. Closest categories: Nutrition and Weight Management (feeding), Sleep Management (sleep), Activity and Fitness (growth measurements), Medication and Treatment Management (medicine log), and health status monitoring (temperature). It doesn't connect to medical devices and isn't a regulated medical device.
 
-**AI-generated content:** Ask Nestling uses Claude (Anthropic) for personal answers. Every AI answer has a Report button (reasons: wrong or unsafe, not helpful, offensive); reports are saved to the ask_reports table for review. Emergencies (trouble breathing, turning blue, seizure, hard to wake) skip the AI and show "Call 911 now".
+**AI-generated content:** Ask Bebenou uses Claude (Anthropic) for personal answers. Every AI answer has a Report button (reasons: wrong or unsafe, not helpful, offensive); reports are saved to the ask_reports table for review. Emergencies (trouble breathing, turning blue, seizure, hard to wake) skip the AI and show "Call 911 now".
 
 **Account deletion:** In-app at Settings → Account → Delete my account; web at the account deletion URL above.
 

@@ -1,5 +1,5 @@
 -- =====================================================================
--- Nestling — Supabase schema
+-- Bebenou — Supabase schema
 -- Run this once in your Supabase project: SQL Editor → New query → paste → Run.
 -- It is safe to run again; it only creates what's missing and replaces
 -- the functions and access rules.
@@ -237,7 +237,7 @@ end $$;
 revoke all on function public.delete_my_account() from public, anon;
 grant execute on function public.delete_my_account() to authenticated;
 
--- ---------- Ask Nestling: daily limits and reports ----------
+-- ---------- Ask Bebenou: daily limits and reports ----------
 create table if not exists public.ask_usage (
   user_id uuid not null references auth.users(id) on delete cascade,
   day     date not null default current_date,

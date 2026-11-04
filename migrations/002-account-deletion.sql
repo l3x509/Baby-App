@@ -1,5 +1,5 @@
 -- =====================================================================
--- Nestling: account deletion (required by Google Play)
+-- Bebenou: account deletion (required by Google Play)
 -- Run once in Supabase: SQL Editor → New query → paste → Run.
 -- Safe to run again. Also included at the end of schema.sql.
 -- =====================================================================
