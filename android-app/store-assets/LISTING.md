@@ -15,7 +15,7 @@ Limits: app name 30 characters, short description 80, full description 4,000.
 Graphics in this folder:
 - `play-icon-512.png`: app icon, 512 × 512
 - `feature-graphic.png`: 1024 × 500
-- `screenshots/`: six phone screenshots, 1080 × 1920 (Today, Coming up, logging a bottle, Stats in dark mode, Growth, Themes)
+- `screenshots/`: seven captioned phone screenshots, 1080 × 1920, in upload order: 1 Home (Right now), 2 Milk stash, 3 Logging a bottle, 4 Week view, 5 Trends (dark), 6 Ask Bebenou, 7 Growth. They use a fictional 3-week-old ("Ava").
 
 ---
 
