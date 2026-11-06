@@ -1391,7 +1391,7 @@ function wtDelta(kg){
 }
 function weekly(now){
   const p=state.profile||{}, born=p.birth?new Date(p.birth+'T00:00').getTime():0;
-  const end=startOfDay(now), start=dayAdd(end,-7); // full days only
+  const end=startOfDay(now), start=dayAdd(end,-6); // the full days shown in the 7-day charts
   const core=x=>['breast','bottle','diaper','sleep'].includes(x.type);
   const days=[]; for(let d=start; d<end; d=dayAdd(d,1)) if(dayAdd(d,1)>born && state.entries.some(x=>core(x) && x.start>=d && x.start<dayAdd(d,1))) days.push(d);
   if(days.length<3) return '';
@@ -1428,8 +1428,9 @@ function rightNow(now){
   const ps=past(), lastOf=types=>ps.find(e=>types.includes(e.type));
   let r=rangeSummary(now-DAY, now);
   if(wk){
-    const born=p.birth?new Date(p.birth+'T00:00').getTime():0, first=state.entries.reduce((m,e)=>e.start<m?e.start:m,now);
-    const span=Math.max(1,(now-Math.max(now-7*DAY,born,first))/DAY), raw=rangeSummary(now-7*DAY,now), r1=v=>Math.round(v/span*10)/10;
+    const born=p.birth?startOfDay(new Date(p.birth+'T00:00').getTime()):0, first=startOfDay(state.entries.reduce((m,e)=>e.start<m?e.start:m,now));
+    const t0=startOfDay(now); let a0=dayAdd(t0,-6); while(a0<Math.max(born,first) && a0<dayAdd(t0,-1)) a0=dayAdd(a0,1);
+    const full=a0<t0, span=full?Math.round((t0-a0)/DAY):Math.max(1,(now-t0)/DAY), raw=full?rangeSummary(a0,t0):rangeSummary(t0,now), r1=v=>Math.round(v/span*10)/10;
     r={...raw}; ['feeds','diapers','wetOnly','dirtyOnly','mixed','dry'].forEach(k=>r[k]=r1(raw[k])); ['bottleMl','breastMs','sleepMs'].forEach(k=>r[k]=raw[k]/span);
   }
   const ago=ms=>ms<MIN?'just now':fmtDur(ms)+' ago';
@@ -1478,7 +1479,7 @@ function rightNow(now){
   return `<div class="panel rnow"><h2><span>Right now</span><span class="chips" role="group" aria-label="Range"><button class="chip" data-act="rnRange" data-r="24h" aria-pressed="${!wk}">24 h</button><button class="chip" data-act="rnRange" data-r="7d" aria-pressed="${wk}">7 days</button></span></h2>${rows.join('')}
     <div class="rax"><span></span><div class="hours">${axis.map(x=>`<span>${x}</span>`).join('')}</div></div>
     <div class="legend rleg"><span><i style="background:var(--fbar)"></i>Bottle</span><span><i style="background:var(--fbar2)"></i>Nursing</span><span><i style="background:var(--solidc)"></i>Solids</span><span><i style="background:var(--diaper)"></i>Wet</span><span><i style="background:var(--poo)"></i>Dirty</span><span><i style="background:color-mix(in srgb,var(--sleep) 25%,var(--surface))"></i>Night 7p–7a</span></div>
-    <p class="note" style="margin:8px 0 0">${wk?'7 days shows daily averages, and each lane layers the last 7 days by time of day. ':''}Usual amounts: 8+ feeds for newborns, 6+ wet diapers from day 5, about 2½ oz of formula per lb (AAP). Every baby is different, so feed on demand.</p></div>`;
+    <p class="note" style="margin:8px 0 0">${wk?'7 days shows the daily average of the full days this week (today isn’t finished yet, so it’s left out), and each lane layers those days by time of day. ':''}Usual amounts: 8+ feeds for newborns, 6+ wet diapers from day 5, about 2½ oz of formula per lb (AAP). Every baby is different, so feed on demand.</p></div>`;
 }
 
 
@@ -1759,7 +1760,9 @@ function barChart(days, series, fmt, title){
     series.forEach(s=>{ const hgt=(H-Tp-B)*s.vals[i]/max; if(hgt>0){ g+=`<rect x="${x}" y="${y0-hgt}" width="${w}" height="${hgt}" rx="3" fill="${s.color}"><title>${fmtDate(d)} · ${s.name}: ${fmt(s.vals[i])}</title></rect>`; y0-=hgt; } });
     if(days.length<=14 || i%3===0) g+=`<text x="${x+w/2}" y="${H-8}" text-anchor="middle">${new Date(d).toLocaleDateString([], days.length<=7?{weekday:'short'}:{month:'numeric',day:'numeric'})}</text>`;
   });
-  const avg=totals.reduce((a,b)=>a+b,0)/days.length;
+  const born=state.profile?.birth?startOfDay(new Date(state.profile.birth+'T00:00').getTime()):-Infinity, today=startOfDay(Date.now());
+  let idx=days.map((d,i)=>i).filter(i=>days[i]<today && days[i]>=born); if(!idx.length) idx=days.map((d,i)=>i).filter(i=>days[i]>=born); if(!idx.length) idx=days.map((d,i)=>i);
+  const avg=idx.reduce((a,i)=>a+totals[i],0)/idx.length;
   const lg=series.length>1?`<div class="legend" style="margin-bottom:8px">${series.map(s=>`<span><i style="background:${s.color}"></i>${s.name}</span>`).join('')}</div>`:'';
   return `<div class="panel"><h2><span>${title}</span><span class="sub num">Avg ${fmt(avg)}/day</span></h2>${lg}<div class="chartwrap"><svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${title}">${g}</svg></div></div>`;
 }
@@ -1774,8 +1777,10 @@ function vStats(noHead){
   h+=`<div class="grid2">`;
   h+=barChart(days,[{name:'Night',color:'var(--sleep)',vals:S.map(s=>s.nightMs)},{name:'Naps',color:'color-mix(in srgb,var(--sleep) 50%,var(--surface))',vals:S.map(s=>s.napMs)}],hrs,'Sleep');
   h+=barChart(days,[{name:'Feeds',color:'var(--feed)',vals:S.map(s=>s.feeds)}],(v)=>Math.round(v*10)/10+'','Breast + bottle feeds');
-  h+=barChart(days,[{name:'Bottle',color:'var(--feed)',vals:S.map(s=>s.bottleMl)},{name:'Pumped',color:'color-mix(in srgb,var(--feed) 45%,var(--surface))',vals:S.map(s=>s.pumpMl)}],(v,axis)=> axis? `${U.volOut(v)}` : U.vol(v),`Milk volume (${U.volU()})`);
-  h+=barChart(days,[{name:'Wet',color:'var(--diaper)',vals:S.map(s=>s.wet)},{name:'Dirty',color:'color-mix(in srgb,var(--diaper) 45%,var(--surface))',vals:S.map(s=>s.dirty)}],(v)=>Math.round(v*10)/10+'','Diapers');
+  const vf=(v,axis)=> axis? `${U.volOut(v)}` : U.vol(v);
+  h+=barChart(days,[{name:'Bottle',color:'var(--feed)',vals:S.map(s=>s.bottleMl)}],vf,`Milk by bottle (${U.volU()})`);
+  if(S.some(s=>s.pumpMl)) h+=barChart(days,[{name:'Pumped',color:'color-mix(in srgb,var(--feed) 55%,var(--surface))',vals:S.map(s=>s.pumpMl)}],vf,`Pumped (${U.volU()})`);
+  h+=barChart(days,[{name:'Wet',color:'var(--diaper)',vals:S.map(s=>s.wetOnly)},{name:'Dirty',color:'var(--poo)',vals:S.map(s=>s.dirtyOnly)},{name:'Both',color:'color-mix(in srgb,var(--diaper) 50%,var(--poo))',vals:S.map(s=>s.mixed)},{name:'Dry',color:'var(--ink-3)',vals:S.map(s=>s.dry)}].filter(x=>x.vals.some(v=>v)),(v)=>Math.round(v*10)/10+'','Diapers');
   h+=`</div>`;
   return h;
 }
