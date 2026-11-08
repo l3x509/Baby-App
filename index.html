@@ -312,6 +312,46 @@ main{min-width:0;overflow-x:clip;padding-block:24px 96px;padding-left:max(16px,e
 .mst u{position:absolute;top:0;bottom:0;background:color-mix(in srgb,var(--sleep) 30%,transparent)}
 .mst b{position:absolute;top:0;bottom:0;width:2px;background:var(--ink);opacity:.6}
 .dcard .chips.scroll{margin:12px 0 4px}
+.wk{padding:6px 12px 10px}
+.wkt{width:100%;border-collapse:collapse;table-layout:fixed;font-variant-numeric:tabular-nums}
+.wkt th,.wkt td{padding:9px 4px;text-align:right;font-size:14.5px}
+.wkt thead th{font-size:12px;font-weight:600;color:var(--ink-3);padding:8px 4px 6px}
+.wkt th:first-child{text-align:left;width:34%}
+.wkt th,.wkt td{border:0}
+.wkt tbody th{font-weight:600;text-transform:none;letter-spacing:0;color:var(--ink)}
+.wkt thead th{text-transform:none;letter-spacing:0}
+.wkt tbody th small{font-weight:500;color:var(--ink-3);font-size:11.5px}
+.wkt tbody tr{border-top:1px solid var(--line);cursor:pointer}
+.wkt tbody tr:hover{background:var(--surface-2)}
+.wkt tbody tr.sel{background:color-mix(in srgb,var(--accent) 12%,transparent)}
+.wkt tbody tr.sel th{color:var(--accent)}
+.wkt tr.avg{cursor:default;color:var(--ink-3)}
+.wkt tr.avg:hover{background:none}
+.wkt tr.avg th{font-weight:500;font-size:13px;color:var(--ink-3)}
+.hv{display:inline-block;min-width:26px;padding:1px 6px;border-radius:7px;text-align:center}
+.hv.lo{background:var(--warn-bg);color:var(--warn-ink);font-weight:700}
+.wkf{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px;font-size:12px}
+.wkf .hv{min-width:0;padding:0 5px;font-size:11px}
+.dday{padding:14px 16px}
+.ddh{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.ddh h2{margin:0}
+.ddn{display:flex;gap:4px}
+.ddn .btn{min-width:36px;font-size:18px;line-height:1}
+.dps{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 2px}
+.dp{font-size:12.5px;font-weight:600;padding:4px 10px;border-radius:99px;background:color-mix(in srgb,var(--pc) 15%,transparent);color:color-mix(in srgb,var(--pc) 70%,var(--ink))}
+.dday .chips.scroll{margin:10px 0 2px}
+.eg{font-size:11.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3);margin:12px 0 2px}
+.erow{display:grid;grid-template-columns:66px 10px minmax(0,1fr);gap:8px;align-items:baseline;width:100%;padding:7px 4px;border:0;border-bottom:1px solid var(--line);background:none;text-align:left;font:inherit;color:inherit;font-size:14px;line-height:1.35}
+.erow:hover{background:var(--surface-2)}
+.erow .tm{font-variant-numeric:tabular-nums;font-weight:600;font-size:13px;color:var(--ink-2);white-space:nowrap}
+.erow .edot{width:9px;height:9px;border-radius:50%;background:var(--dc);align-self:center}
+.erow .et{min-width:0;overflow-wrap:anywhere}
+.erow .et b{font-weight:600}
+.erow .et>span:not(.newp):not(.pend){color:var(--ink-2)}
+.erow .by2{display:inline;color:var(--ink-3)}
+.erow.tu .tm{color:var(--ink-3);font-weight:500}
+.erow.tu .edot{width:6px;height:6px;opacity:.7}
+.erow .tut{color:var(--ink-3);font-size:12.5px}
 .chips.scroll{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
 .chips.scroll::-webkit-scrollbar{display:none}
 .chips.scroll .chip{flex:none}
@@ -1779,24 +1819,58 @@ function miniStrip(d){
   if(now>=s && now<e) h+=`<b style="left:${((now-s)/L*100).toFixed(2)}%"></b>`;
   return `<div class="mst" aria-hidden="true">${h}</div>`;
 }
+function histAvg(t0){
+  const born=state.profile?.birth?startOfDay(new Date(state.profile.birth+'T00:00').getTime()):-Infinity;
+  const ds=[]; for(let i=1;i<=7;i++){ const d=dayAdd(t0,-i); if(d<born) break; ds.push(daySummary(d)); }
+  const a=k=>ds.length?ds.reduce((t,s)=>t+s[k],0)/ds.length:0;
+  return {n:ds.length, feeds:a('feeds'), bottleMl:a('bottleMl'), breastMs:a('breastMs'), wet:a('wet'), dirty:a('dirty')};
+}
+function feedDot(e){ return e.type==='diaper' ? (e.kind==='dirty'?'var(--poo)':e.kind==='mixed'?'linear-gradient(90deg,var(--diaper) 50%,var(--poo) 50%)':e.kind==='dry'?'var(--ink-3)':'var(--diaper)') : ['breast','bottle'].includes(e.type) ? 'var(--fbar)' : e.type==='solids' ? 'var(--solidc)' : color(e.type); }
+function erow(e,topup){
+  const sum=entrySummary(e);
+  return `<button class="erow${topup?' tu':''}" data-edit="${esc(e.id)}" style="--dc:${feedDot(e)}"><span class="tm">${fmtTime(e.start)}</span><i class="edot" aria-hidden="true"></i><span class="et">${topup?'<span class="tut">↳ top-up</span> ':''}<b>${esc(T[e.type]?.label||e.type)}</b>${sum?' <span>'+esc(sum)+'</span>':''}${e.note?' <span>· '+esc(e.note)+'</span>':''}${awayNew.has(e.id)?'<span class="newp">New</span>':''}${e._pending?' <span class="pend" title="Saved on this phone, waiting to sync">· not synced yet</span>':''}<span class="by2" data-by="${esc(e.by||'')}"></span></span></button>`;
+}
 function vTimeline(noHead){
-  const t0=startOfDay(Date.now()), n=state.histDays||7, open=state.selDay;
+  const t0=startOfDay(Date.now()), n=state.histDays||7, born=state.profile?.birth?startOfDay(new Date(state.profile.birth+'T00:00').getTime()):-Infinity;
+  if(state.selDay==null || state.selDay<0 || state.selDay>t0) state.selDay=t0;
+  const open=state.selDay, avg=histAvg(t0), imp=U.imp();
+  const num=ml=>ml?String(U.volTo(ml,imp?'oz':'ml')):'—';
+  const useBottle = avg.bottleMl>0 || daySummary(t0).bottleMl>0 || avg.breastMs===0;
+  const low=(v,a,isToday)=>!isToday && avg.n>=3 && a>=1 && v<a*0.6;
+  const cell=(v,a,isToday,txt)=>`<td><span class="hv${low(v,a,isToday)?' lo':''}"${low(v,a,isToday)?' title="Well below her usual"':''}>${txt??v}</span></td>`;
+  const dname=d=>d===t0?'Today':d===dayAdd(t0,-1)?'Yest.':new Date(d).toLocaleDateString([], {weekday:'short'})+' '+new Date(d).getDate();
   let h=noHead?'':header('History','Tap a day to see its entries');
+  let rows='';
+  for(let i=0;i<n;i++){ const d=dayAdd(t0,-i); if(d<born && i>0) break; const s=daySummary(d), td=d===t0;
+    rows+=`<tr class="${d===open?'sel':''}" data-day="${d}" tabindex="0" aria-selected="${d===open}"><th scope="row">${dname(d)}${td?'<small> so far</small>':''}</th>${cell(s.feeds,avg.feeds,td)}${useBottle?cell(s.bottleMl,avg.bottleMl,td,num(s.bottleMl)):cell(s.breastMs,avg.breastMs,td,s.breastMs?fmtDur(s.breastMs):'—')}${cell(s.wet,avg.wet,td)}${cell(s.dirty,avg.dirty,td)}</tr>`; }
+  const r1=v=>Math.round(v);
+  const avgRow = avg.n ? `<tr class="avg"><th scope="row">${avg.n}-day avg</th><td><span class="hv">${r1(avg.feeds)}</span></td><td><span class="hv">${useBottle?num(avg.bottleMl):fmtDur(avg.breastMs)}</span></td><td><span class="hv">${r1(avg.wet)}</span></td><td><span class="hv">${r1(avg.dirty)}</span></td></tr>` : '';
+  const more = (n<60 && dayAdd(t0,-n)>=born) ? `<button class="btn ghost sm" data-act="moreDays">Show 7 more days</button>` : '';
+  h+=`<div class="panel wk"><table class="wkt"><thead><tr><th scope="col">Day</th><th scope="col">Feeds</th><th scope="col">${useBottle?(imp?'Oz':'ml'):'Nursing'}</th><th scope="col">Wet</th><th scope="col">Dirty</th></tr></thead><tbody>${rows}${avgRow}</tbody></table>
+    <div class="wkf"><span class="sub">${avg.n>=3?'<span class="hv lo" style="width:12px;height:12px;padding:0;vertical-align:-2px"></span> Well below her usual (vs last 7 days)':'Tap a day to open it'}</span>${more}</div></div>`;
+  // open day
+  const s=daySummary(open), isToday=open===t0;
+  const title=(isToday?'Today':open===dayAdd(t0,-1)?'Yesterday':new Date(open).toLocaleDateString([], {weekday:'long'}))+`<span class="sub"> · ${new Date(open).toLocaleDateString([], {month:'short',day:'numeric'})}${isToday?' · so far':''}</span>`;
+  const pill=(c,t)=>`<span class="dp" style="--pc:${c}">${t}</span>`;
+  const pills=[
+    s.feeds||s.bottleMl ? pill('var(--fbar)', `${s.feeds} ${s.feeds===1?'feed':'feeds'}${s.bottleMl?' · '+U.vol(s.bottleMl):''}`) : '',
+    s.breastMs ? pill('var(--fbar)', `${fmtDur(s.breastMs)} nursing`) : '',
+    s.wet ? pill('var(--diaper)', `${s.wet} wet`) : '', s.dirty ? pill('var(--poo)', `${s.dirty} dirty`) : '',
+    s.sleepMs ? pill('var(--sleep)', `${fmtDur(s.sleepMs)} sleep`) : '', s.pumpMl ? pill('var(--activity)', `${U.vol(s.pumpMl)} pumped`) : ''
+  ].join('');
   const filters=[['all','All'],['feed','Feeds'],['diaper','Diapers'],['sleep','Sleep'],['health','Health'],['other','Other']];
   const match=e=>{ const c=T[e.type]?.cat; return state.filter==='all' || c===state.filter || (state.filter==='health'&&c==='growth') || (state.filter==='other'&&(c==='activity'||c==='memory')); };
-  for(let i=0;i<n;i++){ const d=dayAdd(t0,-i), s=daySummary(d), isOpen=d===open, isToday=d===t0;
-    const born=state.profile?.birth?startOfDay(new Date(state.profile.birth+'T00:00').getTime()):-Infinity; if(d<born && i>0) break;
-    const nums=[[s.feeds,s.feeds===1?'feed':'feeds'],[s.bottleMl?U.vol(s.bottleMl):'','by bottle'],[s.wet,'wet'],[s.dirty,'dirty'],[s.sleepMs?fmtDur(s.sleepMs):'','sleep']].filter(([v])=>v!==''&&v!==0).map(([v,l])=>`<span><b class="num">${v}</b> ${l}</span>`).join('');
-    const label=isToday?'Today':d===dayAdd(t0,-1)?'Yesterday':new Date(d).toLocaleDateString([], {weekday:'long'});
-    let body='';
-    if(isOpen){ const es=entriesOn(d).filter(match);
-      body=`<div class="chips scroll">${filters.map(([k,l])=>`<button class="chip" data-filter="${k}" aria-pressed="${state.filter===k}">${l}</button>`).join('')}</div>
-        <div class="list">${es.length?es.map(entryRow).join(''):`<div class="empty">${state.filter==='all'?'Nothing logged this day.':'Nothing in this category.'}</div>`}</div>`; }
-    h+=`<div class="panel dcard ${isOpen?'open':''}"><button class="dhead" data-day="${d}" aria-expanded="${isOpen}"><span class="dname">${label}<span class="sub"> · ${new Date(d).toLocaleDateString([], {month:'short',day:'numeric'})}${isToday?' · so far':''}</span></span><span class="chev" aria-hidden="true">${isOpen?'▴':'▾'}</span></button>
-      <div class="dnums">${nums||'<span class="sub">Nothing logged</span>'}</div>${miniStrip(d)}${body}</div>`;
-  }
-  if(n<60) h+=`<button class="btn ghost" data-act="moreDays" style="align-self:center">Show 7 more days</button>`;
-  h+=`<div class="legend" style="justify-content:center"><span><i style="background:var(--fbar)"></i>Feeds</span><span><i style="background:var(--diaper)"></i>Wet</span><span><i style="background:var(--poo)"></i>Dirty</span><span><i style="background:color-mix(in srgb,var(--sleep) 35%,var(--surface))"></i>Sleep</span><span><i style="background:var(--health)"></i>Health</span></div>`;
+  const all=entriesOn(open);
+  const tu=new Set(); { let lastEnd=-Infinity; all.filter(e=>e.type==='breast'||e.type==='bottle').sort((a,b)=>a.start-b.start).forEach(e=>{ if(e.start-lastEnd<=30*MIN) tu.add(e.id); lastEnd=Math.max(lastEnd,e.end||e.start); }); }
+  const es=all.filter(match);
+  const G=[['Evening',18],['Afternoon',12],['Morning',6],['Night',0]];
+  let list='';
+  G.forEach(([g,hr])=>{ const part=es.filter(e=>{ const x=new Date(e.start).getHours(); return x>=hr && x<hr+6; }); if(part.length) list+=`<div class="eg">${g}</div>`+part.map(e=>erow(e,tu.has(e.id))).join(''); });
+  const canNext=open<t0, canPrev=dayAdd(open,-1)>=born;
+  h+=`<div class="panel dday" id="dayDetail"><div class="ddh"><h2 class="dname">${title}</h2><span class="ddn"><button class="btn ghost sm" data-shift="-1" ${canPrev?'':'disabled'} aria-label="Previous day">‹</button><button class="btn ghost sm" data-shift="1" ${canNext?'':'disabled'} aria-label="Next day">›</button></span></div>
+    ${pills?`<div class="dps">${pills}</div>`:''}
+    <div class="chips scroll">${filters.map(([k,l])=>`<button class="chip" data-filter="${k}" aria-pressed="${state.filter===k}">${l}</button>`).join('')}</div>
+    <div class="elist">${list||`<div class="empty">${state.filter==='all'?'Nothing logged this day.':'Nothing in this category.'}</div>`}</div></div>`;
   return h;
 }
 function i18nDay(d){ const t=startOfDay(Date.now()); if(d===t) return 'Today'; if(d===dayAdd(t,-1)) return 'Yesterday'; return new Date(d).toLocaleDateString([], {weekday:'short', day:'numeric'}); }
@@ -2266,7 +2340,7 @@ document.addEventListener('click', async ev=>{
   if(t.dataset.view){ state.view=t.dataset.view; render(); window.scrollTo(0,0); if(state.view==='ask') document.getElementById('askQ')?.focus({preventScroll:true}); return; }
   if(t.dataset.new){ if(state.canWrite) openEntry(t.dataset.new, null, t.dataset.kind); return; }
   if(t.dataset.edit){ const e=state.entries.find(x=>x.id===t.dataset.edit); if(e) openEntry(e.type,e); return; }
-  if(t.dataset.day){ const d=+t.dataset.day; state.selDay = state.selDay===d ? -1 : d; state.filter='all'; render(); return; }
+  if(t.dataset.day){ state.selDay=+t.dataset.day; state.filter='all'; render(); if(matchMedia('(max-width:820px)').matches) document.getElementById('dayDetail')?.scrollIntoView({block:'start',behavior:'smooth'}); return; }
   if(t.dataset.shift){ state.selDay=Math.min(startOfDay(Date.now()), startOfDay(state.selDay+ (+t.dataset.shift)*DAY + 2*HR)); render(); return; }
   if(t.dataset.filter){ state.filter=t.dataset.filter; render(); return; }
   if(t.dataset.range){ state.statRange=+t.dataset.range; render(); return; }
