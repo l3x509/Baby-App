@@ -299,6 +299,23 @@ main{min-width:0;overflow-x:clip;padding-block:24px 96px;padding-left:max(16px,e
 .strip .tick{position:absolute;top:4px;bottom:4px;width:3px;border-radius:2px}
 .hours{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-3);margin-top:4px;font-variant-numeric:tabular-nums}
 .days{display:flex;flex-direction:column;gap:8px}
+.dcard{padding:12px 16px}
+.dcard.open{border-color:color-mix(in srgb,var(--accent) 55%,var(--line));box-shadow:0 0 0 1px color-mix(in srgb,var(--accent) 30%,transparent)}
+.dhead{display:flex;justify-content:space-between;align-items:baseline;width:100%;border:0;background:none;padding:0;font:inherit;color:inherit;text-align:left}
+.dname{font-family:var(--display);font-weight:700;font-size:17px}
+.chev{color:var(--ink-3);font-size:13px}
+.dnums{display:flex;flex-wrap:wrap;gap:4px 14px;margin:4px 0 8px;font-size:13.5px;color:var(--ink-2)}
+.dnums b{color:var(--ink);font-weight:700}
+.mst{position:relative;height:12px;border-radius:6px;background:var(--surface-2);overflow:hidden}
+.mst.tall{height:18px}
+.mst i{position:absolute;top:2px;bottom:2px;width:3px;margin-left:-1.5px;border-radius:2px}
+.mst u{position:absolute;top:0;bottom:0;background:color-mix(in srgb,var(--sleep) 30%,transparent)}
+.mst b{position:absolute;top:0;bottom:0;width:2px;background:var(--ink);opacity:.6}
+.dcard .chips.scroll{margin:12px 0 4px}
+.chips.scroll{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.chips.scroll::-webkit-scrollbar{display:none}
+.chips.scroll .chip{flex:none}
+.tyl{display:grid;grid-template-columns:62px minmax(0,1fr);gap:10px;align-items:center;margin-bottom:6px;font-size:12.5px;font-weight:600;color:var(--ink-2)}
 .dayrow{display:grid;grid-template-columns:64px minmax(0,1fr);gap:10px;align-items:center}
 .dayrow .dl{font-size:12.5px;font-weight:600;color:var(--ink-2)}
 .dayrow.sel .dl{color:var(--accent)}
@@ -431,7 +448,8 @@ tr:last-child td{border-bottom:0}
   .since{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
   .tile{padding:10px 10px}
   .teeth{grid-template-columns:minmax(0,1fr)}
-  .entry{grid-template-columns:54px 32px minmax(0,1fr)}
+  .entry{grid-template-columns:64px 32px minmax(0,1fr);gap:10px}
+  .entry .tm{white-space:nowrap;font-size:13px}
   .entry .by{display:none}
 }
 
@@ -1426,9 +1444,14 @@ function typicalDay(){
   const t=startOfDay(Date.now()), days=[];
   for(let i=1;i<=7;i++){ const d=dayAdd(t,-i); if(state.entries.some(x=>x.start>=d && x.start<dayAdd(d,1))) days.push(d); }
   if(days.length<3) return '';
-  return `<div class="panel"><h2><span>Typical day <span class="sub" style="font-weight:500">· last ${days.length} full days layered</span></span></h2>
-    <div class="strip typ">${days.map(d=>`<div class="lay" style="opacity:${(1/days.length*1.6).toFixed(2)}">${strip(d)}</div>`).join('')}</div>${hoursRow}
-    <p class="note" style="margin:8px 0 0">Darker means it happens at that time on most days.</p></div>`;
+  const op=(1.5/days.length).toFixed(2), inDays=x=>days.some(d=>x.start>=d && x.start<dayAdd(d,1));
+  const ticks=(f,c)=>state.entries.filter(x=>f(x)&&inDays(x)).map(x=>`<i style="left:${(clockFrac(x.start)*100).toFixed(2)}%;background:${typeof c==='function'?c(x):c};opacity:${op}"></i>`).join('');
+  const sleep=state.entries.filter(x=>x.type==='sleep'&&x.end&&inDays(x)).map(x=>{ const a=clockFrac(x.start)*100, w=Math.min(100-a,(x.end-x.start)/DAY*100); return `<u style="left:${a.toFixed(2)}%;width:${w.toFixed(2)}%;opacity:${op}"></u>`; }).join('');
+  const lane=(lbl,inner)=>`<div class="tyl"><span>${lbl}</span><div class="mst tall">${inner}</div></div>`;
+  return `<div class="panel"><h2><span>Typical day <span class="sub" style="font-weight:500">· last ${days.length} days</span></span></h2>
+    ${lane('Feeds',ticks(x=>T[x.type]?.cat==='feed','var(--fbar)'))}${lane('Diapers',ticks(x=>x.type==='diaper',x=>x.kind==='dirty'?'var(--poo)':'var(--diaper)'))}${lane('Sleep',sleep)}
+    <div class="tyl"><span></span>${hoursRow}</div>
+    <p class="note" style="margin:6px 0 0">Darker means it happens around that time on most days.</p></div>`;
 }
 
 
@@ -1747,18 +1770,33 @@ function vToday(){
 }
 
 /* --- Timeline --- */
+function miniStrip(d){
+  const s=d, e=dayAdd(d,1), L=e-s, now=Date.now(); let h='';
+  state.entries.forEach(x=>{ if(x.type==='sleep'){ const a=Math.max(s,x.start), b=Math.min(e,x.end??now); if(b>a) h+=`<u style="left:${((a-s)/L*100).toFixed(2)}%;width:${Math.max(.6,(b-a)/L*100).toFixed(2)}%"></u>`; } });
+  state.entries.forEach(x=>{ if(x.start<s||x.start>=e||x.type==='sleep') return;
+    const c={feed:'var(--fbar)',diaper:x.kind==='dirty'?'var(--poo)':x.kind==='mixed'?'linear-gradient(var(--diaper) 50%,var(--poo) 50%)':'var(--diaper)',health:'var(--health)',growth:'var(--health)',activity:'var(--activity)',memory:'var(--memory)'}[T[x.type]?.cat]||'var(--ink-3)';
+    h+=`<i style="left:${((x.start-s)/L*100).toFixed(2)}%;background:${c}"></i>`; });
+  if(now>=s && now<e) h+=`<b style="left:${((now-s)/L*100).toFixed(2)}%"></b>`;
+  return `<div class="mst" aria-hidden="true">${h}</div>`;
+}
 function vTimeline(noHead){
-  const sel=state.selDay;
-  let h=noHead?'':header('Timeline', 'Tap a day to see its entries');
-  h+=typicalDay();
-  const rows=[]; for(let i=0;i<7;i++){ rows.push(dayAdd(startOfDay(Date.now()),-i)); }
-  h+=`<div class="panel"><h2>Last 7 days</h2><div class="days">${rows.map(d=>`<div class="dayrow ${d===sel?'sel':''}"><span class="dl">${i18nDay(d)}</span><button class="strip" data-day="${d}" aria-label="Show ${fmtDate(d)}">${strip(d)}</button></div>`).join('')}
-    <div class="dayrow"><span></span>${hoursRow}</div></div><div style="margin-top:12px">${legend}</div></div>`;
-  const filters=[['all','All'],['feed','Feeding'],['sleep','Sleep'],['diaper','Diapers'],['health','Health'],['activity','Activities'],['memory','Moments']];
-  let es=entriesOn(sel); if(state.filter!=='all') es=es.filter(e=>T[e.type]?.cat===state.filter);
-  h+=`<div class="panel"><h2><span>${fmtDate(sel)}</span><span style="display:flex;gap:6px"><button class="btn ghost sm" data-shift="-1" aria-label="Previous day">‹</button><button class="btn ghost sm" data-shift="1" aria-label="Next day" ${sel>=startOfDay(Date.now())?'disabled':''}>›</button></span></h2>
-    <div class="chips" style="margin-bottom:8px">${filters.map(([k,l])=>`<button class="chip" data-filter="${k}" aria-pressed="${state.filter===k}">${l}</button>`).join('')}</div>
-    <div class="list">${es.length?es.map(entryRow).join(''):'<div class="empty">No entries for this day.</div>'}</div></div>`;
+  const t0=startOfDay(Date.now()), n=state.histDays||7, open=state.selDay;
+  let h=noHead?'':header('History','Tap a day to see its entries');
+  const filters=[['all','All'],['feed','Feeds'],['diaper','Diapers'],['sleep','Sleep'],['health','Health'],['other','Other']];
+  const match=e=>{ const c=T[e.type]?.cat; return state.filter==='all' || c===state.filter || (state.filter==='health'&&c==='growth') || (state.filter==='other'&&(c==='activity'||c==='memory')); };
+  for(let i=0;i<n;i++){ const d=dayAdd(t0,-i), s=daySummary(d), isOpen=d===open, isToday=d===t0;
+    const born=state.profile?.birth?startOfDay(new Date(state.profile.birth+'T00:00').getTime()):-Infinity; if(d<born && i>0) break;
+    const nums=[[s.feeds,s.feeds===1?'feed':'feeds'],[s.bottleMl?U.vol(s.bottleMl):'','by bottle'],[s.wet,'wet'],[s.dirty,'dirty'],[s.sleepMs?fmtDur(s.sleepMs):'','sleep']].filter(([v])=>v!==''&&v!==0).map(([v,l])=>`<span><b class="num">${v}</b> ${l}</span>`).join('');
+    const label=isToday?'Today':d===dayAdd(t0,-1)?'Yesterday':new Date(d).toLocaleDateString([], {weekday:'long'});
+    let body='';
+    if(isOpen){ const es=entriesOn(d).filter(match);
+      body=`<div class="chips scroll">${filters.map(([k,l])=>`<button class="chip" data-filter="${k}" aria-pressed="${state.filter===k}">${l}</button>`).join('')}</div>
+        <div class="list">${es.length?es.map(entryRow).join(''):`<div class="empty">${state.filter==='all'?'Nothing logged this day.':'Nothing in this category.'}</div>`}</div>`; }
+    h+=`<div class="panel dcard ${isOpen?'open':''}"><button class="dhead" data-day="${d}" aria-expanded="${isOpen}"><span class="dname">${label}<span class="sub"> · ${new Date(d).toLocaleDateString([], {month:'short',day:'numeric'})}${isToday?' · so far':''}</span></span><span class="chev" aria-hidden="true">${isOpen?'▴':'▾'}</span></button>
+      <div class="dnums">${nums||'<span class="sub">Nothing logged</span>'}</div>${miniStrip(d)}${body}</div>`;
+  }
+  if(n<60) h+=`<button class="btn ghost" data-act="moreDays" style="align-self:center">Show 7 more days</button>`;
+  h+=`<div class="legend" style="justify-content:center"><span><i style="background:var(--fbar)"></i>Feeds</span><span><i style="background:var(--diaper)"></i>Wet</span><span><i style="background:var(--poo)"></i>Dirty</span><span><i style="background:color-mix(in srgb,var(--sleep) 35%,var(--surface))"></i>Sleep</span><span><i style="background:var(--health)"></i>Health</span></div>`;
   return h;
 }
 function i18nDay(d){ const t=startOfDay(Date.now()); if(d===t) return 'Today'; if(d===dayAdd(t,-1)) return 'Yesterday'; return new Date(d).toLocaleDateString([], {weekday:'short', day:'numeric'}); }
@@ -1788,6 +1826,7 @@ function vStats(noHead){
   const S=days.map(daySummary);
   let h=noHead?'':header('Stats', `Daily patterns over the last ${n} days`);
   h+=weekly(Date.now());
+  h+=typicalDay();
   h+=`<div class="chips">${[7,14,30].map(k=>`<button class="chip" data-range="${k}" aria-pressed="${n===k}">${k} days</button>`).join('')}</div>`;
   const hrs=(v,axis)=> axis? `${Math.round(v/HR)}h` : fmtDur(v);
   h+=`<div class="grid2">`;
@@ -1922,7 +1961,7 @@ function vSettings(){
 /* --- History, Ask, Family, Settings pages --- */
 function vHistory(){
   const tab=state.histTab||'days';
-  let h=header('History', tab==='days'?'Tap a day to see its entries':`Daily patterns over the last ${state.statRange} days`);
+  let h=header('History', tab==='days'?'Tap a day to open it':`Daily patterns over the last ${state.statRange} days`);
   h+=`<div class="chips seg2" role="tablist" aria-label="History view"><button class="chip" role="tab" data-hist="days" aria-pressed="${tab==='days'}">Days</button><button class="chip" role="tab" data-hist="trends" aria-pressed="${tab==='trends'}">Trends</button></div>`;
   return h+(tab==='days'?vTimeline(true):vStats(true));
 }
@@ -2227,7 +2266,7 @@ document.addEventListener('click', async ev=>{
   if(t.dataset.view){ state.view=t.dataset.view; render(); window.scrollTo(0,0); if(state.view==='ask') document.getElementById('askQ')?.focus({preventScroll:true}); return; }
   if(t.dataset.new){ if(state.canWrite) openEntry(t.dataset.new, null, t.dataset.kind); return; }
   if(t.dataset.edit){ const e=state.entries.find(x=>x.id===t.dataset.edit); if(e) openEntry(e.type,e); return; }
-  if(t.dataset.day){ state.selDay=+t.dataset.day; render(); return; }
+  if(t.dataset.day){ const d=+t.dataset.day; state.selDay = state.selDay===d ? -1 : d; state.filter='all'; render(); return; }
   if(t.dataset.shift){ state.selDay=Math.min(startOfDay(Date.now()), startOfDay(state.selDay+ (+t.dataset.shift)*DAY + 2*HR)); render(); return; }
   if(t.dataset.filter){ state.filter=t.dataset.filter; render(); return; }
   if(t.dataset.range){ state.statRange=+t.dataset.range; render(); return; }
@@ -2300,6 +2339,7 @@ document.addEventListener('click', async ev=>{
   else if(a==='stashThaw'){ closeModal(); await safe(()=>store.update(t.dataset.id,{thawedAt:Date.now()}),'Moved to thawed. Use within 24 hours'); }
   else if(a==='stashToss'){ closeModal(); await safe(()=>store.update(t.dataset.id,{tossedAt:Date.now()}),'Removed from the stash'); }
   else if(a==='report'){ exportReport(t); }
+  else if(a==='moreDays'){ state.histDays=(state.histDays||7)+7; render(); }
   else if(a==='undo'){ const fn=toast.undo; toast.undo=null; document.getElementById('toastRoot').innerHTML=''; if(fn) await fn(); }
   else if(a==='clearTooth'){ const k=t.dataset.key; const nt={...state.teeth}; delete nt[k]; closeModal(); await safe(()=>store.setTeeth(nt),'Tooth cleared'); }
 });
