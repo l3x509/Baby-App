@@ -320,6 +320,14 @@ main{min-width:0;overflow-x:clip;padding-block:24px 96px;padding-left:max(16px,e
 .entry .tx b{font-weight:600}
 .away{border-left:4px solid var(--accent)}
 .awayl{margin:0;font-weight:600;font-size:15px}
+.awlist{list-style:none;margin:0;padding:0}
+.awlist li{display:grid;grid-template-columns:70px minmax(0,1fr) auto;gap:8px;padding:6px 0;border-top:1px solid var(--line);font-size:14px;align-items:baseline}
+.awlist li:first-child{border-top:0}
+.aw{font-size:12.5px;color:var(--ink-2);font-weight:600}
+.newp{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:1px 7px;border-radius:99px;background:var(--accent);color:var(--accent-ink);vertical-align:2px;margin-left:6px}
+.by2{display:none}
+.by2:not(:empty)::before{content:' · by '}
+@media (max-width:820px){.by2{display:inline;color:var(--ink-3)}}
 .pend{font-size:11.5px;font-weight:600;color:var(--warn-ink)}
 .offbar{background:var(--warn-bg);color:var(--warn-ink);border-radius:var(--r);padding:8px 14px;font-size:13.5px;font-weight:600}
 .entry .tx div{color:var(--ink-2);font-size:13px;overflow-wrap:anywhere}
@@ -377,6 +385,7 @@ tr:last-child td{border-bottom:0}
 .divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line)}
 .confirm{background:var(--warn-bg);color:var(--warn-ink);border-radius:10px;padding:10px 12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
 
+.stash-empty{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 18px}
 .ssum{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 .ssum>div:first-child{display:flex;flex-direction:column}
 .ssum b{font-family:var(--display);font-size:24px;line-height:1.1}
@@ -1344,11 +1353,12 @@ function vitals(){
   return `<button type="button" class="vitals" data-view="health" aria-label="Age, weight and height. Open growth">${c('Age',esc(ageText(p.birth)))}${c('Weight',w?esc(U.wt(w.weight)):'—')}${c('Height',l?esc(U.len(l.length)):'—')}</button>`;
 }
 
+let awayNew=new Set();
 function entryRow(e){
   return `<button class="entry" data-edit="${esc(e.id)}" style="--c:${color(e.type)}">
     <span class="tm">${fmtTime(e.start)}</span>
     <span class="ic ${IC()}">${svg(T[e.type]?.icon)}</span>
-    <span class="tx"><b>${esc(T[e.type]?.label||e.type)}</b>${e._pending?' <span class="pend" title="Saved on this phone, waiting to sync">· not synced yet</span>':''}<div>${[entrySummary(e),e.note].filter(Boolean).map(esc).join(' · ')}</div></span>
+    <span class="tx"><b>${esc(T[e.type]?.label||e.type)}</b>${awayNew.has(e.id)?'<span class="newp">New</span>':''}${e._pending?' <span class="pend" title="Saved on this phone, waiting to sync">· not synced yet</span>':''}<div>${[entrySummary(e),e.note].filter(Boolean).map(esc).join(' · ')}<span class="by2" data-by="${esc(e.by||'')}"></span></div></span>
     <span class="by" data-by="${esc(e.by||'')}"></span></button>`;
 }
 
@@ -1510,9 +1520,11 @@ function awayCard(now){
   ].filter(Boolean);
   const other=es.length-es.filter(e=>['breast','bottle','diaper','med','temp','spit'].includes(e.type)||(e.type==='sleep'&&e.end)).length;
   const who=[...new Set(es.map(e=>members.find(m=>m.user_id===e.by)?.display_name).filter(Boolean))];
+  const nm=id=>members.find(m=>m.user_id===id)?.display_name||'Someone';
+  const list=es.slice(0,4).map(e=>`<li><span class="num">${fmtTime(e.start)}</span><span><b>${esc(T[e.type]?.label||e.type)}</b> · ${esc(entrySummary(e).split(' · ').slice(0,2).join(' · '))}</span><span class="aw">${esc(nm(e.by))}</span></li>`).join('');
   return `<div class="panel away"><h2><span>While you were away</span><button class="btn ghost sm" data-act="awaySeen">Got it</button></h2>
-    <p class="awayl">${parts.length?parts.join(' · '):`${es.length} new entr${es.length===1?'y':'ies'}`}${other>0&&parts.length?` · ${other} more`:''}</p>
-    <p class="note" style="margin:4px 0 0">Since ${fmtTime(seen)}${startOfDay(seen)!==startOfDay(now)?' '+fmtDate(seen):''}${who.length?' · logged by '+esc(who.join(' and ')):''}</p></div>`;
+    <p class="note" style="margin:-6px 0 8px">${who.length?esc(who.join(' and '))+' logged '+es.length+' entr'+(es.length===1?'y':'ies'):es.length+' new entr'+(es.length===1?'y':'ies')} since you last had the app open (${fmtTime(seen)}${startOfDay(seen)!==startOfDay(now)?' '+fmtDate(seen):''})</p>
+    <ul class="awlist">${list}</ul>${es.length>4?`<p class="note" style="margin:6px 0 0">+ ${es.length-4} more, marked <span class="newp">New</span> in the log below.</p>`:''}</div>`;
 }
 document.addEventListener('visibilitychange',()=>{ if(document.hidden && awayKey() && !awayItems(Date.now()).length){ try{ localStorage.setItem(awayKey(), String(Date.now())); }catch(e){} } });
 
@@ -1554,6 +1566,7 @@ function stashPanel(now){
   const feeds=avgD&&tot()?Math.floor((tot()+0.5)/avgD):0;
   const lbl={fridge:'Fridge',thawed:'Thawed',freezer:'Freezer'};
   const open=!!prefs.stashOpen, w=state.canWrite;
+  if(!all.length) return `<div class="panel stash stash-empty"><span><b>Milk stash</b> <span class="sub">· empty</span></span>${w?'<button class="btn ghost sm" data-act="stashAdd">+ Add milk</button>':''}</div>`;
   const chips=[['fridge','Fridge'],['thawed','Thawed'],['freezer','Freezer']].filter(([k])=>tot(k)).map(([k,l])=>`<span class="schip sc-${k}">${l} ${U.vol(tot(k))}</span>`).join('');
   const next=good.find(x=>x.where!=='freezer')||good[0];
   const when=x=>`${x.where==='freezer'?'by '+fmtDate(x.useBy):(startOfDay(x.useBy)===startOfDay(now)?'today ':'by '+new Date(x.useBy).toLocaleDateString([], {weekday:'short'})+' ')+(x.where==='freezer'?'':fmtTime(x.useBy))}`;
@@ -1707,6 +1720,7 @@ function vToday(){
   const fut=state.entries.filter(e=>isFuture(e,now));
   if(fut.length) h+=`<div class="banner"><span>${fut.length===1?'One entry is':fut.length+' entries are'} set to a time that hasn’t happened yet: ${fut.slice(0,3).map(e=>`${esc(T[e.type]?.label||e.type)} at ${fmtTime(e.start)}${startOfDay(e.start)!==startOfDay(now)?' on '+fmtDate(e.start):''}`).join(', ')}. Was AM or PM mixed up?</span><button class="btn" data-edit="${esc(fut[0].id)}">Fix time</button></div>`;
   const tile=(c,label,big,meta)=>`<div class="tile" style="--c:${c}"><span class="label">${label}</span><span class="big">${big}</span><span class="meta">${meta}</span></div>`;
+  awayNew=new Set(prefs.away==='off'?[]:awayItems(now).map(e=>e.id));
   h+=awayCard(now);
   const classic=prefs.homeLayout==='classic';
   if(classic) h+=`<div class="since">
@@ -1931,6 +1945,7 @@ function vSettingsPage(){
 /* ---------- names (who logged) ---------- */
 function resolveNames(){
   if(state.mode!=='cloud') return;
+  if(members.length<2) return;
   document.querySelectorAll('[data-by]').forEach(el=>{ const id=el.dataset.by; if(!id) return; el.textContent = id===uid() ? 'You' : (members.find(m=>m.user_id===id)?.display_name||''); });
 }
 
