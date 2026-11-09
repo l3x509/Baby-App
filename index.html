@@ -1613,8 +1613,11 @@ function rightNow(now){
     rows.push(row('Milk','var(--fbar)','breast','Nursing','Breast milk can’t be measured, so this shows time', fmtDur(r.breastMs), wk?'a day':'24 h', lane(milkLane,'tall')));
   }
   const ld=lastOf(['diaper','potty']), wet=Math.round(r.wetOnly+r.mixed);
-  rows.push(row('Diaper','var(--diaper)','diaper', ld?`${ago(now-ld.start)} · ${esc(entrySummary(ld).split(' · ')[0])}`:'No changes yet', diaperBreak(r),
-    r.diapers, (wk?'a day':r.diapers===1?'diaper':'diapers')+(age!=null&&age>=5&&age<183?` · ${wet} wet, usual 6+`:''), lane(diaperLane,'',`Diapers: ${when(evs(['diaper','potty']))}`)));
+  const dirty=Math.round(r.dirtyOnly+r.mixed), dShort=e=>e.type==='diaper'?({wet:'Wet',dirty:'Dirty',mixed:'Wet + dirty',dry:'Dry'}[e.kind]||'Changed'):esc(entrySummary(e).split(' · ')[0]);
+  const lastDirty=ps.find(e=>e.type==='diaper'&&(e.kind==='dirty'||e.kind==='mixed'));
+  const dSub=[r.diapers?`${wet} wet · ${dirty} dirty${wk?' a day':''}`:'', ].filter(Boolean).join(' · ')+(ld&&lastDirty&&lastDirty!==ld?`, last ${fmtDur(now-lastDirty.start).replace(/ \d+m$/,'')} ago`:'');
+  rows.push(row('Diaper','var(--diaper)','diaper', ld?`${ago(now-ld.start)} · ${dShort(ld)}`:'No changes yet', dSub,
+    r.diapers, (wk?'a day':r.diapers===1?'diaper':'diapers')+(age!=null&&age>=5&&age<183?' · usual 6+ wet':''), lane(diaperLane,'',`Diapers: ${when(evs(['diaper','potty']))}`)));
   return `<div class="panel rnow"><h2><span>Right now</span><span class="chips" role="group" aria-label="Range"><button class="chip" data-act="rnRange" data-r="24h" aria-pressed="${!wk}">24 h</button><button class="chip" data-act="rnRange" data-r="7d" aria-pressed="${wk}">7 days</button></span></h2>${rows.join('')}
     <div class="rax"><span></span><div class="hours">${axis.map(x=>`<span>${x}</span>`).join('')}</div></div>
     <div class="legend rleg"><span><i style="background:var(--fbar)"></i>Bottle</span><span><i style="background:var(--fbar2)"></i>Nursing</span><span><i style="background:var(--solidc)"></i>Solids</span><span><i style="background:var(--diaper)"></i>Wet</span><span><i style="background:var(--poo)"></i>Dirty</span><span><i style="background:color-mix(in srgb,var(--sleep) 25%,var(--surface))"></i>Night 7p–7a</span></div>
