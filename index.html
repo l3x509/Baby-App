@@ -369,6 +369,9 @@ main{min-width:0;overflow-x:clip;padding-block:24px 96px;padding-left:max(16px,e
 .wkt tbody tr.sel{background:color-mix(in srgb,var(--accent) 12%,transparent)}
 .wkt tbody tr.sel th{color:var(--accent)}
 .wkt tr.avg{cursor:default;color:var(--ink-3)}
+.wkt tr.thin td{color:var(--ink-3)}
+.wkt tr.thin small{font-style:italic}
+.wkn{display:flex;flex-direction:column;gap:2px}
 .wkt tr.avg:hover{background:none}
 .wkt tr.avg th{font-weight:500;font-size:13px;color:var(--ink-3)}
 .hv{display:inline-block;min-width:26px;padding:1px 6px;border-radius:7px;text-align:center}
@@ -1895,13 +1898,17 @@ function miniStrip(d){
 }
 function histAvg(t0){
   const born=state.profile?.birth?startOfDay(new Date(state.profile.birth+'T00:00').getTime()):-Infinity;
-  const ds=[]; for(let i=1;i<=7;i++){ const d=dayAdd(t0,-i); if(d<born) break; ds.push(daySummary(d)); }
+  const core=x=>['breast','bottle','diaper','sleep'].includes(x.type), cnt=d=>state.entries.filter(x=>core(x)&&x.start>=d&&x.start<dayAdd(d,1)).length;
+  const all=[]; for(let i=1;i<=7;i++){ const d=dayAdd(t0,-i); if(dayAdd(d,1)<=born) break; const c=cnt(d); if(c) all.push({d,c,s:daySummary(d)}); }
+  const cs=all.map(x=>x.c).sort((a,b)=>a-b), med=cs.length?cs[Math.floor(cs.length/2)]:0;
+  const isThin=d=>{ const c=cnt(d); return d<t0 && med>0 && all.length>=4 && c>0 && c<med*0.4; };
+  const ds=all.filter(x=>!isThin(x.d)).map(x=>x.s);
   const a=k=>ds.length?ds.reduce((t,s)=>t+s[k],0)/ds.length:0;
-  return {n:ds.length, feeds:a('feeds'), bottleMl:a('bottleMl'), breastMs:a('breastMs'), wet:a('wet'), dirty:a('dirty')};
+  return {isThin, n:ds.length, feeds:a('feeds'), bottleMl:a('bottleMl'), breastMs:a('breastMs'), wet:a('wet'), dirty:a('dirty')};
 }
 function feedDot(e){ return e.type==='diaper' ? (e.kind==='dirty'?'var(--poo)':e.kind==='mixed'?'linear-gradient(90deg,var(--diaper) 50%,var(--poo) 50%)':e.kind==='dry'?'var(--ink-3)':'var(--diaper)') : ['breast','bottle'].includes(e.type) ? 'var(--fbar)' : e.type==='solids' ? 'var(--solidc)' : color(e.type); }
 function erow(e,topup){
-  const sum=entrySummary(e);
+  const sum=entrySummary(e).replace(/ \(\d+(\.\d+)? ?(ml|oz)\)/,'');
   return `<button class="erow${topup?' tu':''}" data-edit="${esc(e.id)}" style="--dc:${feedDot(e)}"><span class="tm">${fmtTime(e.start)}</span><i class="edot" aria-hidden="true"></i><span class="et">${topup?'<span class="tut">↳ top-up</span> ':''}<b>${esc(T[e.type]?.label||e.type)}</b>${sum?' <span>'+esc(sum)+'</span>':''}${e.note?' <span>· '+esc(e.note)+'</span>':''}${awayNew.has(e.id)?'<span class="newp">New</span>':''}${e._pending?' <span class="pend" title="Saved on this phone, waiting to sync">· not synced yet</span>':''}<span class="by2" data-by="${esc(e.by||'')}"></span></span></button>`;
 }
 function vTimeline(noHead){
@@ -1914,14 +1921,15 @@ function vTimeline(noHead){
   const cell=(v,a,isToday,txt)=>`<td><span class="hv${low(v,a,isToday)?' lo':''}"${low(v,a,isToday)?' title="Well below her usual"':''}>${txt??v}</span></td>`;
   const dname=d=>d===t0?'Today':d===dayAdd(t0,-1)?'Yest.':new Date(d).toLocaleDateString([], {weekday:'short'})+' '+new Date(d).getDate();
   let h=noHead?'':header('History','Tap a day to see its entries');
-  let rows='';
+  let rows='', anyThin=false;
   for(let i=0;i<n;i++){ const d=dayAdd(t0,-i); if(d<born && i>0) break; const s=daySummary(d), td=d===t0;
-    rows+=`<tr class="${d===open?'sel':''}" data-day="${d}" tabindex="0" aria-selected="${d===open}"><th scope="row">${dname(d)}${td?'<small> so far</small>':''}</th>${cell(s.feeds,avg.feeds,td)}${useBottle?cell(s.bottleMl,avg.bottleMl,td,num(s.bottleMl)):cell(s.breastMs,avg.breastMs,td,s.breastMs?fmtDur(s.breastMs):'—')}${cell(s.wet,avg.wet,td)}${cell(s.dirty,avg.dirty,td)}</tr>`; }
+    const th=avg.isThin(d), nl=td||th; if(th) anyThin=true;
+    rows+=`<tr class="${d===open?'sel':''}${th?' thin':''}" data-day="${d}" tabindex="0" aria-selected="${d===open}"><th scope="row">${dname(d)}${td?'<small> so far</small>':th?'<small> few logs</small>':''}</th>${cell(s.feeds,avg.feeds,nl)}${useBottle?cell(s.bottleMl,avg.bottleMl,nl,num(s.bottleMl)):cell(s.breastMs,avg.breastMs,nl,s.breastMs?fmtDur(s.breastMs):'—')}${cell(s.wet,avg.wet,nl)}${cell(s.dirty,avg.dirty,nl)}</tr>`; }
   const r1=v=>Math.round(v);
-  const avgRow = avg.n ? `<tr class="avg"><th scope="row">${avg.n}-day avg</th><td><span class="hv">${r1(avg.feeds)}</span></td><td><span class="hv">${useBottle?num(avg.bottleMl):fmtDur(avg.breastMs)}</span></td><td><span class="hv">${r1(avg.wet)}</span></td><td><span class="hv">${r1(avg.dirty)}</span></td></tr>` : '';
+  const avgRow = avg.n ? `<tr class="avg"><th scope="row">Average</th><td><span class="hv">${r1(avg.feeds)}</span></td><td><span class="hv">${useBottle?num(avg.bottleMl):fmtDur(avg.breastMs)}</span></td><td><span class="hv">${r1(avg.wet)}</span></td><td><span class="hv">${r1(avg.dirty)}</span></td></tr>` : '';
   const more = (n<60 && dayAdd(t0,-n)>=born) ? `<button class="btn ghost sm" data-act="moreDays">Show 7 more days</button>` : '';
   h+=`<div class="panel wk"><table class="wkt"><thead><tr><th scope="col">Day</th><th scope="col">Feeds</th><th scope="col">${useBottle?(imp?'Oz':'ml'):'Nursing'}</th><th scope="col">Wet</th><th scope="col">Dirty</th></tr></thead><tbody>${rows}${avgRow}</tbody></table>
-    <div class="wkf"><span class="sub">${avg.n>=3?'<span class="hv lo" style="width:12px;height:12px;padding:0;vertical-align:-2px"></span> Well below her usual (vs last 7 days)':'Tap a day to open it'}</span>${more}</div></div>`;
+    <div class="wkf"><span class="sub wkn">${avg.n>=3?'<span><span class="hv lo" style="width:12px;height:12px;padding:0;vertical-align:-2px"></span> Well below usual</span>':''}${anyThin?'<span>“Few logs”: left out of the average</span>':''}</span>${more}</div></div>`;
   // open day
   const s=daySummary(open), isToday=open===t0;
   const title=(isToday?'Today':open===dayAdd(t0,-1)?'Yesterday':new Date(open).toLocaleDateString([], {weekday:'long'}))+`<span class="sub"> · ${new Date(open).toLocaleDateString([], {month:'short',day:'numeric'})}${isToday?' · so far':''}</span>`;
@@ -2199,7 +2207,7 @@ function vSettingsPage(){
 function resolveNames(){
   if(state.mode!=='cloud') return;
   if(members.length<2) return;
-  document.querySelectorAll('[data-by]').forEach(el=>{ const id=el.dataset.by; if(!id) return; el.textContent = id===uid() ? 'You' : (members.find(m=>m.user_id===id)?.display_name||''); });
+  document.querySelectorAll('[data-by]').forEach(el=>{ const id=el.dataset.by; if(!id) return; el.textContent = id===uid() ? '' : (members.find(m=>m.user_id===id)?.display_name||''); });
 }
 
 /* ---------- install as an app ---------- */
