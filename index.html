@@ -145,6 +145,28 @@ details.more summary{cursor:pointer;font-weight:600;color:var(--accent)}
 .dots i:nth-child(2){animation-delay:.2s}.dots i:nth-child(3){animation-delay:.4s}
 @keyframes dot{0%,80%,100%{opacity:.25}40%{opacity:1}}
 @media (prefers-reduced-motion:reduce){.dots i{animation:none}}
+.presets{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.pre{flex:1 1 0;min-width:64px;padding:10px 8px;border-radius:12px;border:1.5px solid color-mix(in srgb,var(--activity) 40%,var(--line));background:color-mix(in srgb,var(--activity) 8%,var(--surface));color:var(--ink);font:inherit;font-weight:700;font-size:14px;cursor:pointer}
+.pre:hover{background:color-mix(in srgb,var(--activity) 16%,var(--surface))}
+.pre.last{border-color:var(--activity);box-shadow:0 0 0 1px var(--activity)}
+.pre:last-child{font-weight:600;color:var(--ink-2)}
+.tdots{display:flex;gap:6px;margin:8px 0 2px}
+.tdots i{width:22px;height:22px;border-radius:50%;border:2px solid color-mix(in srgb,var(--activity) 45%,var(--line))}
+.tdots i.on{background:var(--activity);border-color:var(--activity)}
+.tdots i.opt{border-style:dashed}
+.tlist{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 0}
+.tlist button{border:0;background:color-mix(in srgb,var(--activity) 12%,transparent);color:var(--ink-2);font:inherit;font-size:12.5px;font-weight:600;padding:3px 9px;border-radius:99px;cursor:pointer}
+.tstart{margin-top:10px;max-width:420px}
+.tstart .sub{font-size:12.5px;font-weight:600}
+.acttimer .tsub{font-size:12.5px;margin-top:2px}
+.cdbar{height:6px;border-radius:3px;background:color-mix(in srgb,var(--activity) 15%,var(--surface));overflow:hidden;margin-top:8px;max-width:320px}
+.cdbar i{display:block;height:100%;background:var(--activity);transition:width 1s linear}
+.acttimer.up{background:color-mix(in srgb,var(--activity) 12%,var(--surface))}
+.acttimer.up .t{color:var(--activity)}
+.ttip{font-size:12.5px;color:var(--ink-2);margin-top:8px;max-width:360px}
+.tbtns{display:flex;gap:8px;flex-wrap:wrap}
+.acttimer .tbtns{flex:1 1 100%;justify-content:flex-end}
+.acttimer>div:first-child{flex:1 1 100%}
 .tgoal{margin-top:8px;max-width:320px}
 .tgoal .bar{height:6px;border-radius:3px;background:color-mix(in srgb,var(--activity) 15%,var(--surface));overflow:hidden;margin-bottom:4px}
 .tgoal .bar i{display:block;height:100%;background:var(--activity);border-radius:3px}
@@ -1173,6 +1195,16 @@ function tummyGoal(){ const d=ageDays(state.profile?.birth)??0;
 function tummyGoalLine(now){ const t=tummyToday(now), g=tummyGoal(), v=g.by==='sessions'?t.n:t.mins;
   return `<div class="tgoal"><div class="bar"><i style="width:${Math.min(100,v/g.min*100)}%"></i></div><span class="sub">${g.by==='sessions'?`${t.n} of ${g.min}–${g.max} sessions today${t.mins?' · '+t.mins+' min':''}`:`${t.mins} of ${g.min}–${g.max} min today`}</span></div>`; }
 
+const DEV_ID=(()=>{ try{ let d=localStorage.getItem('nestling.dev'); if(!d){ d=Math.random().toString(36).slice(2,10); localStorage.setItem('nestling.dev',d); } return d; }catch(e){ return 'dev'; } })();
+function timerPresets(kind){ if(kind==='Tummy time') return (ageDays(state.profile?.birth)??0)<56 ? [1,3,5] : [5,10,15]; return [10,20,30]; }
+function presetBtns(kind, act){ const last=kind==='Tummy time'?+prefs.tummyMin||0:0;
+  return `<div class="presets">${timerPresets(kind).map(m=>`<button type="button" class="pre${m===last?' last':''}" data-act="${act}" data-min="${m}">${m} min</button>`).join('')}<button type="button" class="pre" data-act="${act}" data-min="0">No limit</button></div>`; }
+const TUMMY_TIPS=['Get down on the floor, face to face. Your face is her favorite toy.','Try tummy time on your chest while you lie back.','A rolled towel under the chest makes it easier at first.','Stop if she gets fussy or sleepy. Short and often beats long.','Right after a diaper change is a good moment for a session.','Lay a mirror or a high-contrast card in front of her.'];
+function tummySessions(now){ const s=startOfDay(now); return state.entries.filter(e=>e.type==='activity'&&e.kind==='Tummy time'&&e.start>=s&&e.start<=now).sort((a,b)=>a.start-b.start); }
+let timerRang=new Set(), audioCtx=null;
+function chime(){ try{ navigator.vibrate?.([250,120,250,120,400]); }catch(e){}
+  try{ audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)(); const t=audioCtx.currentTime; [0,0.28,0.56].forEach((d,i)=>{ const o=audioCtx.createOscillator(), g=audioCtx.createGain(); o.type='sine'; o.frequency.value=[660,880,990][i]; g.gain.setValueAtTime(0.0001,t+d); g.gain.exponentialRampToValueAtTime(0.25,t+d+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t+d+0.45); o.connect(g); g.connect(audioCtx.destination); o.start(t+d); o.stop(t+d+0.5); }); }catch(e){} }
+
 /* ---------- keep the screen on while a timer runs ---------- */
 let wakeLock=null;
 async function syncWakeLock(){
@@ -1287,13 +1319,20 @@ function nextTeeth(p, now){
   const {t}=open[0];
   return {label:`${t[2]==='u'?'Upper':'Lower'} ${t[1].toLowerCase()}s`, range:t[4]};
 }
+function tummyBlock(now, g, run){
+  const ss=tummySessions(now);
+  const dots = g.by==='sessions' ? `<div class="tdots" aria-hidden="true">${Array.from({length:Math.max(g.max,ss.length)},(_,i)=>`<i class="${i<ss.length?'on':''}${i>=g.min&&i>=ss.length?' opt':''}"></i>`).join('')}</div>` : tummyGoalLine(now).replace(/<span class="sub">.*<\/span>/,'');
+  const list = ss.length ? `<div class="tlist">${ss.map(e=>`<button type="button" data-edit="${esc(e.id)}">${fmtTime(e.start)} · ${e.end===null?'now':(e.duration||0)+' min'}</button>`).join('')}</div>` : '';
+  const start = run||!state.canWrite ? '' : `<div class="tstart"><span class="sub">Start a timer</span>${presetBtns('Tummy time','startTummy')}</div>`;
+  return dots+list+start;
+}
 function comingUp(p, now){
   const items=[];
   const row=(c,icon,label,main,sub,extra='',attrs='')=>`<div class="cu" style="--c:${c}" ${attrs}><span class="ic ${IC()}">${svg(icon)}</span><div class="cx"><span class="label">${label}</span><b class="num">${main}</b>${sub?`<span class="sub">${sub}</span>`:''}${extra}</div></div>`;
   const fe=prefs.homeLayout==='classic'?feedEstimate(now):null;
   if(fe) items.push(row('var(--feed)','bottle','Next feed',`Around ${fmtTime(fe.next)}`, (fe.next<=now?'Due now':`In ${fmtDur(fe.next-now)}`)+` · usually every ${fmtDur(fe.gap)} lately`));
   if((ageDays(p?.birth)??999)<183){ const t=tummyToday(now), g=tummyGoal(), run=state.entries.some(e=>e.type==='activity'&&e.kind==='Tummy time'&&e.end===null);
-    items.push(row('var(--activity)','tummy','Tummy time today', g.by==='sessions'?`${t.n} of ${g.min}–${g.max} sessions${t.mins?' · '+t.mins+' min':''}`:`${t.mins} of ${g.min}–${g.max} min`, `Aim for ${g.text}, while she’s awake and you’re watching.`.replace('she’s', state.profile?.sex==='m'?'he’s':state.profile?.sex==='f'?'she’s':'baby’s'), tummyGoalLine(now).replace(/<span class="sub">.*<\/span>/,'')+(run||!state.canWrite?'':`<div><button class="btn ghost sm" data-act="startTummy">Start tummy time</button></div>`))); }
+    items.push(row('var(--activity)','tummy','Tummy time today', g.by==='sessions'?`${t.n} of ${g.min}–${g.max} sessions${t.mins?' · '+t.mins+' min':''}`:`${t.mins} of ${g.min}–${g.max} min`, `Aim for ${g.text}, while she’s awake and you’re watching.`.replace('she’s', state.profile?.sex==='m'?'he’s':state.profile?.sex==='f'?'she’s':'baby’s'), tummyBlock(now, g, run))); }
   const appts=state.entries.filter(e=>e.type==='doctor' && e.start>now).sort((a,b)=>a.start-b.start);
   appts.slice(0,3).forEach(a=>{
     const text=`${p?.name?p.name+': ':''}${a.title||'Doctor appointment'}, ${fmtDate(a.start)} at ${fmtTime(a.start)}${a.note?'. Notes: '+a.note:''}`;
@@ -1706,6 +1745,7 @@ const LN = () => (typeof NATIVE!=='undefined' && NATIVE && typeof capPlugin==='f
 const remOn = r => !!(r.feed || r.vitd || r.med || r.appt);
 function remindersPlan(now=Date.now()){
   const r=remPrefs(), p=state.profile||{}, nm=p.name||'Your baby', out=[];
+  if(state.mode!=='demo') state.entries.filter(e=>e.type==='activity'&&e.end===null&&e.target&&(!e.by_dev||e.by_dev===DEV_ID)).forEach((e,i)=>{ const at=e.start+e.target*MIN; if(at>now) out.push({id:400+i,at,title:`${e.kind||'Timer'}: ${e.target} min`,body:`Time’s up. Tap Done in ${APP_NAME} when ${p.sex==='m'?'he':p.sex==='f'?'she':'your baby'}’s finished.`}); });
   if(state.mode==='demo' || !remOn(r) || !prefs.remEnabled) return out;
   if(r.feed){ const lf=past().find(e=>e.type==='breast'||e.type==='bottle'); if(lf){ const at=lf.start+r.feed*MIN; if(at>now) out.push({id:101,at,title:'Feed check',body:`${nm}’s last feed was at ${fmtTime(lf.start)}.`}); } }
   if(r.vitd && /^\d\d:\d\d$/.test(r.vitd)){ const [hh,mm]=r.vitd.split(':').map(Number); for(let i=0;i<2;i++){ const d=new Date(dayAdd(startOfDay(now),i)); d.setHours(hh,mm,0,0); const at=d.getTime(); if(at<=now) continue;
@@ -1763,7 +1803,13 @@ function vToday(){
   const active=state.entries.filter(e=>(e.end==null && (e.type==='breast'||e.type==='sleep')) || (e.type==='activity' && e.end===null));
   if(active.length){
     h+='<div class="timers">'+active.map(e=>{
-      if(e.type==='activity') return `<div class="timer" style="--c:var(--activity)"><div style="min-width:0;flex:1"><div class="label"><span class="pulse"></span>${esc(e.kind||'Activity')} · started ${fmtTime(e.start)}</div><div class="t" data-live="act" data-id="${e.id}">${fmtClock(now-e.start)}</div>${e.kind==='Tummy time'?tummyGoalLine(now):''}</div><div style="display:flex;gap:8px"><button class="btn ghost sm" data-edit="${e.id}">Edit</button><button class="btn primary" data-act="actDone" data-id="${e.id}">Done</button></div></div>`;
+      if(e.type==='activity'){ const tg=e.target?e.target*MIN:0, el=now-e.start, up=tg&&el>=tg;
+        const tip=e.kind==='Tummy time'?`<div class="ttip">${esc(TUMMY_TIPS[Math.floor(e.start/MIN)%TUMMY_TIPS.length].replace(/\bher\b/g,state.profile?.sex==='m'?'his':state.profile?.sex==='f'?'her':'their').replace(/\bshe\b/g,state.profile?.sex==='m'?'he':state.profile?.sex==='f'?'she':'they'))}</div>`:'';
+        return `<div class="timer acttimer ${up?'up':''}" style="--c:var(--activity)" data-tid="${e.id}"><div style="min-width:0;flex:1"><div class="label"><span class="pulse"></span>${esc(e.kind||'Activity')} · started ${fmtTime(e.start)}</div>
+          ${tg?`<div class="t" data-live="cd" data-id="${e.id}">${up?'Time’s up':fmtClock(tg-el)}</div><div class="sub tsub" data-live="cdsub" data-id="${e.id}">${up?`${fmtClock(el)} so far · goal was ${e.target} min`:`left of ${e.target} min`}</div><div class="cdbar"><i data-live="cdbar" data-id="${e.id}" style="width:${Math.min(100,el/tg*100).toFixed(1)}%"></i></div>`
+              :`<div class="t" data-live="act" data-id="${e.id}">${fmtClock(el)}</div>`}
+          ${e.kind==='Tummy time'?`<div class="sub tsub" style="margin-top:6px">${tummyGoalLine(now).match(/<span class="sub">(.*?)<\/span>/)[1]}</div>`:''}${tip}</div>
+          <div class="tbtns">${tg?`<button class="btn ghost sm" data-act="actMore" data-id="${e.id}">+1 min</button>`:''}<button class="btn ghost sm" data-edit="${e.id}">Edit</button><button class="btn primary" data-act="actDone" data-id="${e.id}">Done</button></div></div>`; }
       if(e.type==='sleep') return `<div class="timer" style="--c:var(--sleep)"><div><div class="label"><span class="pulse"></span>Sleeping since ${fmtTime(e.start)}</div><div class="t" data-live="sleep" data-id="${e.id}">${fmtClock(now-e.start)}</div></div><div style="display:flex;gap:8px"><button class="btn ghost sm" data-edit="${e.id}">Edit</button><button class="btn primary" data-act="wake" data-id="${e.id}">Woke up</button></div></div>`;
       const t=breastTotals(e);
       return `<div class="timer" style="--c:var(--feed)"><div><div class="label">${e.active?'<span class="pulse"></span>':''}Breastfeeding · started ${fmtTime(e.start)}</div><div class="sub" style="font-size:12px">Tip: burp when switching sides.</div><div class="t" data-live="breast" data-id="${e.id}">${fmtClock(t.total)}</div></div>
@@ -2192,7 +2238,7 @@ function openEntry(type, existing, kind){
   if(!existing && type==='breast' && !state.entries.some(x=>x.type==='breast'&&x.end==null))
     top=`<div class="field"><span>Start a timer</span><div class="row2"><button class="btn primary" data-act="startBreast" data-side="L" style="justify-content:center">Left side</button><button class="btn primary" data-act="startBreast" data-side="R" style="justify-content:center">Right side</button></div></div><div class="divider">or enter manually</div>`;
   if(!existing && type==='activity')
-    top=`<button class="btn primary" data-act="startAct" style="justify-content:center">Start timer now</button><div class="divider">or enter manually</div>`;
+    top=`<div class="field"><span>Start a timer</span>${presetBtns(e.kind||'Tummy time','startAct')}</div><div class="divider">or enter manually</div>`;
   if(!existing && type==='sleep' && !state.entries.some(x=>x.type==='sleep'&&x.end==null))
     top=`<button class="btn primary" data-act="startSleep" style="justify-content:center">Start sleep timer now</button><div class="divider">or enter manually</div>`;
   openModal(`<h3 style="--c:${color(type)}"><span class="ic ${IC()}">${svg(t.icon)}</span>${existing?'Edit ':''}${t.label}</h3>
@@ -2391,8 +2437,12 @@ document.addEventListener('click', async ev=>{
   else if(a==='resetTiles'){ prefs.tiles=null; prefs.hidden=[]; savePrefs(); render(); toast('Tiles reset'); }
   else if(a==='arrange'){ state.view='settings'; render(); document.getElementById('tilesPanel')?.scrollIntoView({block:'start'}); }
   else if(a==='startBreast'){ closeModal(); await safe(()=>store.add({type:'breast',start:now,end:null,left:0,right:0,active:t.dataset.side,activeSince:now}),'Timer started'); }
-  else if(a==='startAct'){ const other=(val('f_aother')||'').trim(); const kind=other||radio('akind')||'Tummy time'; if(other) addCustomKind(other); closeModal(); await safe(()=>store.add({type:'activity',kind,start:now,end:null}),`${kind} timer started`); }
-  else if(a==='startTummy'){ await safe(()=>store.add({type:'activity',kind:'Tummy time',start:now,end:null}),'Tummy time timer started'); }
+  else if(a==='startAct'||a==='startTummy'){ let kind='Tummy time'; if(a==='startAct'){ const other=(val('f_aother')||'').trim(); kind=other||radio('akind')||'Tummy time'; if(other) addCustomKind(other); closeModal(); }
+    const m=+t.dataset.min||0; if(kind==='Tummy time' && m){ prefs.tummyMin=m; savePrefs(); }
+    try{ audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)(); audioCtx.resume?.(); }catch(err){}
+    if(m) askNotifyPermission().catch(()=>{});
+    await safe(()=>store.add({type:'activity',kind,start:now,end:null,...(m?{target:m,by_dev:DEV_ID}:{})}), m?`${kind}: ${m}-minute timer started`:`${kind} timer started`); }
+  else if(a==='actMore' && e){ const el=Math.ceil((now-e.start)/MIN); const nt=Math.max((e.target||0)+1, el+1); timerRang.delete(id); await safe(()=>store.update(id,{target:nt}),`Timer set to ${nt} min`); }
   else if(a==='actDone' && e){ const mins=Math.max(1,Math.round((now-e.start)/MIN)); await safe(()=>store.update(id,{end:now,duration:mins}),`${e.kind||'Activity'}: ${mins} min logged`); }
   else if(a==='startSleep'){ closeModal(); const hr=new Date().getHours(); await safe(()=>store.add({type:'sleep',start:now,end:null,kind:hr>=19||hr<6?'night':'nap'}),'Sleep timer started'); }
   else if(a==='wake' && e) await safe(()=>store.update(id,{end:now}),'Wake-up logged');
@@ -2543,6 +2593,9 @@ setInterval(()=>{
     const e=state.entries.find(x=>x.id===el.dataset.id); if(!e) return;
     const k=el.dataset.live;
     if(k==='sleep'||k==='act') el.textContent=fmtClock(now-e.start);
+    else if(k==='cd'||k==='cdsub'||k==='cdbar'){ const tg=(e.target||0)*MIN, x=now-e.start, up=x>=tg;
+      if(k==='cd') el.textContent=up?'Time’s up':fmtClock(tg-x); else if(k==='cdsub') el.textContent=up?`${fmtClock(x)} so far · goal was ${e.target} min`:`left of ${e.target} min`; else el.style.width=Math.min(100,x/tg*100).toFixed(1)+'%';
+      if(up){ el.closest('.acttimer')?.classList.add('up'); if(k==='cd' && !timerRang.has(e.id) && e.end===null){ timerRang.add(e.id); if(x-tg<5000 && (!e.by_dev||e.by_dev===DEV_ID)) chime(); } } }
     else { const t=breastTotals(e,now); el.textContent=fmtClock(k==='L'?t.L:k==='R'?t.R:t.total); }
   });
 },1000);
