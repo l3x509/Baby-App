@@ -167,6 +167,13 @@ details.more summary{cursor:pointer;font-weight:600;color:var(--accent)}
 .tbtns{display:flex;gap:8px;flex-wrap:wrap}
 .acttimer .tbtns{flex:1 1 100%;justify-content:flex-end}
 .acttimer>div:first-child{flex:1 1 100%}
+.tbars{display:inline-flex;gap:3px;margin-left:10px;vertical-align:middle}
+.tbars i{width:16px;height:6px;border-radius:3px;background:color-mix(in srgb,var(--activity) 20%,var(--surface))}
+.tbars i.on{background:var(--activity)}
+.tbars i.opt{background:none;border:1px dashed color-mix(in srgb,var(--activity) 50%,var(--line));height:4px}
+.tlink{border:0;background:none;padding:0;font:inherit;color:inherit;text-decoration:underline dotted;cursor:pointer}
+.presets.sm{gap:6px;margin-top:8px;max-width:340px}
+.presets.sm .pre{padding:6px 6px;font-size:13px;border-radius:99px;border-width:1px;min-width:0}
 .tgoal{margin-top:8px;max-width:320px}
 .tgoal .bar{height:6px;border-radius:3px;background:color-mix(in srgb,var(--activity) 15%,var(--surface));overflow:hidden;margin-bottom:4px}
 .tgoal .bar i{display:block;height:100%;background:var(--activity);border-radius:3px}
@@ -225,6 +232,20 @@ main{min-width:0;overflow-x:clip;padding-block:24px 96px;padding-left:max(16px,e
 .panel h2{font-size:17px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:8px}
 .label{font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3);font-weight:700}
 
+.trc{margin-bottom:14px}
+.mc .chart text{font-size:10px}
+.mc .chart text.avgl{fill:var(--ink-2);font-weight:700;paint-order:stroke;stroke:var(--surface);stroke-width:3px}
+@media (min-width:821px){.mc .chart text{font-size:9px}}
+.insp .ins{display:grid;grid-template-columns:30px minmax(0,1fr);gap:10px;align-items:start;padding:9px 0;border-top:1px solid var(--line);font-size:14.5px;line-height:1.45}
+.insp h2+.ins{border-top:0}
+.insp .ii{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 15%,transparent);color:var(--c)}
+.insp .ii svg{width:17px;height:17px}
+.mc .mch{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.mc .mct{font-size:13px;font-weight:700;color:var(--ink-2)}
+.dpill{font-size:12px;font-weight:600;padding:3px 9px;border-radius:99px;background:var(--surface-2);color:var(--ink-2);white-space:nowrap}
+.mc .mcb{margin:4px 0 6px}
+.mc .mcb b{font-family:var(--display);font-size:28px;font-weight:700;margin-right:6px;font-variant-numeric:tabular-nums}
+.mc .mcb span{font-size:13px;color:var(--ink-2)}
 .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:20px}
 
 /* since-last tiles */
@@ -1197,8 +1218,8 @@ function tummyGoalLine(now){ const t=tummyToday(now), g=tummyGoal(), v=g.by==='s
 
 const DEV_ID=(()=>{ try{ let d=localStorage.getItem('nestling.dev'); if(!d){ d=Math.random().toString(36).slice(2,10); localStorage.setItem('nestling.dev',d); } return d; }catch(e){ return 'dev'; } })();
 function timerPresets(kind){ if(kind==='Tummy time') return (ageDays(state.profile?.birth)??0)<56 ? [1,3,5] : [5,10,15]; return [10,20,30]; }
-function presetBtns(kind, act){ const last=kind==='Tummy time'?+prefs.tummyMin||0:0;
-  return `<div class="presets">${timerPresets(kind).map(m=>`<button type="button" class="pre${m===last?' last':''}" data-act="${act}" data-min="${m}">${m} min</button>`).join('')}<button type="button" class="pre" data-act="${act}" data-min="0">No limit</button></div>`; }
+function presetBtns(kind, act, sm){ const last=kind==='Tummy time'?+prefs.tummyMin||0:0;
+  return `<div class="presets${sm?' sm':''}">${timerPresets(kind).map(m=>`<button type="button" class="pre${m===last?' last':''}" data-act="${act}" data-min="${m}">${m} min</button>`).join('')}<button type="button" class="pre" data-act="${act}" data-min="0">No limit</button></div>`; }
 const TUMMY_TIPS=['Get down on the floor, face to face. Your face is her favorite toy.','Try tummy time on your chest while you lie back.','A rolled towel under the chest makes it easier at first.','Stop if she gets fussy or sleepy. Short and often beats long.','Right after a diaper change is a good moment for a session.','Lay a mirror or a high-contrast card in front of her.'];
 function tummySessions(now){ const s=startOfDay(now); return state.entries.filter(e=>e.type==='activity'&&e.kind==='Tummy time'&&e.start>=s&&e.start<=now).sort((a,b)=>a.start-b.start); }
 let timerRang=new Set(), audioCtx=null;
@@ -1331,8 +1352,12 @@ function comingUp(p, now){
   const row=(c,icon,label,main,sub,extra='',attrs='')=>`<div class="cu" style="--c:${c}" ${attrs}><span class="ic ${IC()}">${svg(icon)}</span><div class="cx"><span class="label">${label}</span><b class="num">${main}</b>${sub?`<span class="sub">${sub}</span>`:''}${extra}</div></div>`;
   const fe=prefs.homeLayout==='classic'?feedEstimate(now):null;
   if(fe) items.push(row('var(--feed)','bottle','Next feed',`Around ${fmtTime(fe.next)}`, (fe.next<=now?'Due now':`In ${fmtDur(fe.next-now)}`)+` · usually every ${fmtDur(fe.gap)} lately`));
-  if((ageDays(p?.birth)??999)<183){ const t=tummyToday(now), g=tummyGoal(), run=state.entries.some(e=>e.type==='activity'&&e.kind==='Tummy time'&&e.end===null);
-    items.push(row('var(--activity)','tummy','Tummy time today', g.by==='sessions'?`${t.n} of ${g.min}–${g.max} sessions${t.mins?' · '+t.mins+' min':''}`:`${t.mins} of ${g.min}–${g.max} min`, `Aim for ${g.text}, while she’s awake and you’re watching.`.replace('she’s', state.profile?.sex==='m'?'he’s':state.profile?.sex==='f'?'she’s':'baby’s'), tummyBlock(now, g, run))); }
+  if((ageDays(p?.birth)??999)<183){ const t=tummyToday(now), g=tummyGoal(), run=state.entries.some(e=>e.type==='activity'&&e.kind==='Tummy time'&&e.end===null), ss=tummySessions(now);
+    const v=g.by==='sessions'?t.n:t.mins, segs=g.by==='sessions'?Math.max(g.max,t.n):6, on=g.by==='sessions'?t.n:Math.min(6,Math.round(t.mins/g.max*6));
+    const bars=`<span class="tbars" aria-hidden="true">${Array.from({length:segs},(_,i)=>`<i class="${i<on?'on':''}${g.by==='sessions'&&i>=g.min&&i>=on?' opt':''}"></i>`).join('')}</span>`;
+    const main=(g.by==='sessions'?`${t.n} of ${g.min}–${g.max}${t.mins?' · '+t.mins+' min':''}`:`${t.mins} of ${g.min}–${g.max} min`)+bars;
+    const sub=`Goal ${g.by==='sessions'?'2–3 × 3–5 min':'15–30 min total'}${ss.length?' · '+ss.map(e=>`<button type="button" class="tlink" data-edit="${esc(e.id)}">${fmtTime(e.start)}${e.end===null?' now':' '+(e.duration||0)+'m'}</button>`).join(', '):''}`;
+    items.push(row('var(--activity)','tummy','Tummy time today', main, '', `<span class="sub">${sub}</span>`+(run||!state.canWrite?'':presetBtns('Tummy time','startTummy',true)))); }
   const appts=state.entries.filter(e=>e.type==='doctor' && e.start>now).sort((a,b)=>a.start-b.start);
   appts.slice(0,3).forEach(a=>{
     const text=`${p?.name?p.name+': ':''}${a.title||'Doctor appointment'}, ${fmtDate(a.start)} at ${fmtTime(a.start)}${a.note?'. Notes: '+a.note:''}`;
@@ -1941,22 +1966,88 @@ function barChart(days, series, fmt, title){
   return `<div class="panel"><h2><span>${title}</span><span class="sub num">Avg ${fmt(avg)}/day</span></h2>${lg}<div class="chartwrap"><svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${title}">${g}</svg></div></div>`;
 }
 function niceMax(v){ const p=Math.pow(10,Math.floor(Math.log10(v))); const n=v/p; return (n<=1?1:n<=2?2:n<=2.5?2.5:n<=5?5:10)*p; }
+function niceStep(max,int){ const raw=Math.max(max,1e-9)/3, p=Math.pow(10,Math.floor(Math.log10(raw))), n=raw/p; let s=(n<=1?1:n<=2?2:n<=2.5?2.5:n<=5?5:10)*p; if(int) s=Math.max(1,Math.ceil(s)); return s; }
+function tChart(S, series, avg, fmt, int){
+  const W=400,H=140,L=30,R=4,Tp=16,B=20, n=S.length;
+  const tot=S.map((_,i)=>series.reduce((a,s)=>a+s.vals[i],0));
+  const step=niceStep(Math.max(avg||0,...tot,int?1:0.1),int), top=Math.max(step,Math.ceil(Math.max(avg||0,...tot)/step)*step);
+  const y=v=>Tp+(H-Tp-B)*(1-v/top), bw=(W-L-R)/n;
+  let g='<defs><pattern id="bothp" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="8" height="8" fill="var(--diaper)"/><rect width="4" height="8" fill="var(--poo)"/></pattern></defs>';
+  for(let v=0; v<=top+1e-9; v+=step) g+=`<line class="grid" x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end">${fmt(v,true)}</text>`;
+  S.forEach((s,i)=>{ const x=L+i*bw+bw*(n>14?.12:.2), w=bw*(n>14?.76:.6); let y0=H-B;
+    const faded=s.today||s.thin, pre=s.pre;
+    series.forEach(se=>{ const v=se.vals[i]; if(v>0){ const h=(H-Tp-B)*v/top; g+=`<rect x="${x.toFixed(1)}" y="${(y0-h).toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" rx="3" fill="${se.color}" opacity="${faded?.35:1}"><title>${fmtDate(s.d)} · ${se.name}: ${fmt(v)}${s.today?' (so far)':''}</title></rect>`; y0-=h; } });
+    if(s.today) g+=`<rect x="${x.toFixed(1)}" y="${Math.min(y0,H-B-2).toFixed(1)}" width="${w.toFixed(1)}" height="${(H-B-Math.min(y0,H-B-2)).toFixed(1)}" rx="3" fill="none" stroke="var(--ink-3)" stroke-dasharray="3 3"/>`;
+    const lbl = s.today ? (n<=7?'Today':'Now') : new Date(s.d).toLocaleDateString([], n<=7?{weekday:'short'}:{month:'numeric',day:'numeric'});
+    if(n<=7 || (n<=14 && i%2===(n-1)%2) || (n>14 && (n-1-i)%5===0)) g+=`<text x="${(x+w/2).toFixed(1)}" y="${H-7}" text-anchor="middle"${s.today?' style="font-weight:700"':''}>${pre?'':lbl}</text>`;
+  });
+  if(avg>0){ const ya=y(avg); g+=`<line x1="${L}" x2="${W-R}" y1="${ya}" y2="${ya}" stroke="var(--ink-2)" stroke-width="1.5" stroke-dasharray="5 4"/><text x="${W-R}" y="${ya-5}" text-anchor="end" class="avgl">avg ${fmt(avg)}</text>`; }
+  return `<div class="chartwrap"><svg class="chart" viewBox="0 0 ${W} ${H}" role="img">${g}</svg></div>`;
+}
+function trendsData(n){
+  const t0=startOfDay(Date.now()), born=state.profile?.birth?startOfDay(new Date(state.profile.birth+'T00:00').getTime()):-Infinity;
+  const core=x=>['breast','bottle','diaper','sleep'].includes(x.type);
+  const mk=d=>({d, ...daySummary(d), n:state.entries.filter(x=>core(x)&&x.start>=d&&x.start<dayAdd(d,1)).length, today:d===t0, pre:dayAdd(d,1)<=born});
+  const S=[]; for(let i=n-1;i>=0;i--) S.push(mk(dayAdd(t0,-i)));
+  const flag=arr=>{ const full=arr.filter(s=>!s.today&&!s.pre&&s.n>0), ns=full.map(s=>s.n).sort((a,b)=>a-b), med=ns.length?ns[Math.floor(ns.length/2)]:0; full.forEach(s=>s.thin=full.length>=4&&s.n<med*0.4); return full.filter(s=>!s.thin); };
+  const use=flag(S);
+  const P=[]; for(let i=2*n-1;i>=n;i--) P.push(mk(dayAdd(t0,-i)));
+  const puse=flag(P);
+  const prev = puse.length>=Math.max(3,Math.ceil((n-1)/2)) ? puse : null;
+  const bottles=days=>{ const es=state.entries.filter(e=>e.type==='bottle'&&e.amount&&days.some(s=>e.start>=s.d&&e.start<dayAdd(s.d,1))); return es.length?es.reduce((a,e)=>a+e.amount,0)/es.length:0; };
+  return {S, use, prev, n, t0, born, bottles};
+}
+const avgOf=(arr,k)=>arr&&arr.length?arr.reduce((a,s)=>a+(typeof k==='function'?k(s):s[k]),0)/arr.length:0;
+function trendInsights(D){
+  const out=[], {S,use,prev,n,t0}=D, nm=state.profile?.name||'Baby', ic=(i,c,t)=>out.push(`<div class="ins"><span class="ii ${IC()}" style="--c:${c}">${svg(i)}</span><span>${t}</span></div>`);
+  const thin=S.filter(s=>s.thin);
+  if(thin.length) ic('flag','var(--warn-ink)', `${thin.map(s=>new Date(s.d).toLocaleDateString([], {weekday:'long'})).slice(0,2).join(' and ')}${thin.length>2?` and ${thin.length-2} more`:''} ${thin.length===1?'has':'have'} far fewer entries than usual, so some feeds or diapers may not have been logged. ${thin.length===1?'It’s':'They’re'} left out of the averages.`);
+  const b1=D.bottles(use), b0=prev?D.bottles(prev):0;
+  if(b1 && b0 && Math.abs(b1-b0)>=Math.max(6,b0*0.1)) ic('bottle','var(--fbar)', `Bottles are getting ${b1>b0?'bigger':'smaller'}: ${U.vol(b1)} on average, ${b1>b0?'up':'down'} from ${U.vol(b0)} ${n===7?'the week before':'the '+n+' days before'}.`);
+  else if(b1) ic('bottle','var(--fbar)', `Average bottle: ${U.vol(b1)}.`);
+  const fs=state.entries.filter(e=>(e.type==='breast'||e.type==='bottle')&&e.start>=S.find(s=>!s.pre)?.d&&e.start<=Date.now()).sort((a,b)=>a.start-b.start);
+  let best=null; const okDay=x=>use.some(s=>x>=s.d&&x<dayAdd(s.d,1))||x>=t0; for(let i=1;i<fs.length;i++){ const a0=fs[i-1].end||fs[i-1].start, g=fs[i].start-a0; if(g>8*HR || !okDay(a0) || !okDay(fs[i].start)) continue; if(!best||g>best.g) best={g,a:fs[i-1].end||fs[i-1].start,b:fs[i].start}; }
+  if(best && best.g>=2*HR){ const hA=new Date(best.a).getHours(), night=hA>=18||hA<6, dn=new Date(hA<6?dayAdd(startOfDay(best.a),-1):best.a).toLocaleDateString([], {weekday:'long'});
+    ic('history','var(--fbar)', `Longest stretch between feeds: <b>${fmtDur(best.g)}</b>, ${dn}${night?' night':''} (${fmtTime(best.a)} to ${fmtTime(best.b)}).`); }
+  const age=ageDays(state.profile?.birth)??99;
+  if(use.length>=3 && age>=5){ const ok=use.filter(s=>s.wet>=6).length;
+    ic('diaper','var(--diaper)', ok>=Math.ceil(use.length*0.6) ? `Wet diapers reached 6 or more on ${ok} of the last ${use.length} full days.` : `Wet diapers reached 6 on only ${ok} of the last ${use.length} full days. If ${nm} keeps having fewer wet diapers, check with your pediatrician.`); }
+  const f1=avgOf(use,'feeds'), f0=prev?avgOf(prev,'feeds'):0;
+  if(prev && Math.abs(f1-f0)>=1) ic('breast','var(--feed)', `${f1<f0?'Fewer':'More'} feeds a day: ${Math.round(f1*10)/10}, ${f1<f0?'down':'up'} from ${Math.round(f0*10)/10}.${f1<f0&&b1>b0?' Bigger bottles usually mean fewer of them.':''}`);
+  return out.slice(0,4);
+}
 function vStats(noHead){
-  const n=state.statRange; const days=[]; for(let i=n-1;i>=0;i--) days.push(dayAdd(startOfDay(Date.now()),-i));
-  const S=days.map(daySummary);
+  const n=state.statRange, D=trendsData(n), {S,use,prev}=D;
   let h=noHead?'':header('Stats', `Daily patterns over the last ${n} days`);
-  h+=weekly(Date.now());
-  h+=typicalDay();
-  h+=`<div class="chips">${[7,14,30].map(k=>`<button class="chip" data-range="${k}" aria-pressed="${n===k}">${k} days</button>`).join('')}</div>`;
-  const hrs=(v,axis)=> axis? `${Math.round(v/HR)}h` : fmtDur(v);
+  h+=`<div class="chips trc">${[7,14,30].map(k=>`<button class="chip" data-range="${k}" aria-pressed="${n===k}">${k} days</button>`).join('')}</div>`;
+  if(use.length<2){ return h+`<div class="panel"><div class="empty">Trends show up after two full days of logging. Keep going.</div></div>`+typicalDay(); }
+  const nm=state.profile?.name||'Baby', vsTxt=n===7?'last week':`previous ${n} days`;
+  const pill=(k,thr,fmt)=>{ if(!prev) return ''; const a=avgOf(use,k), b=avgOf(prev,k), d=a-b; if(Math.abs(d)<thr) return `<span class="dpill">about the same</span>`; return `<span class="dpill">${d>0?'↑':'↓'} ${fmt(Math.abs(d))} vs ${vsTxt}</span>`; };
+  const r1=v=>String(Math.round(v*10)/10), toU=ml=>U.imp()?ml/29.5735:ml, fU=(v,ax)=>U.imp()?String(Math.round(v*10)/10)+(ax?'':' oz'):String(Math.round(v))+(ax?'':' ml');
+  const card=(title,big,sub,pl,chart,legend='')=>`<div class="panel mc"><div class="mch"><span class="mct">${title}</span>${pl}</div><div class="mcb"><b>${big}</b><span>${sub}</span></div>${legend}${chart}</div>`;
+  // insights
+  const ins=trendInsights(D);
+  const text=`${nm} · last ${use.length} days, per day: ${r1(avgOf(use,'feeds'))} feeds${avgOf(use,'bottleMl')?' ('+U.vol(avgOf(use,'bottleMl'))+' by bottle)':''}, ${Math.round(avgOf(use,'wet'))} wet and ${Math.round(avgOf(use,'dirty'))} dirty diapers. Logged with ${APP_NAME}.`;
+  h+=`<div class="panel insp"><h2><span>What stands out <span class="sub" style="font-weight:500">· ${use.length} full days</span></span><button class="btn ghost sm" data-act="shareText" data-text="${esc(text)}">Share</button></h2>${ins.join('')||'<p class="note">Keep logging to see patterns here.</p>'}</div>`;
   h+=`<div class="grid2">`;
-  h+=barChart(days,[{name:'Night',color:'var(--sleep)',vals:S.map(s=>s.nightMs)},{name:'Naps',color:'color-mix(in srgb,var(--sleep) 50%,var(--surface))',vals:S.map(s=>s.napMs)}],hrs,'Sleep');
-  h+=barChart(days,[{name:'Feeds',color:'var(--feed)',vals:S.map(s=>s.feeds)}],(v)=>Math.round(v*10)/10+'','Breast + bottle feeds');
-  const vf=(v,axis)=> axis? `${U.volOut(v)}` : U.vol(v);
-  h+=barChart(days,[{name:'Bottle',color:'var(--feed)',vals:S.map(s=>s.bottleMl)}],vf,`Milk by bottle (${U.volU()})`);
-  if(S.some(s=>s.pumpMl)) h+=barChart(days,[{name:'Pumped',color:'color-mix(in srgb,var(--feed) 55%,var(--surface))',vals:S.map(s=>s.pumpMl)}],vf,`Pumped (${U.volU()})`);
-  h+=barChart(days,[{name:'Wet',color:'var(--diaper)',vals:S.map(s=>s.wetOnly)},{name:'Dirty',color:'var(--poo)',vals:S.map(s=>s.dirtyOnly)},{name:'Both',color:'color-mix(in srgb,var(--diaper) 50%,var(--poo))',vals:S.map(s=>s.mixed)},{name:'Dry',color:'var(--ink-3)',vals:S.map(s=>s.dry)}].filter(x=>x.vals.some(v=>v)),(v)=>String(Math.round(v)),'Diapers');
+  // feeds
+  h+=card('Feeds', r1(avgOf(use,'feeds')), 'a day', pill('feeds',0.5,r1), tChart(S,[{name:'Feeds',color:'var(--feed)',vals:S.map(s=>s.feeds)}],avgOf(use,'feeds'),(v)=>r1(v),true));
+  // milk
+  if(S.some(s=>s.bottleMl)){ const b=D.bottles(use); h+=card('Milk by bottle', U.vol(avgOf(use,'bottleMl')), `a day${b?' · '+U.vol(b)+' a bottle':''}`, pill('bottleMl',15,v=>U.vol(v)), tChart(S,[{name:'Bottle',color:'var(--fbar)',vals:S.map(s=>toU(s.bottleMl))}],toU(avgOf(use,'bottleMl')),fU)); }
+  // nursing
+  if(S.some(s=>s.breastMs)) h+=card('Nursing', fmtDur(avgOf(use,'breastMs')), 'a day', pill('breastMs',10*MIN,fmtDur), tChart(S,[{name:'Nursing',color:'color-mix(in srgb,var(--feed) 60%,var(--surface))',vals:S.map(s=>s.breastMs/HR)}],avgOf(use,'breastMs')/HR,(v,ax)=>ax?(Math.round(v*10)/10)+'h':fmtDur(v*HR)));
+  // diapers
+  const dl=`<div class="legend" style="margin:2px 0 4px"><span><i style="background:var(--diaper)"></i>Wet</span><span><i style="background:repeating-linear-gradient(45deg,var(--poo) 0 3px,var(--diaper) 3px 6px)"></i>Both</span><span><i style="background:var(--poo)"></i>Dirty</span></div>`;
+  h+=card('Diapers', String(Math.round(avgOf(use,'diapers'))), `a day · ${Math.round(avgOf(use,'wet'))} wet, ${Math.round(avgOf(use,'dirty'))} dirty`, pill('diapers',1,v=>String(Math.max(1,Math.round(v)))),
+    tChart(S,[{name:'Wet',color:'var(--diaper)',vals:S.map(s=>s.wetOnly)},{name:'Both',color:'url(#bothp)',vals:S.map(s=>s.mixed)},{name:'Dirty',color:'var(--poo)',vals:S.map(s=>s.dirtyOnly)},{name:'Dry',color:'var(--ink-3)',vals:S.map(s=>s.dry)}].filter(x=>x.vals.some(v=>v)),avgOf(use,'diapers'),v=>String(Math.round(v)),true), dl);
+  // pumped
+  if(S.some(s=>s.pumpMl)) h+=card('Pumped', U.vol(avgOf(use,'pumpMl')), 'a day', pill('pumpMl',15,v=>U.vol(v)), tChart(S,[{name:'Pumped',color:'var(--activity)',vals:S.map(s=>toU(s.pumpMl))}],toU(avgOf(use,'pumpMl')),fU));
+  // sleep only when logged on most days
+  const sd=use.filter(s=>s.sleepMs>0).length;
+  if(sd>=Math.ceil(use.length*0.6)) h+=card('Sleep', fmtDur(avgOf(use,'sleepMs')), 'a day', pill('sleepMs',15*MIN,fmtDur), tChart(S,[{name:'Night',color:'var(--sleep)',vals:S.map(s=>s.nightMs/HR)},{name:'Naps',color:'color-mix(in srgb,var(--sleep) 50%,var(--surface))',vals:S.map(s=>s.napMs/HR)}],avgOf(use,'sleepMs')/HR,(v,ax)=>ax?Math.round(v)+'h':fmtDur(v*HR)), `<div class="legend" style="margin:2px 0 4px"><span><i style="background:var(--sleep)"></i>Night</span><span><i style="background:color-mix(in srgb,var(--sleep) 50%,var(--surface))"></i>Naps</span></div>`);
   h+=`</div>`;
+  h+=`<p class="note" style="margin:4px 2px 16px">Dashed line: average of full days. Today is faded until the day is over.${prev?` Arrows compare with the ${vsTxt}.`:''}${sd&&sd<Math.ceil(use.length*0.6)?' Sleep appears here once it’s logged on most days.':''}</p>`;
+  h+=typicalDay();
   return h;
 }
 
