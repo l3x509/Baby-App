@@ -2013,13 +2013,21 @@ function trendInsights(D){
   const out=[], {S,use,prev,n,t0}=D, nm=state.profile?.name||'Baby', ic=(i,c,t)=>out.push(`<div class="ins"><span class="ii ${IC()}" style="--c:${c}">${svg(i)}</span><span>${t}</span></div>`);
   const thin=S.filter(s=>s.thin);
   if(thin.length) ic('flag','var(--warn-ink)', `${thin.map(s=>new Date(s.d).toLocaleDateString([], {weekday:'long'})).slice(0,2).join(' and ')}${thin.length>2?` and ${thin.length-2} more`:''} ${thin.length===1?'has':'have'} far fewer entries than usual, so some feeds or diapers may not have been logged. ${thin.length===1?'It’s':'They’re'} left out of the averages.`);
-  const b1=D.bottles(use), b0=prev?D.bottles(prev):0;
-  if(b1 && b0 && Math.abs(b1-b0)>=Math.max(6,b0*0.1)) ic('bottle','var(--fbar)', `Bottles are getting ${b1>b0?'bigger':'smaller'}: ${U.vol(b1)} on average, ${b1>b0?'up':'down'} from ${U.vol(b0)} ${n===7?'the week before':'the '+n+' days before'}.`);
-  else if(b1) ic('bottle','var(--fbar)', `Average bottle: ${U.vol(b1)}.`);
+  const b1=D.bottles(use), b0=prev?D.bottles(prev):0, NOWt=Date.now(), big=(x,y)=>x&&y&&Math.abs(x-y)>=Math.max(6,y*0.1);
+  const startR=S.find(s=>!s.pre)?.d??t0, bot=state.entries.filter(e=>e.type==='bottle'&&e.amount&&e.start<=NOWt&&e.start>=startR);
+  const rec=bot.filter(e=>e.start>NOWt-24*HR), base=bot.filter(e=>e.start<=NOWt-24*HR&&use.some(s=>e.start>=s.d&&e.start<dayAdd(s.d,1)));
+  const av=a=>a.reduce((t,e)=>t+e.amount,0)/a.length, r24=rec.length>=3?av(rec):0, rb=base.length>=5?av(base):0;
+  const m1=avgOf(use,'bottleMl'), m0=prev?avgOf(prev,'bottleMl'):0, mUp=m0&&m1-m0>=15, mDn=m0&&m0-m1>=15;
+  if(big(r24,rb)) ic('bottle','var(--fbar)', `Bottles are getting ${r24>rb?'bigger':'smaller'}: <b>${U.vol(r24)}</b> on average in the last 24 hours, ${r24>rb?'up':'down'} from ${U.vol(rb)} earlier ${n===7?'this week':'in this period'}.`);
+  else if(big(b1,b0)){ const more=(b1<b0&&mUp), less=(b1>b0&&mDn);
+    ic('bottle','var(--fbar)', more ? `Smaller bottles (${U.vol(b1)}, was ${U.vol(b0)}) but more of them, so total milk is up ${U.vol(m1-m0)} a day.` : less ? `Bigger bottles (${U.vol(b1)}, was ${U.vol(b0)}) but fewer of them, so total milk is down ${U.vol(m0-m1)} a day.` : `Bottles are getting ${b1>b0?'bigger':'smaller'}: ${U.vol(b1)} on average, ${b1>b0?'up':'down'} from ${U.vol(b0)} ${n===7?'the week before':'the '+n+' days before'}${mUp?`, and total milk is up ${U.vol(m1-m0)} a day`:mDn?`, and total milk is down ${U.vol(m0-m1)} a day`:''}.`); }
+  else if(b1) ic('bottle','var(--fbar)', `Average bottle: ${U.vol(b1)}${r24?` (${U.vol(r24)} in the last 24 hours)`:''}.`);
   const fs=state.entries.filter(e=>(e.type==='breast'||e.type==='bottle')&&e.start>=S.find(s=>!s.pre)?.d&&e.start<=Date.now()).sort((a,b)=>a.start-b.start);
-  let best=null; const okDay=x=>use.some(s=>x>=s.d&&x<dayAdd(s.d,1))||x>=t0; for(let i=1;i<fs.length;i++){ const a0=fs[i-1].end||fs[i-1].start, g=fs[i].start-a0; if(g>8*HR || !okDay(a0) || !okDay(fs[i].start)) continue; if(!best||g>best.g) best={g,a:fs[i-1].end||fs[i-1].start,b:fs[i].start}; }
+  let best=null; const miss=[]; const okDay=x=>use.some(s=>x>=s.d&&x<dayAdd(s.d,1))||x>=t0; for(let i=1;i<fs.length;i++){ const a0=fs[i-1].end||fs[i-1].start, g=fs[i].start-a0; if(g>8*HR || !okDay(a0) || !okDay(fs[i].start)) continue; const hs=new Date(a0).getHours(); if(g>4*HR && hs>=7 && hs<19){ miss.push({a:a0,b:fs[i].start}); continue; } if(!best||g>best.g) best={g,a:fs[i-1].end||fs[i-1].start,b:fs[i].start}; }
   if(best && best.g>=2*HR){ const hA=new Date(best.a).getHours(), night=hA>=18||hA<6, dn=new Date(hA<6?dayAdd(startOfDay(best.a),-1):best.a).toLocaleDateString([], {weekday:'long'});
     ic('history','var(--fbar)', `Longest stretch between feeds: <b>${fmtDur(best.g)}</b>, ${dn}${night?' night':''} (${fmtTime(best.a)} to ${fmtTime(best.b)}).`); }
+  if(miss.length){ const m=miss[miss.length-1], dn=new Date(m.a).toLocaleDateString([], {weekday:'long'});
+    out.splice(thin.length?1:0,0,`<div class="ins"><span class="ii ${IC()}" style="--c:var(--warn-ink)">${svg('flag')}</span><span>Possible missed feed${miss.length>1?'s':''}: nothing logged ${dn} from ${fmtTime(m.a)} to ${fmtTime(m.b)}${miss.length>1?`, plus ${miss.length-1} other daytime gap${miss.length>2?'s':''} over 4 hours`:''}. Tap Days to add ${miss.length>1?'them':'it'} if so.</span></div>`); }
   const age=ageDays(state.profile?.birth)??99;
   if(use.length>=3 && age>=5){ const ok=use.filter(s=>s.wet>=6).length;
     ic('diaper','var(--diaper)', ok>=Math.ceil(use.length*0.6) ? `Wet diapers reached 6 or more on ${ok} of the last ${use.length} full days.` : `Wet diapers reached 6 on only ${ok} of the last ${use.length} full days. If ${nm} keeps having fewer wet diapers, check with your pediatrician.`); }
