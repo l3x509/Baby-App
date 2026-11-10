@@ -463,6 +463,16 @@ main{min-width:0;overflow-x:clip;padding-block:24px 96px;padding-left:max(16px,e
 .nbt b{font-weight:600;font-size:14.5px}
 .nbt span{font-size:12.5px;color:var(--ink-3)}
 .nbi.on .nbt b{color:var(--ink-2)}
+.wrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.wrow .wb{flex:1 1 140px;min-width:0}
+.wrow .wb.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.wrow .segs{flex:none;margin:0}
+.wrow>.field{flex:none;margin:0;gap:0}
+.wrow>.field>span:empty{display:none}
+.uin{position:relative;display:block}
+.uin span{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--ink-3);font-size:14px;pointer-events:none}
+.uin input{padding-right:34px}
+#wconv{margin-top:4px;min-height:1em}
 .teeth{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start}
 .mouth{width:100%;max-width:340px;margin:0 auto;display:block}
 .mouth .tooth{cursor:pointer}
@@ -2342,7 +2352,11 @@ function fieldsFor(type, e){
         ${F.seg('cons','Texture',[['seedy','Seedy'],['soft','Soft'],['runny','Runny'],['firm','Firm'],['mucus','Mucus']],e.cons||'')}</div>`
       +F.check('f_rash','Diaper rash',e.rash)+F.text('f_note','Note',e.note||(e.color&&!e.pcolor?e.color:'')); }
     case 'potty': return F.time('f_start','Time',e.start||now)+F.seg('result','Result',[['pee','Pee'],['poo','Poo'],['both','Both'],['none','Nothing']],e.result||'pee')+F.text('f_note','Note',e.note);
-    case 'growth': return F.time('f_start','Measured',e.start||now)+F.num('f_w','Weight',U.wtOut(e.weight),U.wtU())+`<div class="row2">${F.num('f_len','Height (lying down)',U.lenOut(e.length),U.lenU())}${F.num('f_head','Head',U.lenOut(e.head),U.lenU())}</div><div class="row2">${F.num('f_belly','Belly',U.lenOut(e.belly),U.lenU())}${F.num('f_chest','Chest',U.lenOut(e.chest),U.lenU())}</div>`+F.text('f_note','Note',e.note);
+    case 'growth': { const wu=['lboz','lb','kg'].includes(prefs.wunit)?prefs.wunit:(U.imp()?'lboz':'kg'), lu=['in','cm'].includes(prefs.lunit)?prefs.lunit:U.lenU(), W=wtParts(e.weight), L=v=>v==null?'':lu==='cm'?+v.toFixed(1):+(v/2.54).toFixed(2);
+      return F.time('f_start','Measured',e.start||now)
+      +`<div class="field"><span>Weight</span><div class="wrow"><div id="wb1" class="wb" ${wu==='lboz'?'hidden':''}><input type="number" inputmode="decimal" step="any" min="0" id="f_w" aria-label="Weight" value="${wu==='kg'?W.kg:W.lbd}"></div><div id="wb2" class="wb row2" ${wu==='lboz'?'':'hidden'}><label class="uin"><input type="number" inputmode="numeric" step="1" min="0" id="f_wlb" aria-label="Pounds" value="${W.lb}"><span>lb</span></label><label class="uin"><input type="number" inputmode="decimal" step="any" min="0" id="f_woz" aria-label="Ounces" value="${W.oz}"><span>oz</span></label></div>${F.seg('wunit','',[['lboz','lb + oz'],['lb','lb'],['kg','kg']],wu)}</div><span class="note" id="wconv">${wConv(e.weight,wu)}</span></div><input type="hidden" id="f_wprev" value="${wu}">`
+      +F.seg('lunit','Length unit',[['in','in'],['cm','cm']],lu)+`<input type="hidden" id="f_lprev" value="${lu}">`
+      +`<div class="row2">${F.num('f_len','Height (lying down)',L(e.length),'')}${F.num('f_head','Head',L(e.head),'')}</div><div class="row2">${F.num('f_belly','Belly',L(e.belly),'')}${F.num('f_chest','Chest',L(e.chest),'')}</div>`+F.text('f_note','Note',e.note); }
     case 'temp': return F.time('f_start','Time',e.start||now)+F.num('f_val','Temperature',U.tmpOut(e.value),U.tmpU())+F.seg('method','Method',[['rectal','Rectal'],['armpit','Armpit'],['ear','Ear'],['forehead','Forehead']],e.method||'rectal')+F.text('f_note','Note',e.note)
       +`<p class="note">A temperature of 100.4 °F (38 °C) or higher is a fever. ${(ageDays(state.profile?.birth)??999)<91?'<b>Your baby is under 3 months: call your pediatrician right away for a fever.</b> ':''}Rectal is the most accurate method for babies. When you call, say which method you used.</p>`;
     case 'med': return F.time('f_start','Time given',e.start||now)+F.text('f_name','Medicine',e.name)+F.text('f_dose','Dose',e.dose,'as on the label or prescription')+F.seg('remindH','Remind me when it’s been',[['','Off'],['4','4 h'],['6','6 h'],['8','8 h'],['12','12 h'],['24','24 h']],e.remindH?String(e.remindH):'')+F.text('f_note','Note',e.note)+`<p class="note">Use the timing on the label or from your doctor. The reminder goes to phones that have medicine reminders on.</p>`;
@@ -2365,6 +2379,10 @@ function fieldsFor(type, e){
     case 'vitd': return F.time('f_start','Given at',e.start||now)+F.text('f_note','Note',e.note);
   }
 }
+function wtParts(kg){ if(kg==null) return {kg:'',lbd:'',lb:'',oz:''}; const toz=kg*35.27396; let lb=Math.floor(toz/16), oz=+(toz-lb*16).toFixed(1); if(oz>=16){ lb++; oz=0; } return {kg:+kg.toFixed(3), lbd:+(kg*2.20462).toFixed(2), lb, oz}; }
+function readKg(u){ if(u==='lboz'){ const l=val('f_wlb'), o=val('f_woz'); if((l===''||l==null)&&(o===''||o==null)) return null; return ((+l||0)*16+(+o||0))/35.27396; } const v=val('f_w'); if(v===''||v==null||isNaN(v)) return null; return u==='kg'?+v:+v/2.20462; }
+function wConv(kg,u){ if(kg==null||!(kg>0)) return ''; const W=wtParts(kg); return u==='kg' ? `= ${W.lb} lb ${W.oz} oz` : `= ${W.kg} kg`; }
+document.addEventListener('input',ev=>{ const id=ev.target.id; if(id==='f_w'||id==='f_wlb'||id==='f_woz'){ const u=radio('wunit'), el=document.getElementById('wconv'); if(el) el.textContent=wConv(readKg(u),u); } });
 function readFields(type){
   const start=fromInput(val('f_start'))||Date.now(); const note=val('f_note')?.trim()||undefined;
   switch(type){
@@ -2376,7 +2394,8 @@ function readFields(type){
     case 'diaper': { const k=radio('kind'), wet=k==='wet'||k==='mixed', poo=k==='dirty'||k==='mixed';
       return {start,kind:k,pee:wet?radio('pee')||undefined:undefined,poo:poo?radio('poo')||undefined:undefined,pcolor:poo?radio('pcolor')||undefined:undefined,cons:poo?radio('cons')||undefined:undefined,rash:document.getElementById('f_rash').checked||undefined,color:undefined,note}; }
     case 'potty': return {start,result:radio('result'),note};
-    case 'growth': return {start,weight:U.wtIn(val('f_w')),length:U.lenIn(val('f_len')),head:U.lenIn(val('f_head')),belly:U.lenIn(val('f_belly')),chest:U.lenIn(val('f_chest')),note};
+    case 'growth': { const lu=radio('lunit')||U.lenU(), Lr=id=>{ const v=val(id); return v===''||v==null||isNaN(v)?null: lu==='cm'?+v:+v*2.54; }; prefs.wunit=radio('wunit'); prefs.lunit=lu; savePrefs();
+      return {start,weight:readKg(radio('wunit')),length:Lr('f_len'),head:Lr('f_head'),belly:Lr('f_belly'),chest:Lr('f_chest'),note}; }
     case 'vitals': return {start,hr:numv('f_hr'),rr:numv('f_rr'),spo2:numv('f_spo2'),sys:numv('f_sys'),dia:numv('f_dia'),state:radio('vstate')||undefined,note};
     case 'jaundice': return {start,method:radio('jmethod'),where:radio('jwhere')||undefined,bili:numv('f_bili'),note};
     case 'temp': return {start,value:U.tmpIn(val('f_val')),method:radio('method'),note};
@@ -2653,6 +2672,14 @@ document.addEventListener('change', async ev=>{
   if(t.name==='pcolor'){ const n=document.getElementById('pcolorNote'), v=t.value, days=ageDays(state.profile?.birth)??99;
     const msg = v==='white' ? 'White or pale poop needs a prompt call to your pediatrician.' : v==='red' ? 'Red can mean blood. Call your pediatrician to have it checked.' : v==='black' ? (days<4 ? 'Black, sticky poop is normal in the first few days.' : 'Black poop after the first few days can mean blood. Call your pediatrician.') : '';
     n.textContent=msg; n.hidden=!msg; n.style.color = msg && !(v==='black'&&days<4) ? 'var(--danger)' : ''; return; }
+  if(t.name==='wunit'){
+    const prev=val('f_wprev'), next=t.value; if(prev===next) return; const kg=readKg(prev), W=wtParts(kg);
+    if(next==='lboz'){ document.getElementById('f_wlb').value=W.lb; document.getElementById('f_woz').value=W.oz; } else document.getElementById('f_w').value = next==='kg'?W.kg:W.lbd;
+    document.getElementById('wb1').hidden=next==='lboz'; document.getElementById('wb2').hidden=next!=='lboz'; document.getElementById('f_wprev').value=next; document.getElementById('wconv').textContent=wConv(kg,next); return; }
+  if(t.name==='lunit'){
+    const prev=val('f_lprev'), next=t.value; if(prev===next) return;
+    ['f_len','f_head','f_belly','f_chest'].forEach(id=>{ const el=document.getElementById(id); if(el && el.value!==''){ const cm=prev==='cm'?+el.value:+el.value*2.54; el.value = next==='cm'?+cm.toFixed(1):+(cm/2.54).toFixed(2); } });
+    document.getElementById('f_lprev').value=next; return; }
   if(t.name==='vunit'){
     const prev=val('f_vprev'), next=t.value; if(prev===next) return;
     ['f_amt','f_l','f_r'].forEach(id=>{ const el=document.getElementById(id); if(el && el.value!==''){ el.value=U.volTo(U.volFrom(el.value,prev),next); } });
