@@ -449,6 +449,20 @@ main{min-width:0;overflow-x:clip;padding-block:24px 96px;padding-left:max(16px,e
 .chartwrap{overflow-x:auto}
 
 /* teeth */
+.coll{cursor:pointer;user-select:none}
+.coll .chev{font-size:14px;color:var(--ink-3)}
+.panel.shut h2{margin-bottom:0}
+.hbtns{display:flex;gap:6px;flex-wrap:wrap;margin:-4px 0 8px}
+.nbl{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:4px 16px}
+.nbi{display:flex;gap:10px;align-items:center;text-align:left;border:0;border-bottom:1px solid var(--line);background:none;padding:8px 2px;font:inherit;color:inherit;cursor:pointer}
+.nbi:disabled{cursor:default;opacity:1}
+.nbc{flex:none;width:24px;height:24px;border-radius:50%;border:2px solid var(--line-2,var(--line));display:grid;place-items:center;color:#fff}
+.nbi.on .nbc{background:var(--diaper);border-color:var(--diaper)}
+.nbc svg{width:15px;height:15px;stroke-width:3}
+.nbt{display:flex;flex-direction:column;min-width:0}
+.nbt b{font-weight:600;font-size:14.5px}
+.nbt span{font-size:12.5px;color:var(--ink-3)}
+.nbi.on .nbt b{color:var(--ink-2)}
 .teeth{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start}
 .mouth{width:100%;max-width:340px;margin:0 auto;display:block}
 .mouth .tooth{cursor:pointer}
@@ -613,6 +627,9 @@ const I = {
   search:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>',
   book:'<path d="M4 5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5M8 7h6"/>',
   flag:'<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',
+  heart:'<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/><path d="M5 12h3l1.5-2.5 2 5 1.5-2.5H19"/>',
+  sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',
   tooth:'<path d="M7 3C4.5 3 3 5 3 7.5c0 3 1.5 4.5 2 7.5.4 2.5 1 6 2.5 6s1.5-4 2.5-5.5c.5-.8 1.5-.8 2 0 1 1.5 1 5.5 2.5 5.5s2.1-3.5 2.5-6c.5-3 2-4.5 2-7.5C21 5 19.5 3 17 3c-2 0-3 1-5 1S9 3 7 3z"/>',
   grip:'<circle cx="9" cy="6" r="1.4" fill="currentColor" stroke="none"/><circle cx="15" cy="6" r="1.4" fill="currentColor" stroke="none"/><circle cx="9" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="9" cy="18" r="1.4" fill="currentColor" stroke="none"/><circle cx="15" cy="18" r="1.4" fill="currentColor" stroke="none"/>',
   up:'<path d="M6 15l6-6 6 6"/>',
@@ -626,7 +643,7 @@ const IF={ // filled versions for the selected tab
   health:'<path d="M12 21s-8-5-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 6-8 11-8 11z" fill="currentColor"/>',
   family:'<circle cx="9" cy="8" r="3.5" fill="currentColor"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0z" fill="currentColor"/><circle cx="17.5" cy="9.5" r="2.5" fill="currentColor"/><path d="M16 14.2a5 5 0 0 1 6 4.8h-4.6" fill="currentColor"/>'
 };
-const EMOJI={breast:'🤱',bottle:'🍼',solids:'🥣',pump:'🥛',sleep:'😴',diaper:'🧷',potty:'🚽',ruler:'📏',temp:'🌡️',med:'💊',symptom:'🤒',doctor:'🩺',vaccine:'💉',activity:'🧸',tummy:'👶',spit:'🤮',vitd:'💧',drop:'💧',note:'⭐',tooth:'🦷'};
+const EMOJI={breast:'🤱',bottle:'🍼',solids:'🥣',pump:'🥛',sleep:'😴',diaper:'🧷',potty:'🚽',ruler:'📏',temp:'🌡️',med:'💊',symptom:'🤒',doctor:'🩺',vaccine:'💉',activity:'🧸',tummy:'👶',spit:'🤮',vitd:'💧',drop:'💧',note:'⭐',tooth:'🦷',heart:'❤️',sun:'☀️'};
 const ICON_STYLES=[['line','Classic lines'],['soft','Soft fill'],['chunky','Chunky'],['bubble','Bubbles'],['emoji','Emoji']];
 const IC = (st) => 'st-'+(st||prefs.icons||'line');
 const svg = (k, s='', st) => ((st||prefs.icons)==='emoji' && EMOJI[k]) ? `<span class="emo" aria-hidden="true">${EMOJI[k]}</span>` : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ${s}>${I[k]||''}</svg>`;
@@ -647,6 +664,8 @@ const T = {
   symptom:{label:'Symptom',cat:'health',icon:'symptom'},
   doctor:{label:'Doctor visit',cat:'health',icon:'doctor'},
   vaccine:{label:'Vaccine',cat:'health',icon:'vaccine'},
+  vitals:{label:'Vitals',cat:'health',icon:'heart'},
+  jaundice:{label:'Jaundice check',cat:'health',icon:'sun'},
   activity:{label:'Activity',cat:'activity',icon:'activity'},
   tummy:{label:'Tummy time',cat:'activity',icon:'tummy'},
   spit:{label:'Spit-up',cat:'feed',icon:'spit'},
@@ -727,7 +746,9 @@ function entrySummary(e){
       return [({wet:wetT,dirty:dirT,mixed:wetT+' + '+dirT,dry:'Dry'}[e.kind]||''),
         pc?pc[1].toLowerCase():'', e.cons?{seedy:'seedy',soft:'soft',runny:'runny',firm:'firm',mucus:'mucus'}[e.cons]:'', e.rash?'Diaper rash':'', e.color||''].filter(Boolean).join(' · '); }
     case 'potty': return ({pee:'Pee',poo:'Poo',both:'Pee + poo',none:'Tried, nothing'}[e.result]||'');
-    case 'growth': return [e.weight!=null?U.wt(e.weight):'', e.length!=null?U.len(e.length):'', e.head!=null?`Head ${U.len(e.head)}`:''].filter(Boolean).join(' · ');
+    case 'growth': return [e.weight!=null?U.wt(e.weight):'', e.length!=null?U.len(e.length):'', e.head!=null?`Head ${U.len(e.head)}`:'', e.belly!=null?`Belly ${U.len(e.belly)}`:'', e.chest!=null?`Chest ${U.len(e.chest)}`:''].filter(Boolean).join(' · ');
+    case 'vitals': return [e.hr?`Heart ${e.hr} bpm`:'', e.rr?`Breathing ${e.rr}/min`:'', e.spo2?`Oxygen ${e.spo2}%`:'', e.sys?`BP ${e.sys}${e.dia?'/'+e.dia:''} mmHg`:'', e.state?{asleep:'asleep',calm:'calm',crying:'crying'}[e.state]:''].filter(Boolean).join(' · ');
+    case 'jaundice': return [e.bili!=null?`Bilirubin ${e.bili} mg/dL`:'', e.where?(e.where==='none'?'No yellow':'Yellow to '+({face:'face',chest:'chest',belly:'belly',legs:'legs',soles:'palms/soles'}[e.where]||e.where)):'', e.method?({look:'skin check',tcb:'skin meter',blood:'blood test'}[e.method]):''].filter(Boolean).join(' · ');
     case 'temp': return U.tmp(e.value)+(e.value!=null && e.value>=37.995 ? ' · Fever' : '');
     case 'med': return [e.name, e.dose].filter(Boolean).join(' · ');
     case 'vaccine': return e.name||'';
@@ -1392,6 +1413,7 @@ function oddValue(type,d,id){
   const big=ml=>ml!=null && ml>300;
   if(type==='bottle' && big(d.amount)) return `${U.vol(d.amount)} is a lot for one bottle.`;
   if(type==='pump' && (big(d.left)||big(d.right))) return `${U.vol(Math.max(d.left||0,d.right||0))} from one side is more than usual.`;
+  if(type==='vitals' && ((d.hr&&(d.hr<40||d.hr>250))||(d.rr&&d.rr>120)||(d.spo2&&(d.spo2<50||d.spo2>100))||(d.sys&&(d.sys<30||d.sys>150)))) return 'One of these numbers looks unusual. Check for a typo.';
   if(type==='temp' && d.value!=null && (d.value<34.5||d.value>42.5)) return `${U.tmp(d.value)} is outside the usual range for a body temperature.`;
   if(type==='growth'){
     const prev=state.entries.filter(e=>e.type==='growth' && e.id!==id && e.start<=d.start).sort((a,b)=>b.start-a.start);
@@ -2101,7 +2123,7 @@ function vGrowth(){
   const gs=state.entries.filter(e=>e.type==='growth');
   h+=`<div class="head" style="align-items:center"><h2 style="font-size:21px">Growth</h2><button class="btn primary" data-new="growth" ${state.canWrite?'':'disabled'}>${svg('plus','width="16" height="16"')} Add measurement</button></div>`;
   h+=`<div class="grid2">${growthChart('w','Weight',U.imp()?v=>v*2.20462:v=>v,U.wtU())}${growthChart('l','Height',U.imp()?v=>v/2.54:v=>v,U.lenU())}</div>`;
-  h+=`<div class="panel"><h2>Measurements</h2><div class="tablewrap"><table><thead><tr><th>Date</th><th>Age</th><th>Weight</th><th>Height</th><th>Head</th></tr></thead><tbody>${gs.map(e=>`<tr data-edit="${e.id}" style="cursor:pointer"><td>${new Date(e.start).toLocaleDateString()}</td><td>${esc(ageText(state.profile.birth,e.start))}</td><td>${U.wt(e.weight)||'—'}</td><td>${U.len(e.length)||'—'}</td><td>${U.len(e.head)||'—'}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">No measurements yet.</td></tr>'}</tbody></table></div>
+  h+=`<div class="panel"><h2>Measurements</h2><div class="tablewrap"><table><thead><tr><th>Date</th><th>Age</th><th>Weight</th><th>Height</th><th>Head</th>${gs.some(e=>e.belly!=null)?'<th>Belly</th>':''}</tr></thead><tbody>${gs.map(e=>`<tr data-edit="${e.id}" style="cursor:pointer"><td>${new Date(e.start).toLocaleDateString()}</td><td>${esc(ageText(state.profile.birth,e.start))}</td><td>${U.wt(e.weight)||'—'}</td><td>${U.len(e.length)||'—'}</td><td>${U.len(e.head)||'—'}</td>${gs.some(x=>x.belly!=null)?`<td>${U.len(e.belly)||'—'}</td>`:''}</tr>`).join('')||'<tr><td colspan="5" class="empty">No measurements yet.</td></tr>'}</tbody></table></div>
   <p class="note">The dashed line is the WHO growth-standard median${state.profile?.sex==='m'?' for boys':state.profile?.sex==='f'?' for girls':' (average of boys and girls)'}. It's a reference point, not a target. Ask your pediatrician about your baby's percentile.</p></div>`;
   return h;
 }
@@ -2126,16 +2148,33 @@ function mouthSvg(){
   g+=`<text x="${cx}" y="${ucy-20}" text-anchor="middle">UPPER</text><text x="${cx}" y="${lcy+30}" text-anchor="middle">LOWER</text>`;
   return `<svg class="mouth" viewBox="0 0 340 300" aria-label="Teeth chart">${g}</svg>`;
 }
+const NEWBORN=[['vitk','Vitamin K shot','At birth'],['eyes','Eye ointment','At birth'],['hepb','Hepatitis B, dose 1','Within 24 hours'],['cchd','Heart screening (pulse oximetry)','After 24 hours'],['screen','Newborn blood screening (heel prick)','24–48 hours'],['hearing','Hearing screening','Before leaving the hospital'],['visit1','First pediatrician visit','3–5 days old'],['birthwt','Back to birth weight','By about 2 weeks'],['cord','Umbilical cord stump fell off','Usually 1–3 weeks'],['visit2','1-month checkup','About 1 month']];
+function newbornAuto(k){
+  const p=state.profile||{}, born=p.birth?new Date(p.birth+'T00:00').getTime():null;
+  if(k==='hepb'){ const v=state.entries.find(e=>e.type==='vaccine'&&/hep/i.test(e.name||'')); return v?dayKey(v.start):null; }
+  if(k==='visit1'&&born){ const v=state.entries.filter(e=>e.type==='doctor'&&e.start<=Date.now()&&e.start-born<14*DAY).sort((a,b)=>a.start-b.start)[0]; return v?dayKey(v.start):null; }
+  if(k==='birthwt'){ const g=state.entries.filter(e=>e.type==='growth'&&e.weight!=null&&e.start<=Date.now()).sort((a,b)=>a.start-b.start); if(g.length<2) return null; const bw=g[0].weight, b=g.slice(1).find(e=>e.weight>=bw && e.start-g[0].start>2*DAY); return b?dayKey(b.start):null; }
+  return null;
+}
+function newbornPanel(){
+  const age=ageDays(state.profile?.birth); if(age==null||age>120) return '';
+  const nb=state.teeth._nb||{}, items=NEWBORN.map(([k,l,w])=>{ const d=nb[k]?.date||newbornAuto(k); return {k,l,w,d,auto:!nb[k]?.date&&!!d}; });
+  const done=items.filter(x=>x.d).length, open=state.nbOpen ?? done<items.length;
+  return `<div class="panel ${open?'':'shut'}"><h2 class="coll" data-act="nbOpen" role="button" tabindex="0" aria-expanded="${open}"><span>Newborn checklist <span class="sub" style="font-weight:500">· ${done} of ${items.length}</span></span><span class="chev">${open?'▴':'▾'}</span></h2>
+  ${open?`<div class="nbl">${items.map(x=>`<button type="button" class="nbi ${x.d?'on':''}" ${x.auto||!state.canWrite?'disabled':''} data-act="nbToggle" data-k="${x.k}"><span class="nbc">${x.d?svg('check'):''}</span><span class="nbt"><b>${x.l}</b><span>${x.d?`Done ${new Date(x.d+'T12:00').toLocaleDateString([], {month:'short',day:'numeric'})}${x.auto?' · from your log':''}`:x.w}</span></span></button>`).join('')}</div>
+  <p class="note">Tap to check off. Hepatitis B, the first visit and birth weight tick themselves from your log. Hospitals differ, so ask your pediatrician which screenings were done.</p>`:''}</div>`;
+}
 function vHealth(){
   let h=header('Health', 'Growth, teeth, temperatures, medicine, visits and vaccines');
   h+=vGrowth();
   h+=`<div class="head" style="align-items:center;margin-top:8px"><h2 style="font-size:21px">Health</h2></div>`;
-  const count=Object.keys(state.teeth).length;
+  const count=Object.keys(state.teeth).filter(k=>k!=='_nb').length, tOpen=state.teethOpen ?? (count>0 || (ageDays(state.profile?.birth)??0)>=120);
+  h+=newbornPanel();
   const rows=TEETH.map(([id,label,arch,,mo])=>{ const l=state.teeth[id+'_l'], r=state.teeth[id+'_r']; return `<tr><td>${arch==='u'?'Upper':'Lower'} ${label.toLowerCase()}</td><td>${mo} mo</td><td>${[l?`L ${esc(l.date)}`:'',r?`R ${esc(r.date)}`:''].filter(Boolean).join(', ')||'—'}</td></tr>`; }).join('');
-  h+=`<div class="panel"><h2><span>Teeth</span><span class="sub num">${count} of 20</span></h2><div class="teeth"><div>${mouthSvg()}<p class="note" style="text-align:center">Tap a tooth to record when it came in.</p></div><div class="tablewrap"><table><thead><tr><th>Tooth</th><th>Typical</th><th>Came in</th></tr></thead><tbody>${rows}</tbody></table></div></div></div>`;
-  const hs=state.entries.filter(e=>T[e.type]?.cat==='health');
-  h+=`<div class="panel"><h2>Health log <span style="display:flex;gap:6px;flex-wrap:wrap">${['temp','med','symptom','doctor','vaccine'].map(t=>`<button class="btn ghost sm" data-new="${t}" ${state.canWrite?'':'disabled'}>+ ${T[t].label}</button>`).join('')}</span></h2>
-    <div class="list">${hs.length?hs.map(e=>entryRow(e).replace('<span class="tm">',`<span class="tm" title="${fmtDate(e.start)}">`).replace(`>${fmtTime(e.start)}<`,`>${new Date(e.start).toLocaleDateString([], {month:'short',day:'numeric'})}<`)).join(''):'<div class="empty">No health entries yet.</div>'}</div></div>`;
+  h+=`<div class="panel ${tOpen?'':'shut'}"><h2 class="coll" data-act="teethToggle" role="button" tabindex="0" aria-expanded="${tOpen}"><span>Teeth <span class="sub" style="font-weight:500">· ${count} of 20${count?'':' · first ones usually 6–10 months'}</span></span><span class="chev">${tOpen?'▴':'▾'}</span></h2>${tOpen?`<div class="teeth"><div>${mouthSvg()}<p class="note" style="text-align:center">Tap a tooth to record when it came in.</p></div><div class="tablewrap"><table><thead><tr><th>Tooth</th><th>Typical</th><th>Came in</th></tr></thead><tbody>${rows}</tbody></table></div></div>`:''}</div>`;
+  const hsAll=state.entries.filter(e=>T[e.type]?.cat==='health'&&e.type!=='vitd'), hs=state.hsAll?hsAll:hsAll.slice(0,8);
+  h+=`<div class="panel"><h2>Health log</h2><div class="hbtns">${['temp','vitals','jaundice','med','symptom','doctor','vaccine'].map(t=>`<button class="btn ghost sm" data-new="${t}" ${state.canWrite?'':'disabled'}>+ ${T[t].label}</button>`).join('')}</div>
+    <div class="list">${hs.length?hs.map(e=>entryRow(e).replace('<span class="tm">',`<span class="tm" title="${fmtDate(e.start)}">`).replace(`>${fmtTime(e.start)}<`,`>${new Date(e.start).toLocaleDateString([], {month:'short',day:'numeric'})}<`)).join(''):'<div class="empty">No health entries yet.</div>'}</div>${hsAll.length>8?`<button class="btn ghost sm" style="margin-top:8px" data-act="hsAll">${state.hsAll?'Show less':`Show all ${hsAll.length}`}</button>`:''}</div>`;
   h+=msPanel();
   const ms=state.entries.filter(e=>e.type==='note');
   h+=`<div class="panel"><h2>Moments &amp; milestones <button class="btn ghost sm" data-new="note" ${state.canWrite?'':'disabled'}>+ Moment</button></h2><div class="list">${ms.length?ms.map(e=>entryRow(e).replace(`>${fmtTime(e.start)}<`,`>${new Date(e.start).toLocaleDateString([], {month:'short',day:'numeric'})}<`)).join(''):'<div class="empty">Record first smiles, rolls, words and steps here.</div>'}</div></div>`;
@@ -2303,12 +2342,19 @@ function fieldsFor(type, e){
         ${F.seg('cons','Texture',[['seedy','Seedy'],['soft','Soft'],['runny','Runny'],['firm','Firm'],['mucus','Mucus']],e.cons||'')}</div>`
       +F.check('f_rash','Diaper rash',e.rash)+F.text('f_note','Note',e.note||(e.color&&!e.pcolor?e.color:'')); }
     case 'potty': return F.time('f_start','Time',e.start||now)+F.seg('result','Result',[['pee','Pee'],['poo','Poo'],['both','Both'],['none','Nothing']],e.result||'pee')+F.text('f_note','Note',e.note);
-    case 'growth': return F.time('f_start','Measured',e.start||now)+F.num('f_w','Weight',U.wtOut(e.weight),U.wtU())+`<div class="row2">${F.num('f_len','Height (lying down)',U.lenOut(e.length),U.lenU())}${F.num('f_head','Head',U.lenOut(e.head),U.lenU())}</div>`+F.text('f_note','Note',e.note);
+    case 'growth': return F.time('f_start','Measured',e.start||now)+F.num('f_w','Weight',U.wtOut(e.weight),U.wtU())+`<div class="row2">${F.num('f_len','Height (lying down)',U.lenOut(e.length),U.lenU())}${F.num('f_head','Head',U.lenOut(e.head),U.lenU())}</div><div class="row2">${F.num('f_belly','Belly',U.lenOut(e.belly),U.lenU())}${F.num('f_chest','Chest',U.lenOut(e.chest),U.lenU())}</div>`+F.text('f_note','Note',e.note);
     case 'temp': return F.time('f_start','Time',e.start||now)+F.num('f_val','Temperature',U.tmpOut(e.value),U.tmpU())+F.seg('method','Method',[['rectal','Rectal'],['armpit','Armpit'],['ear','Ear'],['forehead','Forehead']],e.method||'rectal')+F.text('f_note','Note',e.note)
       +`<p class="note">A temperature of 100.4 °F (38 °C) or higher is a fever. ${(ageDays(state.profile?.birth)??999)<91?'<b>Your baby is under 3 months: call your pediatrician right away for a fever.</b> ':''}Rectal is the most accurate method for babies. When you call, say which method you used.</p>`;
     case 'med': return F.time('f_start','Time given',e.start||now)+F.text('f_name','Medicine',e.name)+F.text('f_dose','Dose',e.dose,'as on the label or prescription')+F.seg('remindH','Remind me when it’s been',[['','Off'],['4','4 h'],['6','6 h'],['8','8 h'],['12','12 h'],['24','24 h']],e.remindH?String(e.remindH):'')+F.text('f_note','Note',e.note)+`<p class="note">Use the timing on the label or from your doctor. The reminder goes to phones that have medicine reminders on.</p>`;
     case 'symptom': return F.time('f_start','Time',e.start||now)+F.area('f_note','What did you notice?',e.note);
     case 'doctor': return F.time('f_start','Date and time',e.start||now)+F.text('f_title','Reason',e.title,'e.g. 4-month checkup, ear check')+F.area('f_note','Notes',e.note)+`<p class="note">Pick a future date to add an upcoming appointment. It shows under Coming up on Home.</p>`;
+    case 'vitals': return F.time('f_start','Time',e.start||now)+`<div class="row2">${F.num('f_hr','Heart rate',e.hr,'bpm','1')}${F.num('f_rr','Breathing',e.rr,'per min','1')}</div>${F.num('f_spo2','Oxygen (SpO2)',e.spo2,'%','1')}<div class="row2">${F.num('f_sys','Blood pressure, top',e.sys,'mmHg','1')}${F.num('f_dia','Blood pressure, bottom',e.dia,'mmHg','1')}</div>`
+      +F.seg('vstate','Baby was',[['asleep','Asleep'],['calm','Awake, calm'],['crying','Crying']],e.state||'')+F.text('f_note','Note',e.note)
+      +`<p class="note">Typical newborn ranges: heart rate 100–160 bpm (lower in deep sleep), breathing 30–60 a minute, oxygen 95% or higher. Blood pressure depends on age and size, so compare with what your care team told you. Call 911 if your baby is struggling to breathe or turns blue.</p>`;
+    case 'jaundice': return F.time('f_start','Time',e.start||now)+F.seg('jmethod','How it was checked',[['look','Skin check'],['tcb','Skin meter'],['blood','Blood test']],e.method||'look')
+      +F.seg('jwhere','Yellow reaches',[['none','None'],['face','Face'],['chest','Chest'],['belly','Belly'],['legs','Legs'],['soles','Palms/soles']],e.where||'')
+      +F.num('f_bili','Bilirubin level (if measured)',e.bili,'mg/dL')+F.text('f_note','Note',e.note)
+      +`<p class="note">Check in daylight: press gently on the nose or chest and look at the skin as it refills. Call your pediatrician the same day if yellow spreads to the belly or legs, the whites of the eyes look yellow, your baby is very sleepy or feeding poorly, or poop is pale or chalky.</p>`;
     case 'vaccine': return F.time('f_start','Date',e.start||now)+F.text('f_name','Vaccine(s)',e.name,'e.g. 2-month vaccines')+F.text('f_note','Note',e.note);
     case 'activity': return F.time('f_start','Time',e.start||now)+F.seg('akind','Activity',activityKinds().map(k=>[k,k]),e.kind||'Tummy time')+F.text('f_aother','Or type something else','','e.g. Vitamin D drops')+F.num('f_dur','Duration',e.duration,'min','1')+F.text('f_note','Note',e.note);
     case 'note': return F.time('f_start','When',e.start||now)+F.text('f_title','What happened',e.title,'e.g. First giggle')+F.check('f_ms','This is a milestone',e.milestone)+F.area('f_note','Details',e.note);
@@ -2330,7 +2376,9 @@ function readFields(type){
     case 'diaper': { const k=radio('kind'), wet=k==='wet'||k==='mixed', poo=k==='dirty'||k==='mixed';
       return {start,kind:k,pee:wet?radio('pee')||undefined:undefined,poo:poo?radio('poo')||undefined:undefined,pcolor:poo?radio('pcolor')||undefined:undefined,cons:poo?radio('cons')||undefined:undefined,rash:document.getElementById('f_rash').checked||undefined,color:undefined,note}; }
     case 'potty': return {start,result:radio('result'),note};
-    case 'growth': return {start,weight:U.wtIn(val('f_w')),length:U.lenIn(val('f_len')),head:U.lenIn(val('f_head')),note};
+    case 'growth': return {start,weight:U.wtIn(val('f_w')),length:U.lenIn(val('f_len')),head:U.lenIn(val('f_head')),belly:U.lenIn(val('f_belly')),chest:U.lenIn(val('f_chest')),note};
+    case 'vitals': return {start,hr:numv('f_hr'),rr:numv('f_rr'),spo2:numv('f_spo2'),sys:numv('f_sys'),dia:numv('f_dia'),state:radio('vstate')||undefined,note};
+    case 'jaundice': return {start,method:radio('jmethod'),where:radio('jwhere')||undefined,bili:numv('f_bili'),note};
     case 'temp': return {start,value:U.tmpIn(val('f_val')),method:radio('method'),note};
     case 'med': return {start,name:val('f_name').trim(),dose:val('f_dose').trim(),remindH:+radio('remindH')||undefined,note};
     case 'symptom': return {start,note};
@@ -2523,6 +2571,10 @@ document.addEventListener('click', async ev=>{
   else if(a==='askReport'){ const m=state.ask[+t.dataset.i]; if(m){ m.reporting=!m.reporting; renderAsk(); } }
   else if(a==='askReportSend') askReport(+t.dataset.i, t.dataset.reason);
   else if(a==='fixAmPm'){ ['f_start','f_end'].forEach(fid=>{ const el=document.getElementById(fid); const v=el&&fromInput(el.value); if(v && v>Date.now()+2*MIN) el.value=toInput(v-12*HR); }); const f=document.getElementById('entryForm'); f.requestSubmit(); }
+  else if(a==='teethToggle'){ const c=Object.keys(state.teeth).filter(k=>k!=='_nb').length; state.teethOpen=!(state.teethOpen ?? (c>0 || (ageDays(state.profile?.birth)??0)>=120)); render(); }
+  else if(a==='nbToggle'){ const k=t.dataset.k, nb={...(state.teeth._nb||{})}; if(nb[k]) delete nb[k]; else nb[k]={date:dayKey(Date.now())}; await safe(()=>store.setTeeth({...state.teeth,_nb:nb}), nb[k]?'Marked done':'Unmarked'); }
+  else if(a==='hsAll'){ state.hsAll=!state.hsAll; render(); }
+  else if(a==='nbOpen'){ state.nbOpen=!state.nbOpen; render(); }
   else if(a==='saveOdd'){ const f=document.getElementById('entryForm'); f.dataset.allowOdd='1'; f.requestSubmit(); }
   else if(a==='saveFuture'){ const f=document.getElementById('entryForm'); f.dataset.allowFuture='1'; f.requestSubmit(); }
   else if(a==='deleteAccount'){ const st=document.getElementById('delStatus');
