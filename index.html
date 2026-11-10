@@ -450,7 +450,10 @@ main{min-width:0;overflow-x:clip;padding-block:24px 96px;padding-left:max(16px,e
 
 /* teeth */
 .htabs{margin-bottom:14px}
-.htabs .chip{padding:6.2px 14.9px;font-size:16.1px}
+.htabs{flex-wrap:nowrap}
+.htabs .chip{padding:6.2px 14.9px;font-size:16.1px;white-space:nowrap}
+@media (max-width:820px){.htabs .chip{flex:1 1 auto;padding:6.2px 8px}}
+@media (max-width:390px){.htabs{gap:6px}.htabs .chip{font-size:14.5px;padding:6.2px 6px}}
 .chip.sm2{padding:6px 12px;font-size:13.5px}
 .hsums{margin-top:12px}
 .sum.hs{border:0;font:inherit;color:inherit;text-align:left;cursor:pointer}
