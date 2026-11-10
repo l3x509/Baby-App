@@ -449,6 +449,27 @@ main{min-width:0;overflow-x:clip;padding-block:24px 96px;padding-left:max(16px,e
 .chartwrap{overflow-x:auto}
 
 /* teeth */
+.htabs{margin-bottom:14px}
+.chip.sm2{padding:6px 12px;font-size:13.5px}
+.hsums{margin-top:12px}
+.sum.hs{border:0;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.sum.hs b{font-size:16px}
+.nxt{display:flex;gap:12px;align-items:center;width:100%;text-align:left;border:0;background:none;font:inherit;color:inherit;padding:8px 0;border-bottom:1px solid var(--line)}
+button.nxt{cursor:pointer}
+.nxt .ii{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 14%,transparent);color:var(--c);flex:none}
+.nxt .ii svg{width:19px;height:19px}
+.nxt>span:last-child{display:flex;flex-direction:column}
+.nxt b{font-weight:600}
+.nxt>span:last-child>span{font-size:13px;color:var(--ink-3)}
+.sched{display:flex;flex-direction:column}
+.sr2{display:flex;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line)}
+.sr2>span:last-child{display:flex;flex-direction:column}
+.sr2 b{font-weight:600;font-size:14.5px}
+.sr2>span:last-child>span{font-size:12.5px;color:var(--ink-3)}
+.sr2.done .nbc{background:var(--diaper);border-color:var(--diaper)}
+.sr2.done b{color:var(--ink-2)}
+.sr2.next .nbc{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 20%,transparent)}
+.sr2.next b{color:var(--accent)}
 .coll{cursor:pointer;user-select:none}
 .coll .chev{font-size:14px;color:var(--ink-3)}
 .panel.shut h2{margin-bottom:0}
@@ -640,6 +661,7 @@ const I = {
   heart:'<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/><path d="M5 12h3l1.5-2.5 2 5 1.5-2.5H19"/>',
   sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
   check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  calendar:'<rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
   tooth:'<path d="M7 3C4.5 3 3 5 3 7.5c0 3 1.5 4.5 2 7.5.4 2.5 1 6 2.5 6s1.5-4 2.5-5.5c.5-.8 1.5-.8 2 0 1 1.5 1 5.5 2.5 5.5s2.1-3.5 2.5-6c.5-3 2-4.5 2-7.5C21 5 19.5 3 17 3c-2 0-3 1-5 1S9 3 7 3z"/>',
   grip:'<circle cx="9" cy="6" r="1.4" fill="currentColor" stroke="none"/><circle cx="15" cy="6" r="1.4" fill="currentColor" stroke="none"/><circle cx="9" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="9" cy="18" r="1.4" fill="currentColor" stroke="none"/><circle cx="15" cy="18" r="1.4" fill="currentColor" stroke="none"/>',
   up:'<path d="M6 15l6-6 6 6"/>',
@@ -2158,7 +2180,7 @@ function mouthSvg(){
   g+=`<text x="${cx}" y="${ucy-20}" text-anchor="middle">UPPER</text><text x="${cx}" y="${lcy+30}" text-anchor="middle">LOWER</text>`;
   return `<svg class="mouth" viewBox="0 0 340 300" aria-label="Teeth chart">${g}</svg>`;
 }
-const NEWBORN=[['vitk','Vitamin K shot','At birth'],['eyes','Eye ointment','At birth'],['hepb','Hepatitis B, dose 1','Within 24 hours'],['cchd','Heart screening (pulse oximetry)','After 24 hours'],['screen','Newborn blood screening (heel prick)','24–48 hours'],['hearing','Hearing screening','Before leaving the hospital'],['visit1','First pediatrician visit','3–5 days old'],['birthwt','Back to birth weight','By about 2 weeks'],['cord','Umbilical cord stump fell off','Usually 1–3 weeks'],['visit2','1-month checkup','About 1 month']];
+const NEWBORN=[['vitk','Vitamin K shot','At birth'],['eyes','Eye ointment','At birth'],['hepb','Hepatitis B, dose 1','Within 24 hours'],['cchd','Heart screening (pulse oximetry)','After 24 hours'],['screen','Newborn blood screening (heel prick)','24–48 hours'],['hearing','Hearing screening','Before leaving the hospital'],['birthwt','Back to birth weight','By about 2 weeks'],['cord','Umbilical cord stump fell off','Usually 1–3 weeks']];
 function newbornAuto(k){
   const p=state.profile||{}, born=p.birth?new Date(p.birth+'T00:00').getTime():null;
   if(k==='hepb'){ const v=state.entries.find(e=>e.type==='vaccine'&&/hep/i.test(e.name||'')); return v?dayKey(v.start):null; }
@@ -2172,23 +2194,59 @@ function newbornPanel(){
   const done=items.filter(x=>x.d).length, open=state.nbOpen ?? done<items.length;
   return `<div class="panel ${open?'':'shut'}"><h2 class="coll" data-act="nbOpen" role="button" tabindex="0" aria-expanded="${open}"><span>Newborn checklist <span class="sub" style="font-weight:500">· ${done} of ${items.length}</span></span><span class="chev">${open?'▴':'▾'}</span></h2>
   ${open?`<div class="nbl">${items.map(x=>`<button type="button" class="nbi ${x.d?'on':''}" ${x.auto||!state.canWrite?'disabled':''} data-act="nbToggle" data-k="${x.k}"><span class="nbc">${x.d?svg('check'):''}</span><span class="nbt"><b>${x.l}</b><span>${x.d?`Done ${new Date(x.d+'T12:00').toLocaleDateString([], {month:'short',day:'numeric'})}${x.auto?' · from your log':''}`:x.w}</span></span></button>`).join('')}</div>
-  <p class="note">Tap to check off. Hepatitis B, the first visit and birth weight tick themselves from your log. Hospitals differ, so ask your pediatrician which screenings were done.</p>`:''}</div>`;
+  <p class="note">Tap to check off. Hepatitis B and birth weight tick themselves from your log. Hospitals differ, so ask your pediatrician which screenings were done.</p>`:''}</div>`;
 }
+function hList(es, key){
+  const all=state.hShowAll===key, list=all?es:es.slice(0,8);
+  return `<div class="list">${list.length?list.map(e=>entryRow(e).replace('<span class="tm">',`<span class="tm" title="${fmtDate(e.start)}">`).replace(`>${fmtTime(e.start)}<`,`>${new Date(e.start).toLocaleDateString([], {month:'short',day:'numeric'})}<`)).join(''):'<div class="empty">Nothing logged yet.</div>'}</div>${es.length>8?`<button class="btn ghost sm" style="margin-top:8px" data-act="hsAll" data-k="${key}">${all?'Show less':`Show all ${es.length}`}</button>`:''}`;
+}
+function addBtns(types){ return `<div class="hbtns">${types.map(t=>`<button class="btn ghost sm" data-new="${t}" ${state.canWrite?'':'disabled'}>+ ${T[t].label}</button>`).join('')}</div>`; }
 function vHealth(){
-  let h=header('Health', 'Growth, teeth, temperatures, medicine, visits and vaccines');
-  h+=vGrowth();
-  h+=`<div class="head" style="align-items:center;margin-top:8px"><h2 style="font-size:21px">Health</h2></div>`;
-  const count=Object.keys(state.teeth).filter(k=>k!=='_nb').length, tOpen=state.teethOpen ?? (count>0 || (ageDays(state.profile?.birth)??0)>=120);
-  h+=newbornPanel();
-  const rows=TEETH.map(([id,label,arch,,mo])=>{ const l=state.teeth[id+'_l'], r=state.teeth[id+'_r']; return `<tr><td>${arch==='u'?'Upper':'Lower'} ${label.toLowerCase()}</td><td>${mo} mo</td><td>${[l?`L ${esc(l.date)}`:'',r?`R ${esc(r.date)}`:''].filter(Boolean).join(', ')||'—'}</td></tr>`; }).join('');
-  h+=`<div class="panel ${tOpen?'':'shut'}"><h2 class="coll" data-act="teethToggle" role="button" tabindex="0" aria-expanded="${tOpen}"><span>Teeth <span class="sub" style="font-weight:500">· ${count} of 20${count?'':' · first ones usually 6–10 months'}</span></span><span class="chev">${tOpen?'▴':'▾'}</span></h2>${tOpen?`<div class="teeth"><div>${mouthSvg()}<p class="note" style="text-align:center">Tap a tooth to record when it came in.</p></div><div class="tablewrap"><table><thead><tr><th>Tooth</th><th>Typical</th><th>Came in</th></tr></thead><tbody>${rows}</tbody></table></div></div>`:''}</div>`;
-  const hsAll=state.entries.filter(e=>T[e.type]?.cat==='health'&&e.type!=='vitd'), hs=state.hsAll?hsAll:hsAll.slice(0,8);
-  h+=`<div class="panel"><h2>Health log</h2><div class="hbtns">${['temp','vitals','jaundice','med','symptom','doctor','vaccine'].map(t=>`<button class="btn ghost sm" data-new="${t}" ${state.canWrite?'':'disabled'}>+ ${T[t].label}</button>`).join('')}</div>
-    <div class="list">${hs.length?hs.map(e=>entryRow(e).replace('<span class="tm">',`<span class="tm" title="${fmtDate(e.start)}">`).replace(`>${fmtTime(e.start)}<`,`>${new Date(e.start).toLocaleDateString([], {month:'short',day:'numeric'})}<`)).join(''):'<div class="empty">No health entries yet.</div>'}</div>${hsAll.length>8?`<button class="btn ghost sm" style="margin-top:8px" data-act="hsAll">${state.hsAll?'Show less':`Show all ${hsAll.length}`}</button>`:''}</div>`;
-  h+=msPanel();
+  const tabs=[['growth','Growth'],['care','Care'],['checkups','Checkups'],['dev','Milestones']];
+  const tab=tabs.some(t=>t[0]===state.hTab)?state.hTab:(tabs.some(t=>t[0]===prefs.hTab)?prefs.hTab:'growth');
+  const subs={growth:'Weight, height, head and more',care:'Temperatures, vitals, jaundice, medicine and symptoms',checkups:'Doctor visits, vaccines and screenings',dev:'Milestones, teeth and moments'};
+  let h=header('Health', subs[tab]);
+  h+=`<div class="chips seg2 htabs" role="tablist" aria-label="Health sections">${tabs.map(([k,l])=>`<button class="chip" role="tab" data-act="hTab" data-k="${k}" aria-pressed="${tab===k}">${l}</button>`).join('')}</div>`;
+  const now=Date.now(), p=state.profile||{}, dShort=t=>new Date(t).toLocaleDateString([], {month:'short',day:'numeric'});
+  if(tab==='growth') return h+vGrowth();
+  if(tab==='care'){
+    const CT=[['temp','Temperature'],['vitals','Vitals'],['jaundice','Jaundice'],['med','Medicine'],['symptom','Symptoms']];
+    const es=state.entries.filter(e=>CT.some(c=>c[0]===e.type)&&e.start<=now);
+    const last=t=>es.find(e=>e.type===t);
+    const tiles=[['temp','Last temperature'],['vitals','Last vitals'],['jaundice','Last jaundice check'],['med','Last medicine']].map(([t,l])=>{ const e=last(t); return e?`<button class="sum hs" data-edit="${esc(e.id)}"><b>${esc(entrySummary(e).split(' · ').slice(0,t==='vitals'?2:1).join(' · ')||T[t].label)}</b><span>${l} · ${dShort(e.start)}</span></button>`:''; }).filter(Boolean);
+    const f=CT.some(c=>c[0]===state.hCare)?state.hCare:'all', shown=f==='all'?es:es.filter(e=>e.type===f);
+    const have=CT.filter(([t])=>es.some(e=>e.type===t));
+    h+=`<div class="panel"><h2>Log a reading</h2>${addBtns(CT.map(c=>c[0]))}${tiles.length?`<div class="sums hsums">${tiles.join('')}</div>`:''}</div>`;
+    h+=`<div class="panel"><h2>History</h2>${have.length>1?`<div class="chips scroll" style="margin-bottom:6px"><button class="chip" data-act="hCare" data-k="all" aria-pressed="${f==='all'}">All</button>${have.map(([t,l])=>`<button class="chip" data-act="hCare" data-k="${t}" aria-pressed="${f===t}">${l}</button>`).join('')}</div>`:''}${hList(shown,'care')}</div>`;
+    h+=`<p class="note" style="margin:0 2px 16px">Under 3 months, a temperature of 100.4 °F (38 °C) or higher needs a call to your pediatrician right away.</p>`;
+    return h;
+  }
+  if(tab==='checkups'){
+    const nc=nextCheckup(p, now), up=state.entries.filter(e=>e.type==='doctor'&&e.start>now).sort((a,b)=>a.start-b.start);
+    h+=`<div class="grid2">`;
+    h+=`<div class="panel"><h2>Next checkup</h2>${up.length?up.slice(0,3).map(e=>`<button class="nxt" data-edit="${esc(e.id)}"><span class="ii ${IC()}" style="--c:var(--accent)">${svg('doctor')}</span><span><b>${esc(e.title||'Doctor visit')}</b><span>${fmtDate(e.start)} · ${fmtTime(e.start)} · ${relDays(e.start,now)}</span></span></button>`).join(''):''}
+      ${nc&&!up.some(e=>Math.abs(e.start-nc.due)<=21*DAY)?`<div class="nxt"><span class="ii ${IC()}" style="--c:var(--ink-3)">${svg('calendar')}</span><span><b>${esc(nc.label)}</b><span>Due around ${dShort(nc.due)} · ${relDays(nc.due,now)}</span></span></div>`:''}
+      ${!up.length&&!nc?'<div class="empty">No checkups coming up.</div>':''}
+      <div style="margin-top:10px">${addBtns(['doctor','vaccine'])}</div><p class="note">Pick a future date on a doctor visit to add an appointment.</p></div>`;
+    // schedule
+    if(p.birth){ const docs=state.entries.filter(e=>e.type==='doctor'), used=new Set(); const rows=CHECKUPS.filter(([n,,u])=>u==='d'||n<=24).map(([n,label,u])=>{ const due=u==='d'?new Date(p.birth+'T09:00').getTime()+n*DAY:addMonths(p.birth,n); const win=u==='d'?10*DAY:n<=2?14*DAY:21*DAY; const v=docs.filter(e=>!used.has(e.id)&&Math.abs(e.start-due)<=win).sort((a,b)=>Math.abs(a.start-due)-Math.abs(b.start-due))[0]; if(v) used.add(v.id); const done=v&&v.start<=now; return {label,due,done,v}; });
+      const firstOpen=rows.findIndex(r=>!r.done&&r.due>=now-14*DAY);
+      h+=`<div class="panel"><h2>Checkup schedule <span class="sub" style="font-weight:500">AAP</span></h2><div class="sched">${rows.map((r,i)=>`<div class="sr2 ${r.done?'done':''} ${i===firstOpen?'next':''}"><span class="nbc">${r.done?svg('check'):''}</span><span><b>${esc(r.label)}</b><span>${r.done?`Done ${dShort(r.v.start)}`:r.v?`Booked ${dShort(r.v.start)}`:`Around ${dShort(r.due)}`}</span></span></div>`).slice(0,Math.max(firstOpen+4,6)).join('')}</div></div>`; }
+    h+=`</div>`;
+    h+=newbornPanel();
+    const vis=state.entries.filter(e=>(e.type==='doctor'||e.type==='vaccine')&&e.start<=now);
+    h+=`<div class="panel"><h2>Visits and vaccines</h2>${hList(vis,'visits')}</div>`;
+    return h;
+  }
+  // milestones / development
+  const ds=[['ms','Milestones'],['teeth','Teeth'],['moments','Moments']], d=ds.some(x=>x[0]===state.hDev)?state.hDev:'ms';
+  h+=`<div class="chips" style="margin:-4px 0 12px">${ds.map(([k,l])=>`<button class="chip sm2" data-act="hDev" data-k="${k}" aria-pressed="${d===k}">${l}</button>`).join('')}</div>`;
+  if(d==='ms') return h+msPanel();
+  if(d==='teeth'){ const count=Object.keys(state.teeth).filter(k=>k!=='_nb').length;
+    const rows=TEETH.map(([id,label,arch,,mo])=>{ const l=state.teeth[id+'_l'], r=state.teeth[id+'_r']; return `<tr><td>${arch==='u'?'Upper':'Lower'} ${label.toLowerCase()}</td><td>${mo} mo</td><td>${[l?`L ${esc(l.date)}`:'',r?`R ${esc(r.date)}`:''].filter(Boolean).join(', ')||'—'}</td></tr>`; }).join('');
+    return h+`<div class="panel"><h2><span>Teeth</span><span class="sub num">${count} of 20</span></h2>${count?'':'<p class="note" style="margin-top:-6px">The first teeth usually come in around 6–10 months.</p>'}<div class="teeth"><div>${mouthSvg()}<p class="note" style="text-align:center">Tap a tooth to record when it came in.</p></div><div class="tablewrap"><table><thead><tr><th>Tooth</th><th>Typical</th><th>Came in</th></tr></thead><tbody>${rows}</tbody></table></div></div></div>`; }
   const ms=state.entries.filter(e=>e.type==='note');
-  h+=`<div class="panel"><h2>Moments &amp; milestones <button class="btn ghost sm" data-new="note" ${state.canWrite?'':'disabled'}>+ Moment</button></h2><div class="list">${ms.length?ms.map(e=>entryRow(e).replace(`>${fmtTime(e.start)}<`,`>${new Date(e.start).toLocaleDateString([], {month:'short',day:'numeric'})}<`)).join(''):'<div class="empty">Record first smiles, rolls, words and steps here.</div>'}</div></div>`;
-  return h;
+  return h+`<div class="panel"><h2>Moments <button class="btn ghost sm" data-new="note" ${state.canWrite?'':'disabled'}>+ Moment</button></h2>${ms.length?hList(ms,'moments'):'<div class="empty">Record first smiles, rolls, words and steps here.</div>'}</div>`;
 }
 
 /* --- Settings --- */
@@ -2592,7 +2650,10 @@ document.addEventListener('click', async ev=>{
   else if(a==='fixAmPm'){ ['f_start','f_end'].forEach(fid=>{ const el=document.getElementById(fid); const v=el&&fromInput(el.value); if(v && v>Date.now()+2*MIN) el.value=toInput(v-12*HR); }); const f=document.getElementById('entryForm'); f.requestSubmit(); }
   else if(a==='teethToggle'){ const c=Object.keys(state.teeth).filter(k=>k!=='_nb').length; state.teethOpen=!(state.teethOpen ?? (c>0 || (ageDays(state.profile?.birth)??0)>=120)); render(); }
   else if(a==='nbToggle'){ const k=t.dataset.k, nb={...(state.teeth._nb||{})}; if(nb[k]) delete nb[k]; else nb[k]={date:dayKey(Date.now())}; await safe(()=>store.setTeeth({...state.teeth,_nb:nb}), nb[k]?'Marked done':'Unmarked'); }
-  else if(a==='hsAll'){ state.hsAll=!state.hsAll; render(); }
+  else if(a==='hsAll'){ state.hShowAll = state.hShowAll===t.dataset.k ? null : t.dataset.k; render(); }
+  else if(a==='hTab'){ state.hTab=prefs.hTab=t.dataset.k; savePrefs(); render(); scrollTo(0,0); }
+  else if(a==='hCare'){ state.hCare=t.dataset.k; render(); }
+  else if(a==='hDev'){ state.hDev=t.dataset.k; render(); }
   else if(a==='nbOpen'){ state.nbOpen=!state.nbOpen; render(); }
   else if(a==='saveOdd'){ const f=document.getElementById('entryForm'); f.dataset.allowOdd='1'; f.requestSubmit(); }
   else if(a==='saveFuture'){ const f=document.getElementById('entryForm'); f.dataset.allowFuture='1'; f.requestSubmit(); }
