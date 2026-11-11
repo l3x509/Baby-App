@@ -491,6 +491,12 @@ main{min-width:0;overflow-x:clip;padding-block:24px 96px;padding-left:max(16px,e
 .setwrap{display:grid;grid-template-columns:320px minmax(0,1fr);gap:22px;align-items:start}
 .setwrap .setmenu{position:sticky;top:16px}
 .setttl{margin:4px 0 12px}
+.setfoot{margin:18px 4px 8px;font-size:13px;color:var(--ink-3);display:flex;flex-direction:column;gap:6px}
+.setfoot b{color:var(--ink-2)}
+.setlinks{display:flex;gap:14px;flex-wrap:wrap}
+.setlinks a{color:var(--accent);font-weight:600;text-decoration:none}
+.setfoot summary{cursor:pointer}
+.setfoot details .note{margin-top:6px}
 .setbody>.panel{margin-bottom:16px}
 .setbody>.panel:only-of-type>h2:first-child{display:none}
 .htabs{margin-bottom:14px}
@@ -2368,8 +2374,7 @@ function vSettings(){
 const SET_SECS=[
   ['you','Personalize',[['appearance','Appearance','palette'],['home','Home screen','today']]],
   ['care','Care',[['feeding','Feeding helpers','bottle'],['reminders','Reminders','bell']]],
-  ['log','Log',[['units','Units and clock','ruler'],['data','Data and backup','download']]],
-  ['app','App',[['account','Account','family'],['about','About','info']]]];
+  ['log','Log',[['units','Units and clock','ruler'],['data',(typeof session!=='undefined'&&session)?'Account and data':'Data and backup','download']]]];
 function setSummary(k){
   const p=state.profile||{};
   switch(k){
@@ -2378,9 +2383,7 @@ function setSummary(k){
     case 'feeding': { const u=prefs.upMode||'off'; return [u==='off'?'Upright timer off':`Upright ${prefs.upMin||15} min (${u==='auto'?'auto':'offer'})`, `Vitamin D ${({auto:'when breastfeeding',on:'always',off:'off'})[prefs.vitd||'auto']}`].join(' · '); }
     case 'reminders': return prefs.remEnabled?'On for this phone':'Off';
     case 'units': return `${(p.units||'imperial')==='imperial'?'oz · lb · in · °F':'ml · kg · cm · °C'} · ${prefs.clock==='24'?'24-hour':'12-hour'}`;
-    case 'data': return prefs.lastBackup?`Last backup ${new Date(prefs.lastBackup).toLocaleDateString([], {month:'short',day:'numeric'})}`:'No backup yet';
-    case 'account': return session?.user?.email||'';
-    case 'about': return `Version ${APP_VERSION}`;
+    case 'data': return (typeof session!=='undefined'&&session?.user?.email?session.user.email+' · ':'')+(prefs.lastBackup?`Last backup ${new Date(prefs.lastBackup).toLocaleDateString([], {month:'short',day:'numeric'})}`:'No backup yet');
   }
   return '';
 }
@@ -2416,7 +2419,7 @@ function setSection(k){
     case 'units': return `<div class="panel"><h2>Units and clock</h2><div class="form">
     ${F.seg('s_units','Units',[['imperial','oz · lb · in · °F'],['metric','ml · kg · cm · °C']],p.units||'imperial')}<p class="note" style="margin-top:-8px"><span class="shtag">Shared</span> Units apply to everyone sharing this log. You can still pick oz or ml on each bottle, and lb or kg on each weight.</p>
     ${F.seg('s_clock','Clock',[['12','12-hour'],['24','24-hour']],prefs.clock)}<p class="note" style="margin-top:-8px">Clock is saved on this phone.</p></div></div>`;
-    case 'data': return `${installPanel()}  <div class="panel"><h2>Backup &amp; restore</h2>
+    case 'data': return `${accountPanel()}${installPanel()}  <div class="panel"><h2>Backup &amp; restore</h2>
     <p>${state.mode==='cloud'?'Entries are saved in your Supabase database and sync to everyone in Family. Updating index.html never touches them.'
       : state.mode==='local'?'Entries are saved in this browser. They stay when the file is updated at the same web address, but not if you open the file from a different address or browser.'
       : 'Nothing is saved yet. Add your baby to start saving, or import a backup.'}</p>
@@ -2424,20 +2427,20 @@ function setSection(k){
     <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" data-act="backup" ${state.mode==='demo'?'disabled':''}>${svg('download','width="16" height="16"')} Save backup</button><label class="btn ghost" for="importFile">Import backup</label><input type="file" id="importFile" class="vh" accept=".json,application/json"><button class="btn ghost" data-act="export">Export CSV</button><button class="btn ghost" data-act="report" ${state.mode==='demo'?'disabled':''}>Doctor report (PDF)</button></div>
     <p class="note">${prefs.lastBackup?`Last backup from this device: ${new Date(prefs.lastBackup).toLocaleDateString()}.`:'No backup saved from this device yet.'} CSV is for spreadsheets and your pediatrician; only a backup file can be imported.</p><p class="note" id="exportNote"></p></div>`;
     case 'account': return `${accountPanel()}`;
-    case 'about': return `  <div class="panel"><h2>About Bebenou <span class="note" style="font-weight:500">Version ${APP_VERSION}</span></h2><p style="display:flex;gap:14px;flex-wrap:wrap;margin-top:0"><a href="privacy.html" target="_blank" rel="noopener">Privacy policy</a><a href="terms.html" target="_blank" rel="noopener">Terms of use</a><a href="delete-account.html" target="_blank" rel="noopener">Delete account</a></p><p class="note">Nap windows use typical awake times by age from Cleveland Clinic and The Sleep Lady. Growth reference lines use the WHO Child Growth Standards medians (0–24 months). Teeth timing follows the American Dental Association chart. Checkups follow the AAP Bright Futures schedule. Tummy time goals follow NIH Safe to Sleep. A fever is 100.4 °F (38 °C) or higher. Bebenou is a log, not medical advice. Call your pediatrician with any health concerns.</p></div></div>`;
   }
   return '';
 }
 let setWide=matchMedia('(min-width:821px)').matches; addEventListener('resize',()=>{ const w=matchMedia('(min-width:821px)').matches; if(setWide!==null && w!==setWide && state.view==='settings') render(); setWide=w; });
 function vSettingsPage(){
-  const wide=matchMedia('(min-width:821px)').matches, all=SET_SECS.flatMap(g=>g[2]).filter(x=>x[0]!=='account'||session);
+  const wide=matchMedia('(min-width:821px)').matches, all=SET_SECS.flatMap(g=>g[2]).filter(x=>x[0]!=='account');
   let sec=all.some(x=>x[0]===state.setSec)?state.setSec:null; if(wide&&!sec) sec='appearance';
-  const menu=`<nav class="setmenu" aria-label="Settings sections">${SET_SECS.map(([gk,gl,items])=>{ const it=items.filter(x=>x[0]!=='account'||session); return it.length?`<div><div class="setgl">${gl}</div><div class="setgrp">${it.map(([k,l,ic])=>`<button class="setrow ${sec===k?'on':''}" data-act="setSec" data-k="${k}" aria-current="${sec===k}"><span class="sri ${IC()}">${svg(ic)}</span><span class="srt"><b>${l}</b><span>${esc(setSummary(k))}</span></span><span class="src" aria-hidden="true">›</span></button>`).join('')}</div></div>`:''; }).join('')}</nav>`;
+  const menu=`<nav class="setmenu" aria-label="Settings sections">${SET_SECS.map(([gk,gl,items])=>{ const it=items.filter(x=>x[0]!=='account'); return it.length?`<div><div class="setgl">${gl}</div><div class="setgrp">${it.map(([k,l,ic])=>`<button class="setrow ${sec===k?'on':''}" data-act="setSec" data-k="${k}" aria-current="${sec===k}"><span class="sri ${IC()}">${svg(ic)}</span><span class="srt"><b>${l}</b><span>${esc(setSummary(k))}</span></span><span class="src" aria-hidden="true">›</span></button>`).join('')}</div></div>`:''; }).join('')}</nav>`;
   const title=sec?all.find(x=>x[0]===sec)[1]:'Settings';
   if(!wide && sec) return `<div class="head"><div><button class="btn ghost sm" data-act="setSec" data-k="" style="margin-bottom:8px">‹ Settings</button><h1>${esc(title)}</h1></div></div><div class="setbody">${setSection(sec)}</div>`;
   const head=`<div class="head"><div><button class="btn ghost sm" data-view="family" style="margin-bottom:8px">‹ Family</button><h1>Settings</h1></div></div>`;
-  if(!wide) return head+menu;
-  return head+`<div class="setwrap">${menu}<div class="setbody"><h2 class="setttl">${esc(title)}</h2>${setSection(sec)}</div></div>`;
+  const foot=`<footer class="setfoot"><div><b>Bebenou</b> · Version ${APP_VERSION}</div><div class="setlinks"><a href="privacy.html" target="_blank" rel="noopener">Privacy policy</a><a href="terms.html" target="_blank" rel="noopener">Terms of use</a><a href="delete-account.html" target="_blank" rel="noopener">Delete account</a></div><details><summary>Sources and disclaimer</summary><p class="note">Nap windows use typical awake times by age from Cleveland Clinic and The Sleep Lady. Growth reference lines use the WHO Child Growth Standards medians (0–24 months). Teeth timing follows the American Dental Association chart. Checkups follow the AAP Bright Futures schedule. Tummy time goals follow NIH Safe to Sleep. A fever is 100.4 °F (38 °C) or higher. Bebenou is a log, not medical advice. Call your pediatrician with any health concerns.</p></details></footer>`;
+  if(!wide) return head+menu+foot;
+  return head+`<div class="setwrap"><div>${menu}${foot}</div><div class="setbody"><h2 class="setttl">${esc(title)}</h2>${setSection(sec)}</div></div>`;
 }
 
 
