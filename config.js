@@ -6,10 +6,18 @@
    - supabaseAnonKey: the "anon public" key (it is safe to publish; the
      database access rules keep each family's data private)
 
-   Never paste the "service_role" key here.
+   - rcAndroidKey: RevenueCat → Project settings → API keys → the public
+     Google Play key (starts with "goog_"). Turns on Premium purchases in
+     the Android app. Safe to publish.
+   - rcWebPurchaseLink (optional): a RevenueCat Web Purchase Link so people
+     can subscribe on the website. Use {uid} where the user id goes.
+
+   Never paste the "service_role" key or a RevenueCat secret key here.
    Leave both empty to run without sync (entries stay in this browser).
    ===================================================================== */
 window.NESTLING_CONFIG = {
   supabaseUrl: "https://gdjcmrzfdrqqqmveldii.supabase.co",
+  rcAndroidKey: "",
+  rcWebPurchaseLink: "",
   supabaseAnonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdkamNtcnpmZHJxcXFtdmVsZGlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMyMzY1NjIsImV4cCI6MjEwODgxMjU2Mn0.MW68wCM-phc9kSV5-VnwPdK1FotAqnuVeceZzvwt9SY"
 };

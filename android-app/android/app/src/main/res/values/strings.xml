@@ -4,4 +4,5 @@
     <string name="title_activity_main">Bebenou</string>
     <string name="package_name">app.lexcellent.bebenou</string>
     <string name="custom_url_scheme">app.lexcellent.bebenou</string>
+    <string name="widget_description">Last feed, diaper and sleep at a glance</string>
 </resources>

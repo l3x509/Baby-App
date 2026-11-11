@@ -114,9 +114,32 @@ Common questions are answered from guides built into the app, with no setup. Per
 
 Reported answers appear in Table Editor → `ask_reports`. Review them now and then; Google Play expects reports to be used to improve answers.
 
+## Premium and photos
+
+Premium is one subscription per baby log: whoever subscribes unlocks it for everyone on that log. Billing runs through Google Play, managed by RevenueCat. Photos are stored in a private Supabase Storage bucket that only family members of that log can see.
+
+Free: tracking, sharing with one coparent, safety alerts, 7-day trends, common questions. Premium: photos on entries, doctor report PDF, pattern alerts, weight gain and WHO percentiles, 14/30-day trends and typical day, health trend charts, quick and voice add, personal Ask answers, unlimited caregivers and babies, milestone timeline and monthly recap, upright timer, milk stash pro, home-screen widget, all themes, CSV export.
+
+Sample data and self-hosted logs show every feature. To open everything for everyone during testing, add `premiumOpen: true` to `config.js`.
+
+1. **Run `migrations/004-premium-photos.sql`** in the SQL Editor. It adds the premium fields (only the server can change them) and creates the private `photos` bucket with its access rules.
+2. **Google Play Console** → your app → Monetize → Subscriptions: create a subscription (for example `bebenou_premium`) with a monthly and a yearly base plan, and add a 7-day free trial offer. Play needs an uploaded build with the billing permission first (the current Android project has it).
+3. **RevenueCat** (app.revenuecat.com): create a project, add the Android app (package `app.lexcellent.bebenou`) and connect it to Play with a service account (RevenueCat walks you through it).
+   - Products: import the Play subscription.
+   - Entitlements: create `premium` and attach the products.
+   - Offerings: make the default offering with a Monthly and an Annual package.
+4. **Public key in the app:** RevenueCat → Project settings → API keys → the Google Play key (starts with `goog_`). Put it in `config.js` as `rcAndroidKey`. That key is safe to publish.
+5. **Server function:** Supabase → Edge Functions → Deploy a new function → Via Editor, name it `premium`, paste `supabase/functions/premium/index.ts`, Deploy. Then under Edge Functions → Secrets add:
+   - `REVENUECAT_SECRET_KEY`: RevenueCat secret API key (starts with `sk_`). Never put it in `config.js`.
+   - `REVENUECAT_WEBHOOK_AUTH`: any long random text.
+6. **Webhook:** RevenueCat → Integrations → Webhooks → URL `https://<your-project>.supabase.co/functions/v1/premium`, Authorization header = the same text as `REVENUECAT_WEBHOOK_AUTH`. Renewals, cancellations and expirations then update the log on their own.
+7. **Rebuild the Android app:** in `android-app/`, run `npm install`, then `npm run sync`, then build the release bundle as usual. Test with a Play license tester account (Play Console → Settings → License testing) so purchases aren't charged.
+
+Subscribing happens in the Android app. On the web, Premium works once someone in the family has subscribed. If you later sell on the web through RevenueCat, put the purchase link in `rcWebPurchaseLink` (`{uid}` is replaced with the account id).
+
 ## Database updates
 
-If you set up Supabase before November 1, 2026, run the migrations you haven't run yet in the SQL Editor, in order: `migrations/002-account-deletion.sql` (account deletion), then `migrations/003-ask.sql` (Ask Bebenou). A new setup gets both from `schema.sql` automatically.
+If you set up Supabase before November 1, 2026, run the migrations you haven't run yet in the SQL Editor, in order: `migrations/002-account-deletion.sql` (account deletion), `migrations/003-ask.sql` (Ask Bebenou), then `migrations/004-premium-photos.sql` (Premium and photos). A new setup gets all of them from `schema.sql` automatically.
 
 ## Android app
 
