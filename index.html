@@ -1240,7 +1240,7 @@ function aiSummary(now){
   if(lf) L.push(`Last feed: ${fmtDur(now-lf.start)} ago (${T[lf.type].label}, ${entrySummary(lf)}).`);
   if(ld) L.push(`Last diaper: ${fmtDur(now-ld.start)} ago (${entrySummary(ld)}).`);
   const lw=es.find(e=>e.type==='diaper'&&(e.kind==='wet'||e.kind==='mixed')); if(lw) L.push(`Last wet diaper: ${fmtDur(now-lw.start)} ago.`);
-  es.filter(e=>e.start>now-7*DAY && (['temp','med','symptom','vaccine'].includes(e.type) || (e.type==='diaper'&&(e.rash||['red','black','white'].includes(e.pcolor))))).slice(0,12)
+  es.filter(e=>e.start>now-7*DAY && (['temp','vitals','jaundice','med','symptom','vaccine'].includes(e.type) || (e.type==='diaper'&&(e.rash||['red','black','white'].includes(e.pcolor))))).slice(0,12)
     .forEach(e=>L.push(`${fmtDate(e.start)} ${fmtTime(e.start)}: ${T[e.type].label}: ${entrySummary(e)}${e.note?' ('+e.note+')':''}.`));
   const g=es.find(e=>e.type==='growth'); if(g) L.push(`Latest growth (${fmtDate(g.start)}): ${entrySummary(g)}.`);
   const appt=state.entries.filter(e=>e.type==='doctor'&&e.start>now).sort((a,b)=>a.start-b.start)[0]; if(appt) L.push(`Next appointment: ${fmtDate(appt.start)} ${fmtTime(appt.start)}${appt.title?' ('+appt.title+')':''}.`);
@@ -1463,13 +1463,6 @@ function nextTeeth(p, now){
   const {t}=open[0];
   return {label:`${t[2]==='u'?'Upper':'Lower'} ${t[1].toLowerCase()}s`, range:t[4]};
 }
-function tummyBlock(now, g, run){
-  const ss=tummySessions(now);
-  const dots = g.by==='sessions' ? `<div class="tdots" aria-hidden="true">${Array.from({length:Math.max(g.max,ss.length)},(_,i)=>`<i class="${i<ss.length?'on':''}${i>=g.min&&i>=ss.length?' opt':''}"></i>`).join('')}</div>` : tummyGoalLine(now).replace(/<span class="sub">.*<\/span>/,'');
-  const list = ss.length ? `<div class="tlist">${ss.map(e=>`<button type="button" data-edit="${esc(e.id)}">${fmtTime(e.start)} · ${e.end===null?'now':(e.duration||0)+' min'}</button>`).join('')}</div>` : '';
-  const start = run||!state.canWrite ? '' : `<div class="tstart"><span class="sub">Start a timer</span>${presetBtns('Tummy time','startTummy')}</div>`;
-  return dots+list+start;
-}
 function comingUp(p, now){
   const items=[];
   const row=(c,icon,label,main,sub,extra='',attrs='')=>`<div class="cu" style="--c:${c}" ${attrs}><span class="ic ${IC()}">${svg(icon)}</span><div class="cx"><span class="label">${label}</span><b class="num">${main}</b>${sub?`<span class="sub">${sub}</span>`:''}${extra}</div></div>`;
@@ -1645,29 +1638,6 @@ function wtDelta(kg){
   const sign=kg<0?'−':'+', a=Math.abs(kg);
   if(!U.imp()) return `${sign}${Math.round(a*1000)} g`;
   const oz=Math.round(a*35.274); return oz>=16 ? `${sign}${Math.floor(oz/16)} lb ${oz%16} oz` : `${sign}${oz} oz`;
-}
-function weekly(now){
-  const p=state.profile||{}, born=p.birth?new Date(p.birth+'T00:00').getTime():0;
-  const end=startOfDay(now), start=dayAdd(end,-6); // the full days shown in the 7-day charts
-  const core=x=>['breast','bottle','diaper','sleep'].includes(x.type);
-  const days=[]; for(let d=start; d<end; d=dayAdd(d,1)) if(dayAdd(d,1)>born && state.entries.some(x=>core(x) && x.start>=d && x.start<dayAdd(d,1))) days.push(d);
-  if(days.length<3) return '';
-  const S=days.map(d=>daySummary(d)), n=days.length, avg=k=>S.reduce((t,s)=>t+s[k],0)/n;
-  // compare with the 7 days before
-  const prevDays=[]; for(let d=dayAdd(start,-7); d<start; d=dayAdd(d,1)) if(dayAdd(d,1)>born && state.entries.some(x=>core(x) && x.start>=d && x.start<dayAdd(d,1))) prevDays.push(d);
-  const P=prevDays.length>=5 ? prevDays.map(d=>daySummary(d)) : null, pavg=k=>P.reduce((t,s)=>t+s[k],0)/P.length;
-  const ch=(k,fmt)=>{ if(!P) return ''; const dlt=avg(k)-pavg(k); if(Math.abs(dlt) < (k==='sleepMs'?15*MIN:k==='bottleMl'?15:0.5)) return '<span class="chg">about the same</span>'; return `<span class="chg">${dlt>0?'↑':'↓'} ${fmt(Math.abs(dlt))}</span>`; };
-  const r1=v=>(Math.round(v*10)/10).toString();
-  const items=[
-    ['var(--feed)','Feeds',r1(avg('feeds')),ch('feeds',r1)],
-    ...(avg('bottleMl')?[['var(--feed)','By bottle',U.vol(avg('bottleMl')),ch('bottleMl',v=>U.vol(v))]]:[]),
-    ['var(--diaper)','Diapers',String(Math.round(avg('diapers'))),ch('diapers',v=>String(Math.max(1,Math.round(v))))],
-    ['var(--sleep)','Sleep',fmtDur(avg('sleepMs')),ch('sleepMs',fmtDur)]
-  ];
-  const text=`${p.name||'Baby'} · last ${n} days, per day: ${r1(avg('feeds'))} feeds${avg('bottleMl')?' ('+U.vol(avg('bottleMl'))+' by bottle)':''}, ${Math.round(avg('diapers'))} diapers, ${fmtDur(avg('sleepMs'))} sleep. Logged with ${APP_NAME}.`;
-  return `<div class="panel"><h2><span>Last ${n} days <span class="sub" style="font-weight:500">· daily average</span></span><button class="btn ghost sm" data-act="shareText" data-text="${esc(text)}">Share</button></h2>
-    <div class="sums">${items.map(([c,l,v,cg])=>`<div class="sum"><b>${esc(v)}</b><span>${l}${cg?' · '+cg:''}</span></div>`).join('')}</div>
-    ${P?'<p class="note" style="margin:10px 0 0">Arrows compare with the 7 days before.</p>':''}</div>`;
 }
 function typicalDay(){
   const t=startOfDay(Date.now()), days=[];
@@ -1860,7 +1830,7 @@ async function makeReport(){
   // growth
   const g=state.entries.filter(e=>e.type==='growth' && e.start<=now).sort((a,b)=>b.start-a.start);
   h2('Growth');
-  if(g.length) table([['Date',0],['Age',90],['Weight',190],['Height',300],['Head',400]], g.slice(0,10).map(e=>[new Date(e.start).toLocaleDateString(), ageText(p.birth,e.start), e.weight!=null?U.wt(e.weight):'-', e.length!=null?U.len(e.length):'-', e.head!=null?U.len(e.head):'-']));
+  if(g.length){ const hb=g.some(e=>e.belly!=null); table([['Date',0],['Age',80],['Weight',170],['Height',265],['Head',350],...(hb?[['Belly',430]]:[])], g.slice(0,10).map(e=>[new Date(e.start).toLocaleDateString(), ageText(p.birth,e.start), e.weight!=null?U.wt(e.weight):'-', e.length!=null?U.len(e.length):'-', e.head!=null?U.len(e.head):'-', ...(hb?[e.belly!=null?U.len(e.belly):'-']:[])])); }
   else para('No measurements logged yet.');
   // daily
   h2('Last 14 days');
@@ -1870,9 +1840,9 @@ async function makeReport(){
   else para('Nothing logged in the last 14 days.');
   // health
   h2('Health notes, last 30 days');
-  const hs=state.entries.filter(e=>e.start>now-30*DAY && e.start<=now && (['temp','med','symptom','vaccine','doctor','spit'].includes(e.type) || (e.type==='diaper'&&(e.rash||['red','black','white'].includes(e.pcolor))))).sort((a,b)=>b.start-a.start);
+  const hs=state.entries.filter(e=>e.start>now-30*DAY && e.start<=now && (['temp','vitals','jaundice','med','symptom','vaccine','doctor','spit'].includes(e.type) || (e.type==='diaper'&&(e.rash||['red','black','white'].includes(e.pcolor))))).sort((a,b)=>b.start-a.start);
   if(hs.length) table([['When',0],['What',120],['Details',220]], hs.slice(0,40).map(e=>[`${new Date(e.start).toLocaleDateString([], {month:'short',day:'numeric'})} ${fmtTime(e.start)}`, T[e.type]?.label||e.type, [entrySummary(e), e.note].filter(Boolean).join(' · ')]));
-  else para('No temperatures, medicines, symptoms or visits logged.');
+  else para('No temperatures, vitals, jaundice checks, medicines, symptoms or visits logged.');
   // milestones
   const ms=state.entries.filter(e=>e.type==='note' && e.milestone).sort((a,b)=>b.start-a.start);
   if(ms.length){ h2('Milestones'); table([['Date',0],['Milestone',120]], ms.slice(0,20).map(e=>[new Date(e.start).toLocaleDateString(), e.title||''])); }
@@ -2019,15 +1989,6 @@ function vToday(){
 }
 
 /* --- Timeline --- */
-function miniStrip(d){
-  const s=d, e=dayAdd(d,1), L=e-s, now=Date.now(); let h='';
-  state.entries.forEach(x=>{ if(x.type==='sleep'){ const a=Math.max(s,x.start), b=Math.min(e,x.end??now); if(b>a) h+=`<u style="left:${((a-s)/L*100).toFixed(2)}%;width:${Math.max(.6,(b-a)/L*100).toFixed(2)}%"></u>`; } });
-  state.entries.forEach(x=>{ if(x.start<s||x.start>=e||x.type==='sleep') return;
-    const c={feed:'var(--fbar)',diaper:x.kind==='dirty'?'var(--poo)':x.kind==='mixed'?'linear-gradient(var(--diaper) 50%,var(--poo) 50%)':'var(--diaper)',health:'var(--health)',growth:'var(--health)',activity:'var(--activity)',memory:'var(--memory)'}[T[x.type]?.cat]||'var(--ink-3)';
-    h+=`<i style="left:${((x.start-s)/L*100).toFixed(2)}%;background:${c}"></i>`; });
-  if(now>=s && now<e) h+=`<b style="left:${((now-s)/L*100).toFixed(2)}%"></b>`;
-  return `<div class="mst" aria-hidden="true">${h}</div>`;
-}
 function histAvg(t0){
   const born=state.profile?.birth?startOfDay(new Date(state.profile.birth+'T00:00').getTime()):-Infinity;
   const core=x=>['breast','bottle','diaper','sleep'].includes(x.type), cnt=d=>state.entries.filter(x=>core(x)&&x.start>=d&&x.start<dayAdd(d,1)).length;
@@ -2050,7 +2011,7 @@ function vTimeline(noHead){
   const num=ml=>ml?String(U.volTo(ml,imp?'oz':'ml')):'—';
   const useBottle = avg.bottleMl>0 || daySummary(t0).bottleMl>0 || avg.breastMs===0;
   const low=(v,a,isToday)=>!isToday && avg.n>=3 && a>=1 && v<a*0.6;
-  const cell=(v,a,isToday,txt)=>`<td><span class="hv${low(v,a,isToday)?' lo':''}"${low(v,a,isToday)?' title="Well below her usual"':''}>${txt??v}</span></td>`;
+  const cell=(v,a,isToday,txt)=>`<td><span class="hv${low(v,a,isToday)?' lo':''}"${low(v,a,isToday)?` title="Well below ${pron()==='he'?'his':pron()==='she'?'her':'their'} usual"`:''}>${txt??v}</span></td>`;
   const dname=d=>d===t0?'Today':d===dayAdd(t0,-1)?'Yest.':new Date(d).toLocaleDateString([], {weekday:'short'})+' '+new Date(d).getDate();
   let h=noHead?'':header('History','Tap a day to see its entries');
   let rows='', anyThin=false;
@@ -2141,35 +2102,10 @@ function trendsData(n){
   return {S, use, prev, n, t0, born, bottles};
 }
 const avgOf=(arr,k)=>arr&&arr.length?arr.reduce((a,s)=>a+(typeof k==='function'?k(s):s[k]),0)/arr.length:0;
-function trendInsights(D){
-  const out=[], {S,use,prev,n,t0}=D, nm=state.profile?.name||'Baby', ic=(i,c,t)=>out.push(`<div class="ins"><span class="ii ${IC()}" style="--c:${c}">${svg(i)}</span><span>${t}</span></div>`);
-  const thin=S.filter(s=>s.thin);
-  if(thin.length) ic('flag','var(--warn-ink)', `${thin.map(s=>new Date(s.d).toLocaleDateString([], {weekday:'long'})).slice(0,2).join(' and ')}${thin.length>2?` and ${thin.length-2} more`:''} ${thin.length===1?'has':'have'} far fewer entries than usual, so some feeds or diapers may not have been logged. ${thin.length===1?'It’s':'They’re'} left out of the averages.`);
-  const b1=D.bottles(use), b0=prev?D.bottles(prev):0, NOWt=Date.now(), big=(x,y)=>x&&y&&Math.abs(x-y)>=Math.max(6,y*0.1);
-  const startR=S.find(s=>!s.pre)?.d??t0, bot=state.entries.filter(e=>e.type==='bottle'&&e.amount&&e.start<=NOWt&&e.start>=startR);
-  const rec=bot.filter(e=>e.start>NOWt-24*HR), base=bot.filter(e=>e.start<=NOWt-24*HR&&use.some(s=>e.start>=s.d&&e.start<dayAdd(s.d,1)));
-  const av=a=>a.reduce((t,e)=>t+e.amount,0)/a.length, r24=rec.length>=3?av(rec):0, rb=base.length>=5?av(base):0;
-  const m1=avgOf(use,'bottleMl'), m0=prev?avgOf(prev,'bottleMl'):0, mUp=m0&&m1-m0>=15, mDn=m0&&m0-m1>=15;
-  if(big(r24,rb)) ic('bottle','var(--fbar)', `Bottles are getting ${r24>rb?'bigger':'smaller'}: <b>${U.vol(r24)}</b> on average in the last 24 hours, ${r24>rb?'up':'down'} from ${U.vol(rb)} earlier ${n===7?'this week':'in this period'}.`);
-  else if(big(b1,b0)){ const more=(b1<b0&&mUp), less=(b1>b0&&mDn);
-    ic('bottle','var(--fbar)', more ? `Smaller bottles (${U.vol(b1)}, was ${U.vol(b0)}) but more of them, so total milk is up ${U.vol(m1-m0)} a day.` : less ? `Bigger bottles (${U.vol(b1)}, was ${U.vol(b0)}) but fewer of them, so total milk is down ${U.vol(m0-m1)} a day.` : `Bottles are getting ${b1>b0?'bigger':'smaller'}: ${U.vol(b1)} on average, ${b1>b0?'up':'down'} from ${U.vol(b0)} ${n===7?'the week before':'the '+n+' days before'}${mUp?`, and total milk is up ${U.vol(m1-m0)} a day`:mDn?`, and total milk is down ${U.vol(m0-m1)} a day`:''}.`); }
-  else if(b1) ic('bottle','var(--fbar)', `Average bottle: ${U.vol(b1)}${r24?` (${U.vol(r24)} in the last 24 hours)`:''}.`);
-  const fs=state.entries.filter(e=>(e.type==='breast'||e.type==='bottle')&&e.start>=S.find(s=>!s.pre)?.d&&e.start<=Date.now()).sort((a,b)=>a.start-b.start);
-  let best=null; const miss=[]; const okDay=x=>use.some(s=>x>=s.d&&x<dayAdd(s.d,1))||x>=t0; for(let i=1;i<fs.length;i++){ const a0=fs[i-1].end||fs[i-1].start, g=fs[i].start-a0; if(g>8*HR || !okDay(a0) || !okDay(fs[i].start)) continue; const hs=new Date(a0).getHours(); if(g>4*HR && hs>=7 && hs<19){ miss.push({a:a0,b:fs[i].start}); continue; } if(!best||g>best.g) best={g,a:fs[i-1].end||fs[i-1].start,b:fs[i].start}; }
-  if(best && best.g>=2*HR){ const hA=new Date(best.a).getHours(), night=hA>=18||hA<6, dn=new Date(hA<6?dayAdd(startOfDay(best.a),-1):best.a).toLocaleDateString([], {weekday:'long'});
-    ic('history','var(--fbar)', `Longest stretch between feeds: <b>${fmtDur(best.g)}</b>, ${dn}${night?' night':''} (${fmtTime(best.a)} to ${fmtTime(best.b)}).`); }
-  if(miss.length){ const m=miss[miss.length-1], dn=new Date(m.a).toLocaleDateString([], {weekday:'long'});
-    out.splice(thin.length?1:0,0,`<div class="ins"><span class="ii ${IC()}" style="--c:var(--warn-ink)">${svg('flag')}</span><span>Possible missed feed${miss.length>1?'s':''}: nothing logged ${dn} from ${fmtTime(m.a)} to ${fmtTime(m.b)}${miss.length>1?`, plus ${miss.length-1} other daytime gap${miss.length>2?'s':''} over 4 hours`:''}. Tap Days to add ${miss.length>1?'them':'it'} if so.</span></div>`); }
-  const age=ageDays(state.profile?.birth)??99;
-  if(use.length>=3 && age>=5){ const ok=use.filter(s=>s.wet>=6).length;
-    ic('diaper','var(--diaper)', ok>=Math.ceil(use.length*0.6) ? `Wet diapers reached 6 or more on ${ok} of the last ${use.length} full days.` : `Wet diapers reached 6 on only ${ok} of the last ${use.length} full days. If ${nm} keeps having fewer wet diapers, check with your pediatrician.`); }
-  const f1=avgOf(use,'feeds'), f0=prev?avgOf(prev,'feeds'):0;
-  if(prev && Math.abs(f1-f0)>=1) ic('breast','var(--feed)', `${f1<f0?'Fewer':'More'} feeds a day: ${Math.round(f1*10)/10}, ${f1<f0?'down':'up'} from ${Math.round(f0*10)/10}.${f1<f0&&b1>b0?' Bigger bottles usually mean fewer of them.':''}`);
-  return out.slice(0,4);
-}
 function weightTrend(){
   const g=state.entries.filter(e=>e.type==='growth'&&e.weight!=null&&e.start<=Date.now()).sort((a,b)=>a.start-b.start);
   if(!g.length) return null;
+  if(g.length<2) return {mode:'one', last:g[0]};
   const birthW=g[0].weight, last=g[g.length-1], age=ageDays(state.profile?.birth)??99;
   const back=g.slice(1).find(e=>e.weight>=birthW && e.start-g[0].start>2*DAY);
   if(!back && age<=21){ const pct=(birthW-last.weight)/birthW*100; return {mode:'loss', pct, last}; }
@@ -2465,7 +2401,7 @@ function vAsk(){
 const SETTINGS_SPLIT='<div class="panel" id="themePanel">';
 function vFamily(){
   const all=vSettings(), i=all.indexOf(SETTINGS_SPLIT), name=esc(state.profile?.name||'your baby');
-  return `<div class="head"><div><div class="sub">Who can see and add to ${name}’s log</div><h1>Family</h1></div><button class="btn ghost" data-view="settings">${svg('settings','width="18" height="18"')} Settings</button></div>`+all+'</div>';
+  return `<div class="head"><div><div class="sub">Who can see and add to ${name}’s log</div><h1>Family</h1></div><button class="btn primary" data-view="settings">${svg('settings','width="18" height="18"')} Settings</button></div>`+all+'</div>';
 }
 
 /* ---------- names (who logged) ---------- */
@@ -2590,6 +2526,7 @@ function fieldsFor(type, e){
 function wtParts(kg){ if(kg==null) return {kg:'',lbd:'',lb:'',oz:''}; const toz=kg*35.27396; let lb=Math.floor(toz/16), oz=+(toz-lb*16).toFixed(1); if(oz>=16){ lb++; oz=0; } return {kg:+kg.toFixed(3), lbd:+(kg*2.20462).toFixed(2), lb, oz}; }
 function readKg(u){ if(u==='lboz'){ const l=val('f_wlb'), o=val('f_woz'); if((l===''||l==null)&&(o===''||o==null)) return null; return ((+l||0)*16+(+o||0))/35.27396; } const v=val('f_w'); if(v===''||v==null||isNaN(v)) return null; return u==='kg'?+v:+v/2.20462; }
 function wConv(kg,u){ if(kg==null||!(kg>0)) return ''; const W=wtParts(kg); return u==='kg' ? `= ${W.lb} lb ${W.oz} oz` : `= ${W.kg} kg`; }
+document.addEventListener('keydown',ev=>{ /* kbdActivate */ if((ev.key==='Enter'||ev.key===' ') && ev.target.matches?.('tr[data-day],[role=button]:not(button)')){ ev.preventDefault(); ev.target.click(); } });
 document.addEventListener('input',ev=>{ const id=ev.target.id; if(id==='f_w'||id==='f_wlb'||id==='f_woz'){ const u=radio('wunit'), el=document.getElementById('wconv'); if(el) el.textContent=wConv(readKg(u),u); } });
 function readFields(type){
   const start=fromInput(val('f_start'))||Date.now(); const note=val('f_note')?.trim()||undefined;
@@ -2768,7 +2705,7 @@ document.addEventListener('click', async ev=>{
   if(t.dataset.close){ closeModal(); return; }
   if(t.dataset.mstab){ state.msTab=+t.dataset.mstab; render(); document.getElementById('msPanel')?.scrollIntoView({block:'nearest'}); return; }
   if(t.dataset.hist){ state.histTab=t.dataset.hist; render(); return; }
-  if(t.dataset.view){ state.view=t.dataset.view; render(); window.scrollTo(0,0); if(state.view==='ask') document.getElementById('askQ')?.focus({preventScroll:true}); return; }
+  if(t.dataset.view){ if(t.dataset.view==='settings') state.setSec=null; state.view=t.dataset.view; render(); window.scrollTo(0,0); if(state.view==='ask') document.getElementById('askQ')?.focus({preventScroll:true}); return; }
   if(t.dataset.new){ if(state.canWrite) openEntry(t.dataset.new, null, t.dataset.kind); return; }
   if(t.dataset.edit){ const e=state.entries.find(x=>x.id===t.dataset.edit); if(e) openEntry(e.type,e); return; }
   if(t.dataset.day){ state.selDay=+t.dataset.day; state.filter='all'; render(); if(matchMedia('(max-width:820px)').matches) document.getElementById('dayDetail')?.scrollIntoView({block:'start',behavior:'smooth'}); return; }
