@@ -1389,16 +1389,21 @@ function relDays(t, now){
   if(d>0) return d>45 ? `in about ${Math.round(d/7)} weeks` : `in ${d} days`;
   return `${-d} days ago`;
 }
-function nextCheckup(p, now){
-  if(!p?.birth) return null;
-  for(const [n,label,unit] of CHECKUPS){
+function checkupPlan(p, now){
+  if(!p?.birth) return [];
+  const b0=new Date(p.birth+'T00:00').getTime(), docs=state.entries.filter(e=>e.type==='doctor'), used=new Set();
+  return CHECKUPS.map(([n,label,unit])=>{
     const due = unit==='d' ? new Date(p.birth+'T09:00').getTime()+n*DAY : addMonths(p.birth,n);
-    if(due < now-14*DAY) continue;
-    const handled=state.entries.some(e=>e.type==='doctor' && Math.abs(e.start-due)<=21*DAY);
-    if(handled) continue;
-    return {label, due};
-  }
-  return null;
+    // matching window in days after birth: newborn 1–9, 1-month 10–45 ("by 1 month"), 2-month ±14 days, later ±21 days
+    const [from,to] = unit==='d' ? [b0+1*DAY, b0+10*DAY] : n===1 ? [b0+10*DAY, b0+46*DAY] : n===2 ? [due-14*DAY, due+15*DAY] : [due-21*DAY, due+22*DAY];
+    const v=docs.filter(e=>!used.has(e.id)&&e.start>=from&&e.start<to).sort((a,c)=>Math.abs(a.start-due)-Math.abs(c.start-due))[0];
+    if(v) used.add(v.id);
+    return {label, due, v, done: !!v && v.start<=now};
+  });
+}
+function nextCheckup(p, now){
+  const r=checkupPlan(p, now).find(x=>!x.v && x.due>=now-14*DAY);
+  return r ? {label:r.label, due:r.due} : null;
 }
 function feedEstimate(now){
   if(state.entries.some(e=>e.type==='breast' && e.end==null)) return null;
@@ -2286,9 +2291,9 @@ function vHealth(){
       ${!up.length&&!nc?'<div class="empty">No checkups coming up.</div>':''}
       <div style="margin-top:10px">${addBtns(['doctor','vaccine'])}</div><p class="note">Pick a future date on a doctor visit to add an appointment.</p></div>`;
     // schedule
-    if(p.birth){ const docs=state.entries.filter(e=>e.type==='doctor'), used=new Set(); const rows=CHECKUPS.filter(([n,,u])=>u==='d'||n<=24).map(([n,label,u])=>{ const due=u==='d'?new Date(p.birth+'T09:00').getTime()+n*DAY:addMonths(p.birth,n); const win=u==='d'?10*DAY:n<=2?14*DAY:21*DAY; const v=docs.filter(e=>!used.has(e.id)&&Math.abs(e.start-due)<=win).sort((a,b)=>Math.abs(a.start-due)-Math.abs(b.start-due))[0]; if(v) used.add(v.id); const done=v&&v.start<=now; return {label,due,done,v}; });
+    if(p.birth){ const rows=checkupPlan(p, now).filter(r=>r.due<=addMonths(p.birth,24)+DAY);
       const firstOpen=rows.findIndex(r=>!r.done&&r.due>=now-14*DAY);
-      h+=`<div class="panel"><h2>Checkup schedule <span class="sub" style="font-weight:500">AAP</span></h2><div class="sched">${rows.map((r,i)=>`<div class="sr2 ${r.done?'done':''} ${i===firstOpen?'next':''}"><span class="nbc">${r.done?svg('check'):''}</span><span><b>${esc(r.label)}</b><span>${r.done?`Done ${dShort(r.v.start)}`:r.v?`Booked ${dShort(r.v.start)}`:`Around ${dShort(r.due)}`}</span></span></div>`).slice(0,Math.max(firstOpen+4,6)).join('')}</div></div>`; }
+      h+=`<div class="panel"><h2>Checkup schedule <span class="sub" style="font-weight:500">AAP</span></h2><div class="sched">${rows.map((r,i)=>`<div class="sr2 ${r.done?'done':''} ${i===firstOpen?'next':''}"><span class="nbc">${r.done?svg('check'):''}</span><span><b>${esc(r.label)}</b><span>${r.done?`Done ${dShort(r.v.start)}${r.v.title&&!/^(doctor visit|checkup)$/i.test(r.v.title.trim())?' · '+esc(r.v.title):''}`:r.v?`Booked ${dShort(r.v.start)}`:`Around ${dShort(r.due)}`}</span></span></div>`).slice(0,Math.max(firstOpen+4,6)).join('')}</div></div>`; }
     h+=`</div>`;
     h+=newbornPanel();
     const vis=state.entries.filter(e=>(e.type==='doctor'||e.type==='vaccine')&&e.start<=now);
