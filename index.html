@@ -466,6 +466,14 @@ main{min-width:0;overflow-x:clip;padding-block:24px 96px;padding-left:max(16px,e
 .chartwrap{overflow-x:auto}
 
 /* teeth */
+.upbar{position:sticky;top:8px;z-index:30;display:flex;align-items:center;gap:10px;padding:10px 12px;margin:0 0 14px;border-radius:16px;background:color-mix(in srgb,var(--feed) 14%,var(--surface));border:1px solid color-mix(in srgb,var(--feed) 35%,var(--line));box-shadow:0 4px 14px rgba(0,0,0,.06)}
+.upbar .upi{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--feed) 22%,var(--surface));color:var(--feed);flex:none}
+.upbar .upi svg{width:19px;height:19px}
+.upbar .upt{flex:1;min-width:0;display:flex;flex-direction:column}
+.upbar .upt b{font-family:var(--display);font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
+.upbar .upt span{font-size:12.5px;color:var(--ink-2)}
+.upbar.done{background:color-mix(in srgb,var(--diaper) 16%,var(--surface));border-color:var(--diaper)}
+.upbar.done .upi{color:var(--diaper);background:color-mix(in srgb,var(--diaper) 22%,var(--surface))}
 .htabs{margin-bottom:14px}
 .htabs{flex-wrap:nowrap}
 .htabs .chip{padding:6.2px 14.9px;font-size:16.1px;white-space:nowrap}
@@ -682,6 +690,7 @@ const I = {
   heart:'<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/><path d="M5 12h3l1.5-2.5 2 5 1.5-2.5H19"/>',
   sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
   check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  upright:'<path d="M12 20V5M6.5 10.5 12 5l5.5 5.5"/>',
   calendar:'<rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
   tooth:'<path d="M7 3C4.5 3 3 5 3 7.5c0 3 1.5 4.5 2 7.5.4 2.5 1 6 2.5 6s1.5-4 2.5-5.5c.5-.8 1.5-.8 2 0 1 1.5 1 5.5 2.5 5.5s2.1-3.5 2.5-6c.5-3 2-4.5 2-7.5C21 5 19.5 3 17 3c-2 0-3 1-5 1S9 3 7 3z"/>',
   grip:'<circle cx="9" cy="6" r="1.4" fill="currentColor" stroke="none"/><circle cx="15" cy="6" r="1.4" fill="currentColor" stroke="none"/><circle cx="9" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="9" cy="18" r="1.4" fill="currentColor" stroke="none"/><circle cx="15" cy="18" r="1.4" fill="currentColor" stroke="none"/>',
@@ -1535,6 +1544,7 @@ function render(){
   else if(state.mode==='demo') h+=`<div class="banner"><span>${sb&&!session?'You’re looking at sample data. Sign in to start your baby’s log and share it with family.':'You’re looking at sample data. Nothing is saved until you add your baby.'}</span><span style="display:flex;gap:8px;flex-wrap:wrap">${sb&&session?`<button class="btn ghost" style="color:inherit;border-color:currentColor" data-act="joinOpen">I have an invite code</button>`:''}<button class="btn" data-act="setup">${sb&&!session?'Sign in':'Start tracking your baby'}</button></span></div>`;
   else if(!state.canWrite) h+=`<div class="banner"><span>You can view this log, but you don't have permission to add entries.</span></div>`;
   if(state.localOffer && state.mode==='cloud' && state.canWrite) h+=`<div class="banner"><span>Found ${state.localOffer.n} entries saved in this browser that aren't in the shared log yet.</span><span style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost" style="color:inherit;border-color:currentColor" data-act="dismissLocal">Not now</button><button class="btn" data-act="importLocal">Review and import</button></span></div>`;
+  h+=uprightBar();
   if(state.view==='growth') state.view='health';
   if(state.view==='timeline'){ state.view='history'; state.histTab='days'; }
   if(state.view==='stats'){ state.view='history'; state.histTab='trends'; }
@@ -1857,6 +1867,7 @@ const LN = () => (typeof NATIVE!=='undefined' && NATIVE && typeof capPlugin==='f
 const remOn = r => !!(r.feed || r.vitd || r.med || r.appt);
 function remindersPlan(now=Date.now()){
   const r=remPrefs(), p=state.profile||{}, nm=p.name||'Your baby', out=[];
+  { const u=upOn(); if(u){ const at=u.start+u.min*MIN; if(at>now) out.push({id:450,at,title:`${u.min} minutes upright: done`,body:`You can lay ${nm} down now, on ${p.sex==='m'?'his':p.sex==='f'?'her':'their'} back to sleep.`}); } }
   if(state.mode!=='demo') state.entries.filter(e=>e.type==='activity'&&e.end===null&&e.target&&(!e.by_dev||e.by_dev===DEV_ID)).forEach((e,i)=>{ const at=e.start+e.target*MIN; if(at>now) out.push({id:400+i,at,title:`${e.kind||'Timer'}: ${e.target} min`,body:`Time’s up. Tap Done in ${APP_NAME} when ${p.sex==='m'?'he':p.sex==='f'?'she':'your baby'}’s finished.`}); });
   if(state.mode==='demo' || !remOn(r) || !prefs.remEnabled) return out;
   if(r.feed){ const lf=past().find(e=>e.type==='breast'||e.type==='bottle'); if(lf){ const at=lf.start+r.feed*MIN; if(at>now) out.push({id:101,at,title:'Feed check',body:`${nm}’s last feed was at ${fmtTime(lf.start)}.`}); } }
@@ -1888,6 +1899,15 @@ async function askNotifyPermission(){
     return (await Notification.requestPermission())==='granted';
   }catch(e){ return false; }
 }
+function upOn(){ const u=prefs.upT; return u&&u.start&&Date.now()<u.start+u.min*MIN+10*MIN ? u : null; }
+function startUpright(min){ const m=min||+prefs.upMin||15; prefs.upT={start:Date.now(),min:m}; savePrefs(); timerRang.delete('upright'); try{ audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)(); audioCtx.resume?.(); }catch(err){} askNotifyPermission().catch(()=>{}); render(); syncReminders(); }
+function stopUpright(){ prefs.upT=null; savePrefs(); render(); syncReminders(); }
+function afterFeed(){ const mode=prefs.upMode||'off', m=+prefs.upMin||15; if(mode==='off') return;
+  if(mode==='auto'){ startUpright(m); toastUndo(`Feed logged · upright timer ${m} min`, async()=>stopUpright()); }
+  else toastAct('Feed logged', `Hold upright ${m} min`, ()=>startUpright(m)); }
+function toastAct(msg, label, fn){ const r=document.getElementById('toastRoot'); r.innerHTML=`<div class="toast undo" role="status"><span>${esc(msg)}</span><button type="button" data-act="toastAct">${esc(label)}</button></div>`; clearTimeout(toast.t); toast.act=fn; toast.t=setTimeout(()=>{ r.innerHTML=''; toast.act=null; },8000); }
+function uprightBar(){ const u=upOn(); if(!u) return ''; const left=u.start+u.min*MIN-Date.now(), done=left<=0, who=pron()==='she'?'her':pron()==='he'?'him':'your baby';
+  return `<div class="upbar ${done?'done':''}" role="timer"><span class="upi">${svg('upright')}</span><div class="upt"><b data-live="up">${done?'Time’s up':fmtClock(left)}</b><span data-live="upsub">${done?`You can lay ${who} down, on ${who==='your baby'?'their':who==='him'?'his':'her'} back to sleep.`:`Hold ${who} upright · ${u.min} min`}</span></div>${done?'':`<button class="btn ghost sm" data-act="upMore">+5 min</button>`}<button class="btn ${done?'primary':'ghost'} sm" data-act="upStop">${done?'Done':'Stop'}</button></div>`; }
 function remindersPanel(){
   const r=remPrefs(), on=!!prefs.remEnabled, ln=!!LN(), webOk='Notification' in window && !window.claude;
   const note = ln ? 'Reminders come from this phone, even when the app is closed. Each phone picks its own.'
@@ -2167,7 +2187,8 @@ function vStats(noHead){
   h+=enoughPanel(D, text);
   h+=`<div class="grid2">`;
   // feeds
-  h+=card('Feeds', r1(avgOf(use,'feeds')), 'a day', pill('feeds',0.5,r1), tChart(S,[{name:'Feeds',color:'var(--feed)',vals:S.map(s=>s.feeds)}],avgOf(use,'feeds'),(v)=>r1(v),true));
+  const sp=state.entries.filter(e=>e.type==='spit'&&use.some(s=>e.start>=s.d&&e.start<dayAdd(s.d,1))).length/use.length;
+  h+=card('Feeds', r1(avgOf(use,'feeds')), 'a day'+(sp?` · ${Math.round(sp*10)/10} spit-ups`:''), pill('feeds',0.5,r1), tChart(S,[{name:'Feeds',color:'var(--feed)',vals:S.map(s=>s.feeds)}],avgOf(use,'feeds'),(v)=>r1(v),true));
   // milk
   if(S.some(s=>s.bottleMl)){ const b=D.bottles(use); h+=card('Milk by bottle', U.vol(avgOf(use,'bottleMl')), `a day${b?' · '+U.vol(b)+' a bottle':''}`, pill('bottleMl',15,v=>U.vol(v)), tChart(S,[{name:'Bottle',color:'var(--fbar)',vals:S.map(s=>toU(s.bottleMl))}],toU(avgOf(use,'bottleMl')),fU)); }
   // nursing
@@ -2334,6 +2355,7 @@ function vSettings(){
     ${F.seg('s_home','Home layout',[['now','Right now card'],['classic','Classic tiles']],prefs.homeLayout==='classic'?'classic':'now')}
     ${F.seg('s_stash','Milk stash on this phone',[['show','Show'],['hide','Hide']],prefs.stash==='hide'?'hide':'show')}<p class="note" style="margin-top:-8px">Hiding it only changes this phone. The bags stay shared, and new breast-milk bottles still offer "From the milk stash" when there’s milk in it.</p>
     ${state.mode==='cloud'?F.seg('s_away','“While you were away” card',[['on','On'],['off','Off']],prefs.away==='off'?'off':'on'):''}
+    ${F.seg('s_upmode','Upright time after feeds',[['off','Off'],['offer','Offer'],['auto','Auto-start']],prefs.upMode||'off')}${(prefs.upMode||'off')!=='off'?F.seg('s_upmin','How long',[['10','10 min'],['15','15 min'],['20','20 min'],['30','30 min']],String(prefs.upMin||15)):''}<p class="note" style="margin-top:-8px">Helps with spit-up and reflux. “Offer” adds a button after each feed you save; “Auto-start” starts the countdown for you. This phone only.</p>
     ${F.seg('s_clock','Clock',[['12','12-hour'],['24','24-hour']],prefs.clock)}
     ${F.seg('s_awake','Keep screen on while a timer runs',[['on','On'],['off','Off']],prefs.keepAwake===false?'off':'on')}
     ${F.seg('s_vitd','Vitamin D reminder',[['auto','When breastfeeding'],['on','Always'],['off','Off']],prefs.vitd||'auto')}
@@ -2753,7 +2775,7 @@ document.addEventListener('click', async ev=>{
   else if(a==='wake' && e) await safe(()=>store.update(id,{end:now}),'Wake-up logged');
   else if(a==='side' && e){ const tot=breastTotals(e,now); if(e.active===t.dataset.side) return; await safe(()=>store.update(id,{left:tot.L,right:tot.R,active:t.dataset.side,activeSince:now})); }
   else if(a==='pause' && e){ const tot=breastTotals(e,now); await safe(()=>store.update(id,{left:tot.L,right:tot.R,active:null,activeSince:null})); }
-  else if(a==='finish' && e){ const tot=breastTotals(e,now); await safe(()=>store.update(id,{left:tot.L,right:tot.R,active:null,activeSince:null,end:now}),'Feed logged'); }
+  else if(a==='finish' && e){ const tot=breastTotals(e,now); await safe(()=>store.update(id,{left:tot.L,right:tot.R,active:null,activeSince:null,end:now}),'Feed logged'); afterFeed(); }
   else if(a==='askDelete'){ document.getElementById('confirmSlot').innerHTML=`<div class="confirm"><span>Delete this entry for everyone?</span><span style="display:flex;gap:6px"><button type="button" class="btn sm ghost" data-act="noDelete">Keep</button><button type="button" class="btn sm" style="background:var(--danger);color:#fff" data-act="doDelete">Delete</button></span></div>`; }
   else if(a==='noDelete'){ document.getElementById('confirmSlot').innerHTML=''; }
   else if(a==='doDelete'){ const fid=document.getElementById('entryForm').dataset.id, copy=state.entries.find(x=>x.id===fid); closeModal(); let ok=false; await safe(async()=>{ await store.del(fid); ok=true; }); if(ok && copy){ const {id:_x,_pending,...rest}=copy; toastUndo('Entry deleted', ()=>safe(()=>store.add(rest),'Entry restored')); } }
@@ -2769,6 +2791,9 @@ document.addEventListener('click', async ev=>{
   else if(a==='stashToss'){ closeModal(); await safe(()=>store.update(t.dataset.id,{tossedAt:Date.now()}),'Removed from the stash'); }
   else if(a==='report'){ exportReport(t); }
   else if(a==='moreDays'){ state.histDays=(state.histDays||7)+7; render(); }
+  else if(a==='toastAct'){ const fn=toast.act; toast.act=null; document.getElementById('toastRoot').innerHTML=''; if(fn) fn(); }
+  else if(a==='upStop'){ stopUpright(); }
+  else if(a==='upMore'){ const u=upOn(); if(u){ const el=Math.ceil((Date.now()-u.start)/MIN); prefs.upT={...u,min:Math.max(u.min,el)+5}; savePrefs(); timerRang.delete('upright'); render(); syncReminders(); } }
   else if(a==='undo'){ const fn=toast.undo; toast.undo=null; document.getElementById('toastRoot').innerHTML=''; if(fn) await fn(); }
   else if(a==='clearTooth'){ const k=t.dataset.key; const nt={...state.teeth}; delete nt[k]; closeModal(); await safe(()=>store.setTeeth(nt),'Tooth cleared'); }
 });
@@ -2822,6 +2847,8 @@ document.addEventListener('change', async ev=>{
   if(t.name==='s_home') prefs.homeLayout=t.value;
   if(t.name==='s_stash') prefs.stash=t.value;
   if(t.name==='s_away') prefs.away=t.value;
+  if(t.name==='s_upmode') prefs.upMode=t.value;
+  if(t.name==='s_upmin') prefs.upMin=+t.value;
   if(t.name==='r_on'){ if(t.value==='on'){ const ok=await askNotifyPermission(); if(!ok){ toast('Notifications are blocked. Turn them on in your phone or browser settings.'); render(); return; } prefs.remEnabled=true; if(!prefs.rem) prefs.rem={feed:180,vitd:'',med:true,appt:true}; } else prefs.remEnabled=false; }
   if(['r_feed','r_med','r_appt'].includes(t.name)){ const r=remPrefs(); if(t.name==='r_feed') r.feed=+t.value; else r[t.name.slice(2)]=t.value==='on'; prefs.rem=r; }
   if(t.name==='s_awake') prefs.keepAwake=t.value==='on';
@@ -2848,7 +2875,7 @@ document.addEventListener('submit', async ev=>{
     if(odd){ document.getElementById('confirmSlot').innerHTML=`<div class="confirm"><span>${odd} Check the number before saving.</span><span style="display:flex;gap:6px"><button type="button" class="btn sm ghost" data-act="saveOdd">Save anyway</button></span></div>`; document.getElementById('confirmSlot').scrollIntoView({block:'nearest'}); return; }
     closeModal();
     if(id){ const cur=state.entries.find(x=>x.id===id); if(type==='breast' && cur && cur.end==null){ data.end=null; data.active=cur.active; data.activeSince=cur.activeSince; data.left=cur.left; data.right=cur.right; data.start=fromInput(val('f_start'))||cur.start; } await safe(()=>store.update(id,data),'Saved'); }
-    else { const fromStash=data.fromStash && data.contents==='breastmilk'; delete data.fromStash; await safe(()=>store.add(data),`${T[type].label} logged`); if(fromStash) await takeFromStash(data.amount); }
+    else { const fromStash=data.fromStash && data.contents==='breastmilk'; delete data.fromStash; await safe(()=>store.add(data),`${T[type].label} logged`); if(fromStash) await takeFromStash(data.amount); if((type==='bottle'||type==='breast') && data.start>Date.now()-60*MIN) afterFeed(); }
   }
   if(f.id==='setupForm'){
     const birth=val('p_birth'); if(!birth){ document.getElementById('p_birth').focus(); return; }
@@ -2903,6 +2930,9 @@ document.addEventListener('submit', async ev=>{
 setInterval(()=>{
   const now=Date.now();
   document.querySelectorAll('[data-live]').forEach(el=>{
+    const k0=el.dataset.live;
+    if(k0==='up'||k0==='upsub'){ const u=upOn(); if(!u){ if(k0==='up') el.closest('.upbar')?.remove(); return; } const left=u.start+u.min*MIN-now;
+      if(left<=0){ if(!timerRang.has('upright')){ timerRang.add('upright'); if(left>-5000) chime(); render(); } } else if(k0==='up') el.textContent=fmtClock(left); return; }
     const e=state.entries.find(x=>x.id===el.dataset.id); if(!e) return;
     const k=el.dataset.live;
     if(k==='sleep'||k==='act') el.textContent=fmtClock(now-e.start);
