@@ -474,6 +474,25 @@ main{min-width:0;overflow-x:clip;padding-block:24px 96px;padding-left:max(16px,e
 .upbar .upt span{font-size:12.5px;color:var(--ink-2)}
 .upbar.done{background:color-mix(in srgb,var(--diaper) 16%,var(--surface));border-color:var(--diaper)}
 .upbar.done .upi{color:var(--diaper);background:color-mix(in srgb,var(--diaper) 22%,var(--surface))}
+.setmenu{display:flex;flex-direction:column;gap:14px}
+.setgl{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);margin:0 4px 6px}
+.setgrp{background:var(--surface);border:1px solid var(--line);border-radius:18px;overflow:hidden}
+.setrow{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;border:0;border-top:1px solid var(--line);background:none;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.setrow:first-of-type{border-top:0}
+.setrow:hover{background:var(--surface-2)}
+.setrow.on{background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.sri{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;background:color-mix(in srgb,var(--accent) 12%,transparent);color:var(--accent);flex:none}
+.sri svg{width:19px;height:19px}
+.srt{flex:1;min-width:0;display:flex;flex-direction:column}
+.srt b{font-weight:600;font-size:15.5px}
+.srt span{font-size:13px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.src{color:var(--ink-3);font-size:20px}
+.shtag{display:inline-block;font-size:11px;font-weight:700;padding:1px 7px;border-radius:99px;background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent);margin-right:4px}
+.setwrap{display:grid;grid-template-columns:320px minmax(0,1fr);gap:22px;align-items:start}
+.setwrap .setmenu{position:sticky;top:16px}
+.setttl{margin:4px 0 12px}
+.setbody>.panel{margin-bottom:16px}
+.setbody>.panel:only-of-type>h2:first-child{display:none}
 .htabs{margin-bottom:14px}
 .htabs{flex-wrap:nowrap}
 .htabs .chip{padding:6.2px 14.9px;font-size:16.1px;white-space:nowrap}
@@ -691,6 +710,9 @@ const I = {
   sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
   check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',
   upright:'<path d="M12 20V5M6.5 10.5 12 5l5.5 5.5"/>',
+  palette:'<path d="M12 3a9 9 0 1 0 0 18c1.2 0 2-.8 2-1.8 0-.5-.2-.9-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1 .8-1.6 1.8-1.6H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3z"/><circle cx="7.5" cy="11" r="1.2"/><circle cx="10" cy="7" r="1.2"/><circle cx="14.5" cy="7" r="1.2"/>',
+  bell:'<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
+  info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.6v.2"/>',
   calendar:'<rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
   tooth:'<path d="M7 3C4.5 3 3 5 3 7.5c0 3 1.5 4.5 2 7.5.4 2.5 1 6 2.5 6s1.5-4 2.5-5.5c.5-.8 1.5-.8 2 0 1 1.5 1 5.5 2.5 5.5s2.1-3.5 2.5-6c.5-3 2-4.5 2-7.5C21 5 19.5 3 17 3c-2 0-3 1-5 1S9 3 7 3z"/>',
   grip:'<circle cx="9" cy="6" r="1.4" fill="currentColor" stroke="none"/><circle cx="15" cy="6" r="1.4" fill="currentColor" stroke="none"/><circle cx="9" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="9" cy="18" r="1.4" fill="currentColor" stroke="none"/><circle cx="15" cy="18" r="1.4" fill="currentColor" stroke="none"/>',
@@ -2340,8 +2362,32 @@ function vSettings(){
   h+=`<div class="grid2"><div class="panel"><h2>Baby</h2>
     <div class="sums"><div class="sum"><b>${esc(p.name||'—')}</b><span>Name</span></div><div class="sum"><b>${p.birth?new Date(p.birth+'T00:00').toLocaleDateString():'—'}</b><span>Born</span></div><div class="sum"><b>${U.imp()?'US':'Metric'}</b><span>Units</span></div></div>
     <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" data-act="setup" ${state.canWrite?'':'disabled'}>${state.mode==='demo'?'Add your baby':'Edit profile'}</button></div></div>
-  ${familyPanel()}
-  <div class="panel" id="themePanel"><h2>Theme</h2><div class="form">
+  ${familyPanel()}`;
+  return h;
+}
+const SET_SECS=[
+  ['you','Personalize',[['appearance','Appearance','palette'],['home','Home screen','today']]],
+  ['care','Care',[['feeding','Feeding helpers','bottle'],['reminders','Reminders','bell']]],
+  ['log','Log',[['units','Units and clock','ruler'],['data','Data and backup','download']]],
+  ['app','App',[['account','Account','family'],['about','About','info']]]];
+function setSummary(k){
+  const p=state.profile||{};
+  switch(k){
+    case 'appearance': return `${prefs.theme==='custom'?'Custom colors':(THEMES[prefs.theme]?.[0]||'Default')} · ${({system:'Match device',light:'Light',dark:'Dark'})[prefs.appearance]||'Match device'}`;
+    case 'home': return `${prefs.homeLayout==='classic'?'Classic tiles':'Right now card'} · ${tileOrder().filter(t=>!isHidden(t)).length} log tiles`;
+    case 'feeding': { const u=prefs.upMode||'off'; return [u==='off'?'Upright timer off':`Upright ${prefs.upMin||15} min (${u==='auto'?'auto':'offer'})`, `Vitamin D ${({auto:'when breastfeeding',on:'always',off:'off'})[prefs.vitd||'auto']}`].join(' · '); }
+    case 'reminders': return prefs.remEnabled?'On for this phone':'Off';
+    case 'units': return `${(p.units||'imperial')==='imperial'?'oz · lb · in · °F':'ml · kg · cm · °C'} · ${prefs.clock==='24'?'24-hour':'12-hour'}`;
+    case 'data': return prefs.lastBackup?`Last backup ${new Date(prefs.lastBackup).toLocaleDateString([], {month:'short',day:'numeric'})}`:'No backup yet';
+    case 'account': return session?.user?.email||'';
+    case 'about': return `Version ${APP_VERSION}`;
+  }
+  return '';
+}
+function setSection(k){
+  const p=state.profile||{};
+  switch(k){
+    case 'appearance': return `<div class="panel" id="themePanel"><h2>Theme</h2><div class="form">
     <div class="themes" role="radiogroup" aria-label="Theme">${Object.entries(THEMES).map(([k,[n,ac,l,d]])=>`<label class="th"><input type="radio" name="s_theme" value="${k}" ${prefs.theme===k?'checked':''}><span class="pv" style="--pl:${l[0]};--ps:${l[1]};--pa:${ac[0]};--dl:${d[0]};--ds:${d[2]};--da:${ac[1]}"><i></i><i></i></span><span class="tn">${n}</span></label>`).join('')}${prefs.theme==='custom'?`<label class="th"><input type="radio" name="s_theme" value="custom" checked><span class="pv custom"><i></i><i></i></span><span class="tn">Your mix</span></label>`:''}</div>
     ${F.seg('s_mode','Light or dark',[['system','Match device'],['light','Light'],['dark','Dark']],prefs.appearance)}
     <div class="field"><span>Icons</span><div class="icsets" role="radiogroup" aria-label="Icon style">${ICON_STYLES.map(([k,n])=>`<label class="th"><input type="radio" name="s_icons" value="${k}" ${(prefs.icons||'line')===k?'checked':''}><span class="ipv">${['bottle','sleep','diaper'].map(t=>`<span class="sq ${IC(k)}" style="--c:${color(t)}">${svg(T[t].icon,'',k)}</span>`).join('')}</span><span class="tn">${n}</span></label>`).join('')}</div></div>
@@ -2349,36 +2395,51 @@ function vSettings(){
       <div class="field"><span>Accent color</span><div class="swatches" role="radiogroup" aria-label="Accent color">${Object.entries(ACCENTS).map(([k,[n,l,d]])=>`<label class="sw"><input type="radio" name="s_accent" value="${k}" ${prefs.theme==='custom'&&prefs.accent===k?'checked':''}><span style="--sw:${l};--swd:${d}"></span>${n}</label>`).join('')}</div></div>
       <div class="field"><span>Background</span><div class="swatches" role="radiogroup" aria-label="Background">${Object.entries(BGS).map(([k,[n,l,d]])=>`<label class="sw"><input type="radio" name="s_bg" value="${k}" ${prefs.theme==='custom'&&prefs.bg===k?'checked':''}><span style="--sw:${l[0]};--swd:${d[0]}"></span>${n}</label>`).join('')}</div></div>
       <p class="note">Picking a color here switches to your own mix. Tap a theme above to go back.</p></div></details>
-    <p class="note">Saved on this device, so each parent can pick their own.</p></div></div>
-  ${remindersPanel()}
-  <div class="panel"><h2>Display</h2><div class="form">
+    <p class="note">Saved on this device, so each parent can pick their own.</p></div></div>`;
+    case 'home': return `<div class="panel"><h2>Home</h2><div class="form">
     ${F.seg('s_home','Home layout',[['now','Right now card'],['classic','Classic tiles']],prefs.homeLayout==='classic'?'classic':'now')}
     ${F.seg('s_stash','Milk stash on this phone',[['show','Show'],['hide','Hide']],prefs.stash==='hide'?'hide':'show')}<p class="note" style="margin-top:-8px">Hiding it only changes this phone. The bags stay shared, and new breast-milk bottles still offer "From the milk stash" when there’s milk in it.</p>
     ${state.mode==='cloud'?F.seg('s_away','“While you were away” card',[['on','On'],['off','Off']],prefs.away==='off'?'off':'on'):''}
-    ${F.seg('s_upmode','Upright time after feeds',[['off','Off'],['offer','Offer'],['auto','Auto-start']],prefs.upMode||'off')}${(prefs.upMode||'off')!=='off'?F.seg('s_upmin','How long',[['10','10 min'],['15','15 min'],['20','20 min'],['30','30 min']],String(prefs.upMin||15)):''}<p class="note" style="margin-top:-8px">Helps with spit-up and reflux. “Offer” adds a button after each feed you save; “Auto-start” starts the countdown for you. This phone only.</p>
-    ${F.seg('s_clock','Clock',[['12','12-hour'],['24','24-hour']],prefs.clock)}
-    ${F.seg('s_awake','Keep screen on while a timer runs',[['on','On'],['off','Off']],prefs.keepAwake===false?'off':'on')}
-    ${F.seg('s_vitd','Vitamin D reminder',[['auto','When breastfeeding'],['on','Always'],['off','Off']],prefs.vitd||'auto')}
-    ${F.seg('s_units','Units',[['imperial','oz · lb · in · °F'],['metric','ml · kg · cm · °C']],p.units||'imperial')}
-    <p class="note">Clock is saved on this device. Units apply to everyone sharing this log; you can still pick oz or ml on each bottle.</p></div></div>
+    <p class="note">These choices are saved on this phone, so each person can set up their own Home.</p></div></div>
   <div class="panel" id="tilesPanel"><h2>Log tiles <button class="btn ghost sm" data-act="resetTiles">Reset</button></h2>
     <p class="note" style="margin-top:-6px">Drag rows or use the arrows to change the order on Home. Untick a tile to hide it. Saved on this device.</p>
     <div class="arrlist">${tileOrder().map((t,i,arr)=>`<div class="arr ${isHidden(t)?'off':''}" draggable="true" data-tile="${t}" style="--c:${color(t)}">
       <span class="grip" aria-hidden="true">${svg('grip')}</span><span class="mini ${IC()}">${svg(T[t].icon)}</span><span class="nm">${T[t].label}</span>
       <label class="show"><input type="checkbox" name="s_show" value="${t}" ${isHidden(t)?'':'checked'}> Show</label>
-      <span class="mv"><button type="button" data-act="move" data-tile="${t}" data-dir="-1" aria-label="Move ${T[t].label} up" ${i===0?'disabled':''}>${svg('up')}</button><button type="button" data-act="move" data-tile="${t}" data-dir="1" aria-label="Move ${T[t].label} down" ${i===arr.length-1?'disabled':''}>${svg('down')}</button></span></div>`).join('')}</div></div>
-  ${accountPanel()}
-  ${installPanel()}
-  <div class="panel"><h2>Backup &amp; restore</h2>
+      <span class="mv"><button type="button" data-act="move" data-tile="${t}" data-dir="-1" aria-label="Move ${T[t].label} up" ${i===0?'disabled':''}>${svg('up')}</button><button type="button" data-act="move" data-tile="${t}" data-dir="1" aria-label="Move ${T[t].label} down" ${i===arr.length-1?'disabled':''}>${svg('down')}</button></span></div>`).join('')}</div></div>`;
+    case 'feeding': return `<div class="panel"><h2>Feeding helpers</h2><div class="form">
+    ${F.seg('s_upmode','Upright time after feeds',[['off','Off'],['offer','Offer'],['auto','Auto-start']],prefs.upMode||'off')}${(prefs.upMode||'off')!=='off'?F.seg('s_upmin','How long',[['10','10 min'],['15','15 min'],['20','20 min'],['30','30 min']],String(prefs.upMin||15)):''}<p class="note" style="margin-top:-8px">Helps with spit-up and reflux. “Offer” adds a button after each feed you save; “Auto-start” starts the countdown for you. This phone only.</p>
+    ${F.seg('s_vitd','Vitamin D reminder',[['auto','When breastfeeding'],['on','Always'],['off','Off']],prefs.vitd||'auto')}
+    ${F.seg('s_awake','Keep screen on while a timer runs',[['on','On'],['off','Off']],prefs.keepAwake===false?'off':'on')}
+    <p class="note">Saved on this phone.</p></div></div>`;
+    case 'reminders': return remindersPanel();
+    case 'units': return `<div class="panel"><h2>Units and clock</h2><div class="form">
+    ${F.seg('s_units','Units',[['imperial','oz · lb · in · °F'],['metric','ml · kg · cm · °C']],p.units||'imperial')}<p class="note" style="margin-top:-8px"><span class="shtag">Shared</span> Units apply to everyone sharing this log. You can still pick oz or ml on each bottle, and lb or kg on each weight.</p>
+    ${F.seg('s_clock','Clock',[['12','12-hour'],['24','24-hour']],prefs.clock)}<p class="note" style="margin-top:-8px">Clock is saved on this phone.</p></div></div>`;
+    case 'data': return `${installPanel()}  <div class="panel"><h2>Backup &amp; restore</h2>
     <p>${state.mode==='cloud'?'Entries are saved in your Supabase database and sync to everyone in Family. Updating index.html never touches them.'
       : state.mode==='local'?'Entries are saved in this browser. They stay when the file is updated at the same web address, but not if you open the file from a different address or browser.'
       : 'Nothing is saved yet. Add your baby to start saving, or import a backup.'}</p>
     <p>Save a backup file to keep a safe copy or to move your log to another copy of Bebenou. Importing adds new entries and skips ones you already have, so it's safe to import the same file twice.</p>
     <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" data-act="backup" ${state.mode==='demo'?'disabled':''}>${svg('download','width="16" height="16"')} Save backup</button><label class="btn ghost" for="importFile">Import backup</label><input type="file" id="importFile" class="vh" accept=".json,application/json"><button class="btn ghost" data-act="export">Export CSV</button><button class="btn ghost" data-act="report" ${state.mode==='demo'?'disabled':''}>Doctor report (PDF)</button></div>
-    <p class="note">${prefs.lastBackup?`Last backup from this device: ${new Date(prefs.lastBackup).toLocaleDateString()}.`:'No backup saved from this device yet.'} CSV is for spreadsheets and your pediatrician; only a backup file can be imported.</p><p class="note" id="exportNote"></p></div>
-  <div class="panel"><h2>About Bebenou <span class="note" style="font-weight:500">Version ${APP_VERSION}</span></h2><p style="display:flex;gap:14px;flex-wrap:wrap;margin-top:0"><a href="privacy.html" target="_blank" rel="noopener">Privacy policy</a><a href="terms.html" target="_blank" rel="noopener">Terms of use</a><a href="delete-account.html" target="_blank" rel="noopener">Delete account</a></p><p class="note">Nap windows use typical awake times by age from Cleveland Clinic and The Sleep Lady. Growth reference lines use the WHO Child Growth Standards medians (0–24 months). Teeth timing follows the American Dental Association chart. Checkups follow the AAP Bright Futures schedule. Tummy time goals follow NIH Safe to Sleep. A fever is 100.4 °F (38 °C) or higher. Bebenou is a log, not medical advice. Call your pediatrician with any health concerns.</p></div></div>`;
-  return h;
+    <p class="note">${prefs.lastBackup?`Last backup from this device: ${new Date(prefs.lastBackup).toLocaleDateString()}.`:'No backup saved from this device yet.'} CSV is for spreadsheets and your pediatrician; only a backup file can be imported.</p><p class="note" id="exportNote"></p></div>`;
+    case 'account': return `${accountPanel()}`;
+    case 'about': return `  <div class="panel"><h2>About Bebenou <span class="note" style="font-weight:500">Version ${APP_VERSION}</span></h2><p style="display:flex;gap:14px;flex-wrap:wrap;margin-top:0"><a href="privacy.html" target="_blank" rel="noopener">Privacy policy</a><a href="terms.html" target="_blank" rel="noopener">Terms of use</a><a href="delete-account.html" target="_blank" rel="noopener">Delete account</a></p><p class="note">Nap windows use typical awake times by age from Cleveland Clinic and The Sleep Lady. Growth reference lines use the WHO Child Growth Standards medians (0–24 months). Teeth timing follows the American Dental Association chart. Checkups follow the AAP Bright Futures schedule. Tummy time goals follow NIH Safe to Sleep. A fever is 100.4 °F (38 °C) or higher. Bebenou is a log, not medical advice. Call your pediatrician with any health concerns.</p></div></div>`;
+  }
+  return '';
 }
+let setWide=matchMedia('(min-width:821px)').matches; addEventListener('resize',()=>{ const w=matchMedia('(min-width:821px)').matches; if(setWide!==null && w!==setWide && state.view==='settings') render(); setWide=w; });
+function vSettingsPage(){
+  const wide=matchMedia('(min-width:821px)').matches, all=SET_SECS.flatMap(g=>g[2]).filter(x=>x[0]!=='account'||session);
+  let sec=all.some(x=>x[0]===state.setSec)?state.setSec:null; if(wide&&!sec) sec='appearance';
+  const menu=`<nav class="setmenu" aria-label="Settings sections">${SET_SECS.map(([gk,gl,items])=>{ const it=items.filter(x=>x[0]!=='account'||session); return it.length?`<div><div class="setgl">${gl}</div><div class="setgrp">${it.map(([k,l,ic])=>`<button class="setrow ${sec===k?'on':''}" data-act="setSec" data-k="${k}" aria-current="${sec===k}"><span class="sri ${IC()}">${svg(ic)}</span><span class="srt"><b>${l}</b><span>${esc(setSummary(k))}</span></span><span class="src" aria-hidden="true">›</span></button>`).join('')}</div></div>`:''; }).join('')}</nav>`;
+  const title=sec?all.find(x=>x[0]===sec)[1]:'Settings';
+  if(!wide && sec) return `<div class="head"><div><button class="btn ghost sm" data-act="setSec" data-k="" style="margin-bottom:8px">‹ Settings</button><h1>${esc(title)}</h1></div></div><div class="setbody">${setSection(sec)}</div>`;
+  const head=`<div class="head"><div><button class="btn ghost sm" data-view="family" style="margin-bottom:8px">‹ Family</button><h1>Settings</h1></div></div>`;
+  if(!wide) return head+menu;
+  return head+`<div class="setwrap">${menu}<div class="setbody"><h2 class="setttl">${esc(title)}</h2>${setSection(sec)}</div></div>`;
+}
+
 
 /* --- History, Ask, Family, Settings pages --- */
 function vHistory(){
@@ -2396,11 +2457,7 @@ function vAsk(){
 const SETTINGS_SPLIT='<div class="panel" id="themePanel">';
 function vFamily(){
   const all=vSettings(), i=all.indexOf(SETTINGS_SPLIT), name=esc(state.profile?.name||'your baby');
-  return `<div class="head"><div><div class="sub">Who can see and add to ${name}’s log</div><h1>Family</h1></div><button class="btn ghost" data-view="settings">${svg('settings','width="18" height="18"')} Settings</button></div>`+all.slice(0,i)+'</div>';
-}
-function vSettingsPage(){
-  const all=vSettings(), i=all.indexOf(SETTINGS_SPLIT);
-  return `<div class="head"><div><button class="btn ghost sm" data-view="family" style="margin-bottom:8px">‹ Family</button><h1>Settings</h1></div></div><div class="grid2">`+all.slice(i);
+  return `<div class="head"><div><div class="sub">Who can see and add to ${name}’s log</div><h1>Family</h1></div><button class="btn ghost" data-view="settings">${svg('settings','width="18" height="18"')} Settings</button></div>`+all+'</div>';
 }
 
 /* ---------- names (who logged) ---------- */
@@ -2762,7 +2819,8 @@ document.addEventListener('click', async ev=>{
   else if(a==='dismissLocal' && state.localOffer){ prefs.dismissLocal=`${state.localOffer.n}|${state.localOffer.data.entries.length}`; savePrefs(); state.localOffer=null; render(); }
   else if(a==='move'){ const o=tileOrder(), i=o.indexOf(t.dataset.tile), j=i+(+t.dataset.dir); if(j<0||j>=o.length) return; [o[i],o[j]]=[o[j],o[i]]; prefs.tiles=o; savePrefs(); render(); const b=document.querySelector(`[data-act="move"][data-tile="${t.dataset.tile}"][data-dir="${t.dataset.dir}"]`); (b && !b.disabled ? b : document.querySelector(`[data-act="move"][data-tile="${t.dataset.tile}"]:not(:disabled)`))?.focus(); }
   else if(a==='resetTiles'){ prefs.tiles=null; prefs.hidden=[]; savePrefs(); render(); toast('Tiles reset'); }
-  else if(a==='arrange'){ state.view='settings'; render(); document.getElementById('tilesPanel')?.scrollIntoView({block:'start'}); }
+  else if(a==='arrange'){ state.view='settings'; state.setSec='home'; render(); document.getElementById('tilesPanel')?.scrollIntoView({block:'start'}); }
+  else if(a==='setSec'){ state.setSec=t.dataset.k||null; render(); scrollTo(0,0); }
   else if(a==='startBreast'){ closeModal(); await safe(()=>store.add({type:'breast',start:now,end:null,left:0,right:0,active:t.dataset.side,activeSince:now}),'Timer started'); }
   else if(a==='startAct'||a==='startTummy'){ let kind='Tummy time'; if(a==='startAct'){ const other=(val('f_aother')||'').trim(); kind=other||radio('akind')||'Tummy time'; if(other) addCustomKind(other); closeModal(); }
     const m=+t.dataset.min||0; if(kind==='Tummy time' && m){ prefs.tummyMin=m; savePrefs(); }
