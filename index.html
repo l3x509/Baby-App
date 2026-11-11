@@ -232,6 +232,23 @@ main{min-width:0;overflow-x:clip;padding-block:24px 96px;padding-left:max(16px,e
 .panel h2{font-size:17px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:8px}
 .label{font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3);font-weight:700}
 
+.genough .gr{display:grid;grid-template-columns:26px minmax(0,1fr) 76px;gap:10px;align-items:start;padding:10px 0;border-top:1px solid var(--line)}
+.genough h2+.gr{border-top:0}
+.genough .gs{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:14px;margin-top:1px}
+.genough .gs svg{width:15px;height:15px;stroke-width:3}
+.genough .gr.ok .gs{background:color-mix(in srgb,var(--diaper) 18%,transparent);color:var(--diaper)}
+.genough .gr.warn .gs{background:var(--warn-bg);color:var(--warn-ink)}
+.genough .gr.na .gs{background:var(--surface-2);color:var(--ink-3)}
+.genough .gm b{font-weight:600;font-size:14.5px}
+.genough .gn{font-size:12.5px;color:var(--ink-3)}
+.genough .gv{text-align:right;font-family:var(--display);font-weight:700;font-size:18px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.genough .gr.warn .gv{color:var(--warn-ink)}
+.gbar{position:relative;height:7px;border-radius:4px;background:var(--surface-2);margin-top:7px;max-width:420px}
+.gbar i{position:absolute;top:0;height:7px;border-radius:4px;background:color-mix(in srgb,var(--diaper) 45%,var(--surface))}
+.gbar b{position:absolute;top:-3px;width:3px;height:13px;border-radius:2px;background:var(--ink)}
+.gt{font-size:12.5px;color:var(--warn-ink);margin-top:5px}
+.gsum{margin:8px 0 0;padding:8px 10px;border-radius:10px;font-size:13.5px}
+.gsum.warn{background:var(--warn-bg);color:var(--warn-ink);font-weight:600}
 .trc{margin-bottom:14px}
 .mc .chart text{font-size:10px}
 .mc .chart text.avgl{fill:var(--ink-2);font-weight:700;paint-order:stroke;stroke:var(--surface);stroke-width:3px}
@@ -2093,6 +2110,43 @@ function trendInsights(D){
   if(prev && Math.abs(f1-f0)>=1) ic('breast','var(--feed)', `${f1<f0?'Fewer':'More'} feeds a day: ${Math.round(f1*10)/10}, ${f1<f0?'down':'up'} from ${Math.round(f0*10)/10}.${f1<f0&&b1>b0?' Bigger bottles usually mean fewer of them.':''}`);
   return out.slice(0,4);
 }
+function weightTrend(){
+  const g=state.entries.filter(e=>e.type==='growth'&&e.weight!=null&&e.start<=Date.now()).sort((a,b)=>a.start-b.start);
+  if(!g.length) return null;
+  const birthW=g[0].weight, last=g[g.length-1], age=ageDays(state.profile?.birth)??99;
+  const back=g.slice(1).find(e=>e.weight>=birthW && e.start-g[0].start>2*DAY);
+  if(!back && age<=21){ const pct=(birthW-last.weight)/birthW*100; return {mode:'loss', pct, last}; }
+  const ref=[...g].reverse().find(e=>last.start-e.start>=4*DAY && last.start-e.start<=35*DAY);
+  if(!ref) return {mode:'one', last};
+  return {mode:'gain', perWeek:(last.weight-ref.weight)/((last.start-ref.start)/(7*DAY)), last, ref};
+}
+function enoughPanel(D, shareTxt){
+  const {use,S}=D, age=ageDays(state.profile?.birth)??99, nm=state.profile?.name||'Baby';
+  const pr=state.profile?.sex==='m'?'his':state.profile?.sex==='f'?'her':'their';
+  const rows=[], bar=(v,max,lo,hi)=>{ const c=x=>Math.max(0,Math.min(100,x/max*100)); return `<div class="gbar"><i style="left:${c(lo)}%;width:${c(hi)-c(lo)}%"></i><b style="left:calc(${c(v)}% - 1.5px)"></b></div>`; };
+  const row=(ok,label,norm,val,b,tip)=>rows.push({ok,html:`<div class="gr ${ok===false?'warn':ok?'ok':'na'}"><span class="gs">${ok===false?'!':ok?svg('check'):'·'}</span><div class="gm"><div><b>${label}</b> <span class="gn">· ${norm}</span></div>${b||''}${tip&&ok===false?`<div class="gt">${tip}</div>`:''}</div><span class="gv">${val}</span></div>`});
+  if(use.length>=2){
+    if(age<183){ const f=avgOf(use,'feeds'), lo=age<60?8:6, hi=age<60?12:9; row(f>=lo-0.25, 'Feeds', `usual ${lo}–${hi} a day`, String(Math.round(f*10)/10), bar(f,14,lo,hi), `Offer feeds more often, about every 2–3 hours, including at night.`); }
+    if(age<183){ const w=avgOf(use,'wet'), lo=age<5?Math.max(1,age):6; row(w>=lo-0.25, 'Wet diapers', `usual ${lo}+ a day`, String(Math.round(w)), bar(w,10,lo,10), `Fewer wet diapers can mean ${pr} intake is low. Call your pediatrician if it continues or ${nm} seems very sleepy.`); }
+    if(age<42){ const d=avgOf(use,'dirty'), lo=age<4?1:3; row(d>=lo-0.25, 'Dirty diapers', `usual ${lo}+ a day`, String(Math.round(d)), bar(d,8,lo,8), `Fewer stools in the first weeks can be a sign of low intake. Mention it to your pediatrician.`); }
+  }
+  const wt=weightTrend(), wu=U.imp()?'oz':'g', toU=kg=>U.imp()?kg*35.274:kg*1000, rU=v=>U.imp()?Math.round(v*10)/10:Math.round(v);
+  if(age<365){
+    const lo=age<91?(U.imp()?5:150):age<183?(U.imp()?3:85):(U.imp()?2:50), hi=age<91?(U.imp()?7:200):age<183?(U.imp()?5:140):(U.imp()?3:85);
+    if(!wt) row(null,'Weight','add weights in Growth','—','');
+    else if(wt.mode==='loss'){ const p=wt.pct; row(p<=10, p>0?'Weight, from birth':'Weight', 'up to 7–10% loss is normal, back by ~2 weeks', p>0?`−${Math.round(p*10)/10}%`:'back', bar(Math.max(0,p),15,0,10), `That's more than the usual early loss. Check with your pediatrician.`); }
+    else if(wt.mode==='one') row(null,'Weight gain',`usual ${lo}–${hi} ${wu} a week`,'—','<div class="gt" style="color:var(--ink-3)">Add another weight a few days apart to see weekly gain.</div>');
+    else { const v=toU(wt.perWeek); row(v>=lo*0.85, 'Weight gain', `usual ${lo}–${hi} ${wu} a week`, `${v>=0?'+':'−'}${Math.abs(rU(v))} ${wu}`, bar(Math.max(0,v),hi*1.6,lo,hi)+`<div class="gt" style="color:var(--ink-3)">${new Date(wt.ref.start).toLocaleDateString([], {month:'short',day:'numeric'})} to ${new Date(wt.last.start).toLocaleDateString([], {month:'short',day:'numeric'})}</div>`, `Slower than usual. Mention it at ${pr} next checkup.`); }
+  }
+  if(!rows.length) return '';
+  const warns=rows.filter(r=>r.ok===false).length, thin=S.filter(s=>s.thin);
+  const nc=nextCheckup(state.profile, Date.now()), up=state.entries.filter(e=>e.type==='doctor'&&e.start>Date.now()).sort((a,b)=>a.start-b.start)[0];
+  const when=up?` at ${pr} ${new Date(up.start).toLocaleDateString([], {month:'short',day:'numeric'})} visit`:nc?` at ${pr} next checkup`:'';
+  const summary = warns>=2 ? `<p class="gsum warn">${warns} signals are below the usual range. Worth mentioning to your pediatrician${when}.</p>` : '';
+  return `<div class="panel insp genough"><h2><span>Getting enough? <span class="sub" style="font-weight:500">· last ${use.length} full days</span></span><button class="btn ghost sm" data-act="shareText" data-text="${esc(shareTxt)}">Share</button></h2>
+    ${rows.map(r=>r.html).join('')}${summary}
+    <p class="note" style="margin-top:8px">Green band = usual range (AAP), mark = ${nm}’s average.${thin.length?` ${thin.map(s=>new Date(s.d).toLocaleDateString([], {weekday:'long'})).slice(0,2).join(' and ')} had very few entries, so ${thin.length===1?'it’s':'they’re'} left out.`:''} Every baby is different; your pediatrician knows ${nm} best.</p></div>`;
+}
 function vStats(noHead){
   const n=state.statRange, D=trendsData(n), {S,use,prev}=D;
   let h=noHead?'':header('Stats', `Daily patterns over the last ${n} days`);
@@ -2103,9 +2157,8 @@ function vStats(noHead){
   const r1=v=>String(Math.round(v*10)/10), toU=ml=>U.imp()?ml/29.5735:ml, fU=(v,ax)=>U.imp()?String(Math.round(v*10)/10)+(ax?'':' oz'):String(Math.round(v))+(ax?'':' ml');
   const card=(title,big,sub,pl,chart,legend='')=>`<div class="panel mc"><div class="mch"><span class="mct">${title}</span>${pl}</div><div class="mcb"><b>${big}</b><span>${sub}</span></div>${legend}${chart}</div>`;
   // insights
-  const ins=trendInsights(D);
   const text=`${nm} · last ${use.length} days, per day: ${r1(avgOf(use,'feeds'))} feeds${avgOf(use,'bottleMl')?' ('+U.vol(avgOf(use,'bottleMl'))+' by bottle)':''}, ${Math.round(avgOf(use,'wet'))} wet and ${Math.round(avgOf(use,'dirty'))} dirty diapers. Logged with ${APP_NAME}.`;
-  h+=`<div class="panel insp"><h2><span>What stands out <span class="sub" style="font-weight:500">· ${use.length} full days</span></span><button class="btn ghost sm" data-act="shareText" data-text="${esc(text)}">Share</button></h2>${ins.join('')||'<p class="note">Keep logging to see patterns here.</p>'}</div>`;
+  h+=enoughPanel(D, text);
   h+=`<div class="grid2">`;
   // feeds
   h+=card('Feeds', r1(avgOf(use,'feeds')), 'a day', pill('feeds',0.5,r1), tChart(S,[{name:'Feeds',color:'var(--feed)',vals:S.map(s=>s.feeds)}],avgOf(use,'feeds'),(v)=>r1(v),true));
