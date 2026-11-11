@@ -491,6 +491,9 @@ main{min-width:0;overflow-x:clip;padding-block:24px 96px;padding-left:max(16px,e
 .setwrap{display:grid;grid-template-columns:320px minmax(0,1fr);gap:22px;align-items:start}
 .setwrap .setmenu{position:sticky;top:16px}
 .setttl{margin:4px 0 12px}
+.sums.s3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.sums.s3 .sum b{font-size:clamp(15px,4.4vw,22px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.invbox{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
 .setfoot{margin:18px 4px 8px;font-size:13px;color:var(--ink-3);display:flex;flex-direction:column;gap:6px}
 .setfoot b{color:var(--ink-2)}
 .setlinks{display:flex;gap:14px;flex-wrap:wrap}
@@ -2366,15 +2369,16 @@ function vSettings(){
   const p=state.profile||{};
   let h='';
   h+=`<div class="grid2"><div class="panel"><h2>Baby</h2>
-    <div class="sums"><div class="sum"><b>${esc(p.name||'—')}</b><span>Name</span></div><div class="sum"><b>${p.birth?new Date(p.birth+'T00:00').toLocaleDateString():'—'}</b><span>Born</span></div><div class="sum"><b>${U.imp()?'US':'Metric'}</b><span>Units</span></div></div>
-    <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" data-act="setup" ${state.canWrite?'':'disabled'}>${state.mode==='demo'?'Add your baby':'Edit profile'}</button></div></div>
+    <div class="sums s3"><div class="sum"><b>${esc(p.name||'—')}</b><span>Name</span></div><div class="sum"><b>${p.birth?new Date(p.birth+'T00:00').toLocaleDateString([], {month:'short',day:'numeric',...(p.birth.slice(0,4)!==String(new Date().getFullYear())?{year:'numeric'}:{})}):'—'}</b><span>Born</span></div><div class="sum"><b>${p.birth?esc(ageText(p.birth,Date.now())):'—'}</b><span>Age</span></div></div>
+    ${typeof myBabies!=='undefined'&&myBabies.length>1?`<label class="field" style="margin-top:12px"><span>Switch baby</span><select id="babySel">${myBabies.map(m=>`<option value="${esc(m.baby_id)}" ${m.baby_id===baby?.id?'selected':''}>${esc(m.babies?.name||'Baby')}</option>`).join('')}</select></label>`:''}
+    <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" data-act="setup" ${state.canWrite?'':'disabled'}>${state.mode==='demo'?'Add your baby':'Edit profile'}</button>${state.mode==='cloud'?'<button class="btn ghost" data-act="addBaby">Add another baby</button>':''}</div></div>
   ${familyPanel()}`;
   return h;
 }
 const SET_SECS=[
   ['you','Personalize',[['appearance','Appearance','palette'],['home','Home screen','today']]],
   ['care','Care',[['feeding','Feeding helpers','bottle'],['reminders','Reminders','bell']]],
-  ['log','Log',[['units','Units and clock','ruler'],['data',(typeof session!=='undefined'&&session)?'Account and data':'Data and backup','download']]]];
+  ['log','Log',[['units','Units and clock','ruler'],['data','Data and backup','download']]]];
 function setSummary(k){
   const p=state.profile||{};
   switch(k){
@@ -2432,10 +2436,11 @@ function setSection(k){
 }
 let setWide=matchMedia('(min-width:821px)').matches; addEventListener('resize',()=>{ const w=matchMedia('(min-width:821px)').matches; if(setWide!==null && w!==setWide && state.view==='settings') render(); setWide=w; });
 function vSettingsPage(){
+  const lbl=(k,l)=>k==='data'&&session?'Account and data':l;
   const wide=matchMedia('(min-width:821px)').matches, all=SET_SECS.flatMap(g=>g[2]).filter(x=>x[0]!=='account');
   let sec=all.some(x=>x[0]===state.setSec)?state.setSec:null; if(wide&&!sec) sec='appearance';
-  const menu=`<nav class="setmenu" aria-label="Settings sections">${SET_SECS.map(([gk,gl,items])=>{ const it=items.filter(x=>x[0]!=='account'); return it.length?`<div><div class="setgl">${gl}</div><div class="setgrp">${it.map(([k,l,ic])=>`<button class="setrow ${sec===k?'on':''}" data-act="setSec" data-k="${k}" aria-current="${sec===k}"><span class="sri ${IC()}">${svg(ic)}</span><span class="srt"><b>${l}</b><span>${esc(setSummary(k))}</span></span><span class="src" aria-hidden="true">›</span></button>`).join('')}</div></div>`:''; }).join('')}</nav>`;
-  const title=sec?all.find(x=>x[0]===sec)[1]:'Settings';
+  const menu=`<nav class="setmenu" aria-label="Settings sections">${SET_SECS.map(([gk,gl,items])=>{ const it=items.filter(x=>x[0]!=='account'); return it.length?`<div><div class="setgl">${gl}</div><div class="setgrp">${it.map(([k,l,ic])=>`<button class="setrow ${sec===k?'on':''}" data-act="setSec" data-k="${k}" aria-current="${sec===k}"><span class="sri ${IC()}">${svg(ic)}</span><span class="srt"><b>${lbl(k,l)}</b><span>${esc(setSummary(k))}</span></span><span class="src" aria-hidden="true">›</span></button>`).join('')}</div></div>`:''; }).join('')}</nav>`;
+  const title=sec?lbl(sec,all.find(x=>x[0]===sec)[1]):'Settings';
   if(!wide && sec) return `<div class="head"><div><button class="btn ghost sm" data-act="setSec" data-k="" style="margin-bottom:8px">‹ Settings</button><h1>${esc(title)}</h1></div></div><div class="setbody">${setSection(sec)}</div>`;
   const head=`<div class="head"><div><button class="btn ghost sm" data-view="family" style="margin-bottom:8px">‹ Family</button><h1>Settings</h1></div></div>`;
   const foot=`<footer class="setfoot"><div><b>Bebenou</b> · Version ${APP_VERSION}</div><div class="setlinks"><a href="privacy.html" target="_blank" rel="noopener">Privacy policy</a><a href="terms.html" target="_blank" rel="noopener">Terms of use</a><a href="delete-account.html" target="_blank" rel="noopener">Delete account</a></div><details><summary>Sources and disclaimer</summary><p class="note">Nap windows use typical awake times by age from Cleveland Clinic and The Sleep Lady. Growth reference lines use the WHO Child Growth Standards medians (0–24 months). Teeth timing follows the American Dental Association chart. Checkups follow the AAP Bright Futures schedule. Tummy time goals follow NIH Safe to Sleep. A fever is 100.4 °F (38 °C) or higher. Bebenou is a log, not medical advice. Call your pediatrician with any health concerns.</p></details></footer>`;
@@ -2500,16 +2505,16 @@ function familyPanel(){
     const can = self ? m.role!=='owner' : me?.role==='owner';
     return `<div class="mem"><span class="av">${esc((m.display_name||'?').trim().charAt(0).toUpperCase()||'?')}</span><span class="mn"><b>${esc(m.display_name||'Parent')}${self?' (you)':''}</b><span>${ROLE[m.role]||m.role}</span></span>${can?`<button class="btn sm ghost" data-act="removeMember" data-user="${esc(m.user_id)}" data-self="${self?1:''}">${self?'Leave':'Remove'}</button>`:''}</div>`;
   }).join('');
-  return `<div class="panel"><h2>Family</h2><div>${rows}</div><div id="memberConfirm"></div>
-    ${state.canWrite?`<div class="form" style="margin-top:14px">${F.seg('invrole','Invite someone who can',[['parent','Log entries'],['viewer','Only view']],'parent')}<div><button class="btn primary" data-act="invite">Create invite code</button></div><div id="inviteOut"></div></div>`:''}</div>`;
+  return `<div class="panel"><h2>People</h2><div>${rows}</div><div id="memberConfirm"></div>
+    <form class="form" id="nameForm" style="margin-top:12px"><div class="row2" style="align-items:end">${F.text('me_name','Your name, shown to family',me?.display_name||'','e.g. Mom, Dad, Grandma')}<div><button class="btn" type="submit">Save name</button></div></div></form>
+    ${state.canWrite?`<div class="form invbox">${F.seg('invrole','Invite someone who can',[['parent','Log entries'],['viewer','Only view']],'parent')}<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" data-act="invite">Create invite code</button><button class="btn ghost" data-act="joinOpen">Join with a code</button></div><div id="inviteOut"></div></div>`:`<div style="margin-top:12px"><button class="btn ghost" data-act="joinOpen">Join with a code</button></div>`}</div>`;
 }
 function accountPanel(){
   if(!session) return '';
   const me=myMember();
   return `<div class="panel"><h2>Account</h2><p>Signed in as <b>${esc(session.user.email||'')}</b></p>
-    ${state.mode==='cloud'?`<form class="form" id="nameForm"><div class="row2" style="align-items:end">${F.text('me_name','Your name, shown to family',me?.display_name||'','e.g. Mom, Dad, Grandma')}<div><button class="btn" type="submit">Save name</button></div></div></form>`:''}
-    ${myBabies.length>1?`<label class="field" style="margin-top:12px"><span>Baby</span><select id="babySel">${myBabies.map(m=>`<option value="${esc(m.baby_id)}" ${m.baby_id===baby?.id?'selected':''}>${esc(m.babies?.name||'Baby')}</option>`).join('')}</select></label>`:''}
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">${state.mode==='cloud'?`<button class="btn ghost" data-act="addBaby">Add another baby</button><button class="btn ghost" data-act="joinOpen">Join with a code</button>`:''}<button class="btn danger" data-act="signout">Sign out</button></div>
+    <p class="note" style="margin-top:-4px">Your name, babies and invites are on the Family page.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn danger" data-act="signout">Sign out</button></div>
     <details class="more" style="margin-top:16px"><summary style="color:var(--danger)">Delete my account</summary><div class="form" style="margin-top:10px">
       <p>This permanently deletes your sign-in and your name from every log.</p>
       <ul style="margin:0;padding-left:20px;color:var(--ink-2)"><li>A log someone else also uses stays with them, and they become its owner.</li><li>A log only you use is deleted with all its entries.</li></ul>
