@@ -1381,7 +1381,7 @@ function openPrep(appt){
 
 /* ---------- coming up ---------- */
 // Well-child visits from the AAP Bright Futures schedule: [months after birth (or days if 'd'), label]
-const CHECKUPS=[[4,'Newborn checkup (3–5 days)','d'],[1,'1-month checkup'],[2,'2-month checkup'],[4,'4-month checkup'],[6,'6-month checkup'],[9,'9-month checkup'],[12,'12-month checkup'],[15,'15-month checkup'],[18,'18-month checkup'],[24,'2-year checkup'],[30,'30-month checkup'],[36,'3-year checkup']];
+const CHECKUPS=[[4,'Newborn checkup (3–5 days)','d'],[14,'2-week checkup','d'],[1,'1-month checkup'],[2,'2-month checkup'],[4,'4-month checkup'],[6,'6-month checkup'],[9,'9-month checkup'],[12,'12-month checkup'],[15,'15-month checkup'],[18,'18-month checkup'],[24,'2-year checkup'],[30,'30-month checkup'],[36,'3-year checkup']];
 function addMonths(birth, m){ const d=new Date(birth+'T09:00'); d.setMonth(d.getMonth()+m); return d.getTime(); }
 function relDays(t, now){
   const d=Math.round((startOfDay(t)-startOfDay(now))/DAY);
@@ -1392,17 +1392,18 @@ function relDays(t, now){
 function checkupPlan(p, now){
   if(!p?.birth) return [];
   const b0=new Date(p.birth+'T00:00').getTime(), docs=state.entries.filter(e=>e.type==='doctor'), used=new Set();
-  return CHECKUPS.map(([n,label,unit])=>{
-    const due = unit==='d' ? new Date(p.birth+'T09:00').getTime()+n*DAY : addMonths(p.birth,n);
-    // matching window in days after birth: newborn 1–9, 1-month 10–45 ("by 1 month"), 2-month ±14 days, later ±21 days
-    const [from,to] = unit==='d' ? [b0+1*DAY, b0+10*DAY] : n===1 ? [b0+10*DAY, b0+46*DAY] : n===2 ? [due-14*DAY, due+15*DAY] : [due-21*DAY, due+22*DAY];
+  // Each visit counts for the checkup whose due date (from the date of birth) is closest:
+  // the window runs halfway to the previous checkup and halfway to the next one.
+  const dues=CHECKUPS.map(([n,,unit])=>unit==='d' ? new Date(p.birth+'T09:00').getTime()+n*DAY : addMonths(p.birth,n));
+  return CHECKUPS.map(([n,label],i)=>{
+    const due=dues[i], from=i?Math.max((dues[i-1]+due)/2, due-30*DAY):b0, to=i<dues.length-1?Math.min((due+dues[i+1])/2, due+45*DAY):due+60*DAY;
     const v=docs.filter(e=>!used.has(e.id)&&e.start>=from&&e.start<to).sort((a,c)=>Math.abs(a.start-due)-Math.abs(c.start-due))[0];
     if(v) used.add(v.id);
     return {label, due, v, done: !!v && v.start<=now};
   });
 }
 function nextCheckup(p, now){
-  const r=checkupPlan(p, now).find(x=>!x.v && x.due>=now-14*DAY);
+  const r=checkupPlan(p, now).find(x=>!x.v && x.due>=now-7*DAY);
   return r ? {label:r.label, due:r.due} : null;
 }
 function feedEstimate(now){
