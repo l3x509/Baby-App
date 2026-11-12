@@ -85,11 +85,11 @@ Deno.serve(async (req) => {
     const { data: baby } = await db.from("babies").select("premium_until, premium_by").eq("id", babyId).single();
     if (until) {
       await db.from("babies").update({ premium_until: until, premium_by: u.user.id }).eq("id", babyId);
-      return json({ premium: true, premium_until: until });
+      return json({ premium: true, premium_until: until, premium_by: u.user.id });
     }
     // Not subscribed: leave another family member's active subscription alone.
     const active = baby?.premium_until && new Date(baby.premium_until).getTime() > Date.now();
-    return json({ premium: !!active, premium_until: baby?.premium_until ?? null });
+    return json({ premium: !!active, premium_until: baby?.premium_until ?? null, premium_by: baby?.premium_by ?? null });
   } catch (e) {
     return json({ error: String((e as Error).message || e) }, 500);
   }

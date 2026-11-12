@@ -114,6 +114,17 @@ Common questions are answered from guides built into the app, with no setup. Per
 
 Reported answers appear in Table Editor → `ask_reports`. Review them now and then; Google Play expects reports to be used to improve answers.
 
+## Password reset emails
+
+Accounts use email and password, and Premium belongs to the account, so people must be able to get back in. Supabase's built-in email only sends to members of your Supabase team, so connect your own sender once:
+
+1. **Email sender:** create a free account with an email service such as Resend or Brevo, verify your domain (for example `lexcellentsolutions.com`), and copy its SMTP details.
+2. **Supabase → Authentication → Emails → SMTP Settings:** turn on Custom SMTP and paste the host, port, username and password. Sender: `Bebenou <no-reply@yourdomain>`.
+3. **Supabase → Authentication → URL Configuration:** set Site URL to `https://l3x509.github.io/Baby-App/` and add the same address under Redirect URLs. It must match `webUrl` in `config.js`.
+4. Optional: in Emails → Templates → Reset Password, change the subject to "Reset your Bebenou password".
+
+The reset link opens the web app, which asks for a new password. The new password then works in the Android app too.
+
 ## Premium and photos
 
 Premium is one subscription per baby log: whoever subscribes unlocks it for everyone on that log. Billing runs through Google Play, managed by RevenueCat. Photos are stored in a private Supabase Storage bucket that only family members of that log can see.
@@ -157,5 +168,5 @@ Replace `index.html` whenever there's a new version. Your log and your keys stay
 | "Couldn’t reach the sync service" | The keys in `config.js`, or your internet connection |
 | A new entry doesn't show on the other phone right away | Database → Publications → `supabase_realtime` should include `entries`, `babies` and `baby_members`. The app also refreshes when you come back to it. |
 | "Supabase is still set to confirm emails" | Step 3: turn off Confirm email |
-| Forgot your password | There's no reset email. In Supabase, go to **Authentication → Users**, find the account, and use **Send password recovery** if it's your own email, or ask me to add a reset option. Don't delete the account; that also deletes the baby's log it created. |
+| Forgot your password | Tap **Forgot your password?** on the sign-in screen. If no email arrives, finish the "Password reset emails" steps in this guide. |
 | "Invite code was already used" | Make a new code. Each one works for one person. |
