@@ -14,6 +14,9 @@
    - webUrl: the web address of this app. Password reset emails link back
      here, so add the same address in Supabase → Authentication → URL
      Configuration → Redirect URLs.
+   - googleWebClientId: Google Cloud → Credentials → the "Web application"
+     OAuth client ID (ends in .apps.googleusercontent.com). Shows
+     "Continue with Google". Safe to publish. Leave empty to hide it.
 
    Never paste the "service_role" key or a RevenueCat secret key here.
    Leave both empty to run without sync (entries stay in this browser).
@@ -23,5 +26,6 @@ window.NESTLING_CONFIG = {
   rcAndroidKey: "",
   rcWebPurchaseLink: "",
   webUrl: "https://l3x509.github.io/Baby-App/",
+  googleWebClientId: "",
   supabaseAnonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdkamNtcnpmZHJxcXFtdmVsZGlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMyMzY1NjIsImV4cCI6MjEwODgxMjU2Mn0.MW68wCM-phc9kSV5-VnwPdK1FotAqnuVeceZzvwt9SY"
 };

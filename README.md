@@ -125,6 +125,21 @@ Accounts use email and password, and Premium belongs to the account, so people m
 
 The reset link opens the web app, which asks for a new password. The new password then works in the Android app too.
 
+## Sign in with Google
+
+"Continue with Google" appears on the sign-in screen once `googleWebClientId` is set in `config.js`. On the website it uses Google's sign-in page; in the Android app it uses the phone's Google account picker (no password).
+
+1. **Google Cloud Console** (console.cloud.google.com), one project for everything:
+   - APIs & Services → OAuth consent screen: app name Bebenou, support email, logo, and the privacy policy link (`https://l3x509.github.io/Baby-App/privacy.html`). Scopes: email, profile, openid. Publish the app (move it out of Testing).
+   - Credentials → Create OAuth client ID → **Web application**. Authorized redirect URI: `https://gdjcmrzfdrqqqmveldii.supabase.co/auth/v1/callback`. Copy the client ID and secret.
+   - Credentials → Create OAuth client ID → **Android**, package `app.lexcellent.bebenou`, with the SHA-1 of your upload key. Make a second Android client with the SHA-1 from Play Console → Test and release → App integrity → **App signing key certificate**. Without the Play one, Google sign-in fails for people who install from the Play Store.
+2. **Supabase → Authentication → Sign In / Providers → Google:** turn it on. Paste the Web client ID and secret. In **Client IDs**, list the Web client ID and both Android client IDs, separated by commas. Leave "Skip nonce checks" off.
+3. **Supabase → Authentication → URL Configuration:** the Redirect URLs from the password reset step cover the website.
+4. **config.js:** set `googleWebClientId` to the **Web** client ID, not an Android one.
+5. **Android:** run `npm install`, then `npm run sync` in `android-app/`, and rebuild. The phone must have a Google account added.
+
+If someone first made an email account and later taps Continue with Google with the same address, Supabase links both to the same account, so their log and Premium stay put.
+
 ## Premium and photos
 
 Premium is one subscription per baby log: whoever subscribes unlocks it for everyone on that log. Billing runs through Google Play, managed by RevenueCat. Photos are stored in a private Supabase Storage bucket that only family members of that log can see.
