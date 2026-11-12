@@ -146,6 +146,8 @@ Premium is one subscription per baby log: whoever subscribes unlocks it for ever
 
 Free: tracking, sharing with one coparent, safety alerts, 7-day trends, common questions. Premium: photos on entries, doctor report PDF, pattern alerts, weight gain and WHO percentiles, 14/30-day trends and typical day, health trend charts, quick and voice add, personal Ask answers, unlimited caregivers and babies, milestone timeline and monthly recap, upright timer, milk stash pro, home-screen widget, all themes, CSV export.
 
+**Turn Premium on or off for someone by hand** (testers, friends, a refund, a promo): run `migrations/005-premium-switch.sql` once. Then open **Table Editor → premium_access**, find their email, and tick or untick **premium**. Every account has a row, and new sign-ups are added automatically. The person and everyone on their baby logs get Premium the next time the app opens. The `note` column is for your own reminders ("tester", "free year"). This switch sits on top of paid subscriptions: unticking it never cancels anyone's Google Play subscription.
+
 Sample data and self-hosted logs show every feature. To open everything for everyone during testing, add `premiumOpen: true` to `config.js`.
 
 1. **Run `migrations/004-premium-photos.sql`** in the SQL Editor. It adds the premium fields (only the server can change them) and creates the private `photos` bucket with its access rules.
@@ -165,7 +167,7 @@ Subscribing happens in the Android app. On the web, Premium works once someone i
 
 ## Database updates
 
-If you set up Supabase before November 1, 2026, run the migrations you haven't run yet in the SQL Editor, in order: `migrations/002-account-deletion.sql` (account deletion), `migrations/003-ask.sql` (Ask Bebenou), then `migrations/004-premium-photos.sql` (Premium and photos). A new setup gets all of them from `schema.sql` automatically.
+If you set up Supabase before November 1, 2026, run the migrations you haven't run yet in the SQL Editor, in order: `migrations/002-account-deletion.sql` (account deletion), `migrations/003-ask.sql` (Ask Bebenou), then `migrations/004-premium-photos.sql` (Premium and photos), then `migrations/005-premium-switch.sql` (Premium on/off switch). A new setup gets all of them from `schema.sql` automatically.
 
 ## Android app
 

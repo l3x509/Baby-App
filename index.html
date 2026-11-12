@@ -2549,7 +2549,7 @@ function vSettingsPage(){
   if(!wide && sec) return `<div class="head"><div><button class="btn ghost sm" data-act="setSec" data-k="" style="margin-bottom:8px">‹ Settings</button><h1>${esc(title)}</h1></div></div><div class="setbody">${setSection(sec)}</div>`;
   const head=`<div class="head"><div><button class="btn ghost sm" data-view="family" style="margin-bottom:8px">‹ Family</button><h1>Settings</h1></div></div>`;
   const foot=`<footer class="setfoot"><div><b>Bebenou</b> · Version ${APP_VERSION}</div><div class="setlinks"><a href="privacy.html" target="_blank" rel="noopener">Privacy policy</a><a href="terms.html" target="_blank" rel="noopener">Terms of use</a><a href="delete-account.html" target="_blank" rel="noopener">Delete account</a></div><details><summary>Sources and disclaimer</summary><p class="note">Nap windows use typical awake times by age from Cleveland Clinic and The Sleep Lady. Growth reference lines use the WHO Child Growth Standards medians (0–24 months). Teeth timing follows the American Dental Association chart. Checkups follow the AAP Bright Futures schedule. Tummy time goals follow NIH Safe to Sleep. A fever is 100.4 °F (38 °C) or higher. Bebenou is a log, not medical advice. Call your pediatrician with any health concerns.</p></details></footer>`;
-  const pbar = state.mode!=='cloud' ? '' : isPremium() ? `<div class="prembar" role="status"><span class="pstar big">✦</span><span><b>Premium is on</b><span class="sub">For everyone on ${esc(state.profile?.name||'this')}’s log${baby?.premium_until&&new Date(baby.premium_until).getFullYear()<2900?' · renews or ends '+new Date(baby.premium_until).toLocaleDateString(LOC()):''}</span>${baby?.premium_by===uid()?`<a class="linkbtn" style="font-size:13px;margin-top:2px" target="_blank" rel="noopener" href="https://play.google.com/store/account/subscriptions?package=app.lexcellent.bebenou">Manage subscription</a>`:''}</span></div>` : `<button class="prembar" data-act="paywall"><span class="pstar big">✦</span><span><b>Bebenou Premium</b><span class="sub">Photos, doctor report, alerts, percentiles and more, for the whole family</span></span></button>`;
+  const pbar = state.mode!=='cloud' ? '' : isPremium() ? `<div class="prembar" role="status"><span class="pstar big">✦</span><span><b>Premium is on</b><span class="sub">For everyone on ${esc(state.profile?.name||'this')}’s log${!(baby?.premium_until&&new Date(baby.premium_until)>Date.now())&&premiumGrant.on?' · given by Bebenou':''}${baby?.premium_until&&new Date(baby.premium_until)>Date.now()&&new Date(baby.premium_until).getFullYear()<2900?' · renews or ends '+new Date(baby.premium_until).toLocaleDateString(LOC()):''}</span>${baby?.premium_by===uid()?`<a class="linkbtn" style="font-size:13px;margin-top:2px" target="_blank" rel="noopener" href="https://play.google.com/store/account/subscriptions?package=app.lexcellent.bebenou">Manage subscription</a>`:''}</span></div>` : `<button class="prembar" data-act="paywall"><span class="pstar big">✦</span><span><b>Bebenou Premium</b><span class="sub">Photos, doctor report, alerts, percentiles and more, for the whole family</span></span></button>`;
   if(!wide) return head+pbar+menu+foot;
   return head+`<div class="setwrap"><div>${pbar}${menu}${foot}</div><div class="setbody"><h2 class="setttl">${esc(title)}</h2>${setSection(sec)}</div></div>`;
 }
@@ -3262,6 +3262,7 @@ async function openBaby(id, quiet){
     const b=must(await sb.from('babies').select('*').eq('id',id).single());
     if(baby?.id!==id) state.ask=[];
     applyBabyRow(b);
+    checkPremiumGrant(id);
     if(!(await loadMembers(id))) return;
     const es=await fetchEntries(id);
     if(loadingFor!==id) return;
@@ -3377,7 +3378,19 @@ const PFEAT=[
 function isPremium(){
   if(CFG.premiumOpen) return true;
   if(state.mode!=='cloud') return true;              // sample data and self-hosted logs show everything
+  if(premiumGrant.id && premiumGrant.id===baby?.id && premiumGrant.on) return true;   // switch in Supabase → premium_access
   const u=baby?.premium_until; return !!u && new Date(u).getTime()>Date.now();
+}
+// Premium turned on by hand in Supabase (Table Editor → premium_access → premium) for anyone on this log.
+let premiumGrant={id:null,on:false};
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible' && state.mode==='cloud' && baby?.id) checkPremiumGrant(baby.id); });
+async function checkPremiumGrant(id){
+  try{
+    const {data,error}=await sb.rpc('log_premium_grant',{b:id});
+    if(error) return;   // switch table not set up yet
+    const on=!!data, changed=premiumGrant.id!==id||premiumGrant.on!==on;
+    premiumGrant={id,on}; if(changed && baby?.id===id) render();
+  }catch(e){}
 }
 const pBadge = () => isPremium() ? '' : `<span class="pbadge" aria-label="Premium">✦ Premium</span>`;
 function needPremium(feature){ if(isPremium()) return false; openPaywall(feature); return true; }
