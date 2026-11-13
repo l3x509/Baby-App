@@ -146,7 +146,9 @@ Premium is one subscription per baby log: whoever subscribes unlocks it for ever
 
 Free: tracking, sharing with one coparent, safety alerts, 7-day trends, common questions. Premium: photos on entries, doctor report PDF, pattern alerts, weight gain and WHO percentiles, 14/30-day trends and typical day, health trend charts, quick and voice add, personal Ask answers, unlimited caregivers and babies, milestone timeline and monthly recap, upright timer, milk stash pro, home-screen widget, all themes, CSV export.
 
-**Turn Premium on or off for someone by hand** (testers, friends, a refund, a promo): run `migrations/005-premium-switch.sql` once. Then open **Table Editor → premium_access**, find their email, and tick or untick **premium**. Every account has a row, and new sign-ups are added automatically. The person and everyone on their baby logs get Premium the next time the app opens. The `note` column is for your own reminders ("tester", "free year"). This switch sits on top of paid subscriptions: unticking it never cancels anyone's Google Play subscription.
+**Turn Premium on or off for someone by hand** (testers, friends, a refund, a promo): run `migrations/005-premium-switch.sql` once. Then open **Table Editor → premium_access**, find their email, and tick or untick **premium**. Every account has a row, and new sign-ups are added automatically. The person and everyone on their baby logs get Premium the next time the app opens. Put a date in **ends** for a free month or a trial: Premium turns itself off after that day. Leave it empty to keep it on until you untick it. The `note` column is for your own reminders ("tester", "free year").
+
+Paid subscriptions need nothing from you: each renewal extends Premium, and when someone cancels or a payment fails, it turns off at the end of the time they paid for. This switch sits on top of paid subscriptions: unticking it never cancels anyone's Google Play subscription.
 
 Sample data and self-hosted logs show every feature. To open everything for everyone during testing, add `premiumOpen: true` to `config.js`.
 

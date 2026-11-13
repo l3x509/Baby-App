@@ -5,6 +5,8 @@
 -- How to use it: Table Editor → premium_access. Every account has a row
 -- (new sign-ups are added on their own). Tick "premium" to turn Premium on,
 -- untick to turn it off. Everyone on that person's baby logs gets it too.
+-- Optional "ends" date: Premium turns itself off after that day (a free
+-- month, a trial). Leave it empty to keep it on until you untick it.
 -- It sits on top of paid subscriptions and never changes them.
 -- =====================================================================
 
@@ -12,9 +14,11 @@ create table if not exists public.premium_access (
   user_id    uuid primary key references auth.users(id) on delete cascade,
   email      text,
   premium    boolean not null default false,
+  ends       date,
   note       text,
   updated_at timestamptz not null default now()
 );
+alter table public.premium_access add column if not exists ends date;
 
 -- Private: only you (the dashboard) can see or change this table.
 alter table public.premium_access enable row level security;
@@ -52,7 +56,7 @@ language sql stable security definer set search_path = public as $$
   select public.is_member(b) and exists (
     select 1 from public.baby_members m
     join public.premium_access p on p.user_id = m.user_id
-    where m.baby_id = b and p.premium
+    where m.baby_id = b and p.premium and (p.ends is null or p.ends >= current_date)
   )
 $$;
 revoke all on function public.log_premium_grant(uuid) from public, anon;
